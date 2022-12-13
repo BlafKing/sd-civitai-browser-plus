@@ -100,7 +100,7 @@ def on_ui_tabs():
             sort_type = gr.Radio(label='Sort List by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Newest", type="value")
         with gr.Row():
             search_model = gr.Checkbox(label="Search by term?", value=False)
-            search_term = gr.Textbox(interactive=True, lines=1)
+            search_term = gr.Textbox(label="Search terms:", interactive=True, lines=1)
         with gr.Row():
             get_list_from_api = gr.Button(label="Get List", value="Get List")
             get_next_page = gr.Button(value="Next Page")
