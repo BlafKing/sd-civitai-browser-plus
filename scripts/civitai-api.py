@@ -3,17 +3,18 @@ import json
 import modules.scripts as scripts
 import gradio as gr
 from modules import script_callbacks
+import time
 
 # Set the URL for the API endpoint
 api_url = "https://civitai.com/api/v1/models?limit=50"
 json_data = None
 
-def api_to_data(sort_type, search_model, search_term=None):
-    if search_model and search_term:
+def api_to_data(content_type, sort_type, use_search_term, search_term=None):
+    if use_search_term and search_term:
         search_term = search_term.replace(" ","%20")
-        return request_civit_api(f"{api_url}&types=Checkpoint&sort={sort_type}&query={search_term}")
+        return request_civit_api(f"{api_url}&types={content_type}&sort={sort_type}&query={search_term}")
     else:
-        return request_civit_api(f"{api_url}&types=Checkpoint&sort={sort_type}")
+        return request_civit_api(f"{api_url}&types={content_type}&sort={sort_type}")
 
 def api_next_page(next_page_url=None):
     global json_data
@@ -32,32 +33,34 @@ def update_next_page():
     except TypeError: return gr.Dropdown.update(choices=[], value=None)
     for item in json_data['items']:
         model_dict[item['name']] = item['name']
-    return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None)
+    return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None), gr.Dropdown.update(choices=[], value=None)
 
 
-def update_model_list(sort_type, search_model, search_term):
+def update_model_list(content_type, sort_type, use_search_term, search_term):
     global json_data
-    json_data = api_to_data(sort_type, search_model, search_term)
+    json_data = api_to_data(content_type, sort_type, use_search_term, search_term)
     model_dict = {}
     for item in json_data['items']:
         model_dict[item['name']] = item['name']
-    return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None)
+    return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None), gr.Dropdown.update(choices=[], value=None)
 
 def update_model_versions(model_name=None):
-    if model_name:
+    if model_name is not None:
         global json_data
         versions_dict = {}
         for item in json_data['items']:
             if item['name'] == model_name:
 
                 for model in item['modelVersions']:
-                    versions_dict[model['name']] = item['name']
-        return gr.Dropdown.update(choices=[k for k, v in versions_dict.items()], value=None)
+                    versions_dict[model['name']] = item["name"]
+        return gr.Dropdown.update(choices=[k + ' - ' + v for k, v in versions_dict.items()], value=f'{next(iter(versions_dict.keys()))} - {model_name}')
     else:
         return gr.Dropdown.update(choices=[], value=None)
 
+
 def update_model_info(model_name=None, model_version=None):
     if model_name and model_version:
+        model_version = model_version.replace(f' - {model_name}','').strip()
         global json_data
         output_html = ""
         output_training = ""
@@ -97,10 +100,12 @@ def request_civit_api(api_url=None):
 def on_ui_tabs():
     with gr.Blocks() as civitai_interface:
         with gr.Row():
+            content_type = gr.Radio(label='Content type:', choices=["Checkpoint","Hypernetwork","TextualInversion","AestheticGradient", "VAE"], value="Checkpoint", type="value")
+        with gr.Row():
             sort_type = gr.Radio(label='Sort List by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Newest", type="value")
         with gr.Row():
-            search_model = gr.Checkbox(label="Search by term?", value=False)
-            search_term = gr.Textbox(label="Search terms:", interactive=True, lines=1)
+            use_search_term = gr.Checkbox(label="Search by term?", value=False)
+            search_term = gr.Textbox(interactive=True, lines=1)
         with gr.Row():
             get_list_from_api = gr.Button(label="Get List", value="Get List")
             get_next_page = gr.Button(value="Next Page")
@@ -115,12 +120,14 @@ def on_ui_tabs():
         get_list_from_api.click(
             fn=update_model_list,
             inputs=[
+            content_type,
             sort_type,
-            search_model,
+            use_search_term,
             search_term,
             ],
             outputs=[
             list_models,
+            list_versions,
             ]
         )
 
@@ -151,6 +158,7 @@ def on_ui_tabs():
             ],
             outputs=[
             list_models,
+            list_versions,
             ]
         )
 
