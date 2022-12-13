@@ -8,21 +8,39 @@ from modules import script_callbacks
 api_url = "https://civitai.com/api/v1/models?limit=50"
 json_data = None
 
-def api_to_data(sort_type):
-    json_data = request_civit_api(f"{api_url}&types=Checkpoint&sort={sort_type}")
-    return json_data
+def api_to_data(sort_type, search_model, search_term=None):
+    if search_model and search_term:
+        search_term = search_term.replace(" ","%20")
+        return request_civit_api(f"{api_url}&types=Checkpoint&sort={sort_type}&query={search_term}")
+    else:
+        return request_civit_api(f"{api_url}&types=Checkpoint&sort={sort_type}")
 
-
-def update_model_list(sort_type):
+def api_next_page(next_page_url=None):
     global json_data
-    json_data = api_to_data(sort_type)
+    try: json_data['metadata']['nextPage']
+    except: return
+    if json_data['metadata']['nextPage'] is not None:
+        next_page_url = json_data['metadata']['nextPage']
+    if next_page_url is not None:
+        return request_civit_api(next_page_url)
+
+def update_next_page():
+    global json_data
+    json_data = api_next_page()
     model_dict = {}
-    
-    count = 0
+    try: json_data['items']
+    except TypeError: return gr.Dropdown.update(choices=[], value=None)
     for item in json_data['items']:
         model_dict[item['name']] = item['name']
-        
-    
+    return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None)
+
+
+def update_model_list(sort_type, search_model, search_term):
+    global json_data
+    json_data = api_to_data(sort_type, search_model, search_term)
+    model_dict = {}
+    for item in json_data['items']:
+        model_dict[item['name']] = item['name']
     return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None)
 
 def update_model_versions(model_name=None):
@@ -51,9 +69,11 @@ def update_model_info(model_name=None, model_version=None):
                         if model['trainedWords']:
                             output_training = " # ".join(model['trainedWords'])
                         model_url = model['downloadUrl']
+                        img_html = '<HEAD><style>img { display: inline-block; }</style></HEAD><div class="column">'
                         for pic in model['images']:
-                            img_html = f"{img_html}<img src={pic['url']} width=400px></img>"
-                        output_html = f"<B>Model:</b> {model_name}<br><b>Version:</b> {model_version}<br><b>Download:</b> <a href={model_url}>Here</a><br><br><div align=center>{img_html}"
+                            img_html = img_html + f'<img src={pic["url"]} width=400px></img>'
+                        img_html = img_html + '</div>'
+                        output_html = f"<B>Model:</b> {model_name}<br><b>Version:</b> {model_version}<br><a href={model_url}><b>Download Here</b></a><br><br><div align=center>{img_html}</div>"
 
 
 
@@ -71,82 +91,21 @@ def request_civit_api(api_url=None):
       print("Request failed with status code: {}".format(response.status_code))
       exit()
 
-    # New code test
     data = json.loads(response.text)
-
-
-    current_page = data['metadata']['currentPage']
-    total_pages = data['metadata']['totalPages']
-    if data['metadata']['nextPage']:
-        next_page = data['metadata']['nextPage']
-    for item in data['items']:
-        print('#################################################################################')
-        print(f"Model Name: {item['name']}")
-        print('#################################################################################')
-        print()
-        for model in item['modelVersions']:
-
-        # Print the name, trainedWords, and downloadUrl for each item
-            print(f"Version: {model['name']}")
-            if model['trainedWords']:
-                print(f"Trained words: {model['trainedWords']}")
-            print(f"Download URL: {model['downloadUrl']}")
-            print(f"Preview Images:")
-            for pic in model['images']:
-                print(pic['url'])
-            print()
-    print('--------------------------------------------------------------------------------')
-    print(f"Page: {current_page}/{total_pages}")
-    if next_page:
-        print(f"Next: {next_page}")
     return data
-
-def get_versions_of_model(model_name, json_data):
-    versions_dict = {}
-    for item in json_data['items']:
-        if item['name'] == model_name:
-
-            for model in item['modelVersions']:
-                versions_dict[model['name']] = item['name']
-                # Print the name, trainedWords, and downloadUrl for each item
-                print(f"Version: {model['name']}")
-                if model['trainedWords']:
-                    print(f"Trained words: {model['trainedWords']}")
-                print(f"Download URL: {model['downloadUrl']}")
-                print(f"Preview Images:")
-                for pic in model['images']:
-                    print(pic['url'])
-                print()
-
-
-def choose_model_from_api(model_name, model_version, json_data):
-    for item in json_data['items']:
-        if item['name'] == model_name:
-
-            for model in item['modelVersions']:
-
-                # Print the name, trainedWords, and downloadUrl for each item
-                print(f"Version: {model['name']}")
-                if model['trainedWords']:
-                    print(f"Trained words: {model['trainedWords']}")
-                print(f"Download URL: {model['downloadUrl']}")
-                print(f"Preview Images:")
-                for pic in model['images']:
-                    print(pic['url'])
-                print()
-
-#json_data = request_civit_api(api_url)
 
 def on_ui_tabs():
     with gr.Blocks() as civitai_interface:
         with gr.Row():
-            sort_type = gr.Radio(label='Site to search', choices=["Newest","Most Downloaded"], value="Newest", type="value")
+            sort_type = gr.Radio(label='Sort List by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Newest", type="value")
+        with gr.Row():
+            search_model = gr.Checkbox(label="Search by term?", value=False)
+            search_term = gr.Textbox(interactive=True, lines=1)
+        with gr.Row():
             get_list_from_api = gr.Button(label="Get List", value="Get List")
+            get_next_page = gr.Button(value="Next Page")
         with gr.Row():
             list_models = gr.Dropdown(label="Model", choices=[], interactive=True, elem_id="quicksettings", value=None)
-            #refresh_checkpoint = gr.Button(value=refresh_symbol, elem_id="refresh_sd_model_checkpoint")
-            #list_models = gr.Dropdown(label="List Models", elem_id="list_models_id", choices=[v for k, v in model_dict_list.items()], value=next(iter(model_dict_list.keys())), interactive=True)
-        
             list_versions = gr.Dropdown(label="Version", choices=[], interactive=True, elem_id="quicksettings", value=None)
         with gr.Row():
             txt_list = ""
@@ -157,13 +116,14 @@ def on_ui_tabs():
             fn=update_model_list,
             inputs=[
             sort_type,
+            search_model,
+            search_term,
             ],
             outputs=[
             list_models,
             ]
-
-
         )
+
         list_models.change(
             fn=update_model_versions,
             inputs=[
@@ -173,6 +133,7 @@ def on_ui_tabs():
             list_versions,
             ]
         )
+
         list_versions.change(
             fn=update_model_info,
             inputs=[
@@ -184,15 +145,14 @@ def on_ui_tabs():
             dummy,
             ]
         )
-
-#        refresh_checkpoint.click(
-#            fn=refresh_models,
-#            inputs=[],
-#            outputs=[
-#            list_models,
-#            ]
-#        )
-        
+        get_next_page.click(
+            fn=update_next_page,
+            inputs=[
+            ],
+            outputs=[
+            list_models,
+            ]
+        )
 
     return (civitai_interface, "CivitAi", "civitai_interface"),
 
