@@ -79,6 +79,9 @@ def update_model_info(model_name=None, model_version=None):
         img_html = ""
         for item in json_data['items']:
             if item['name'] == model_name:
+                model_uploader = item['creator']['username']
+                if item['description']:
+                    model_desc = item['description']
                 for model in item['modelVersions']:
                     if model['name'] == model_version:
                         if model['trainedWords']:
@@ -88,7 +91,7 @@ def update_model_info(model_name=None, model_version=None):
                         for pic in model['images']:
                             img_html = img_html + f'<img src={pic["url"]} width=400px></img>'
                         img_html = img_html + '</div>'
-                        output_html = f"<B>Model:</b> {model_name}<br><b>Version:</b> {model_version}<br><a href={model_url}><b>Download Here</b></a><br><br><div align=center>{img_html}</div>"
+                        output_html = f"<p><b>Model:</b> {model_name}<br><b>Version:</b> {model_version}<br><b>Uploaded by:</b> {model_uploader}<br><br><a href={model_url}><b>Download Here</b></a></p><br><br>{model_desc}<br><div align=center>{img_html}</div>"
 
 
 
