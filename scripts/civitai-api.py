@@ -77,6 +77,7 @@ def update_model_info(model_name=None, model_version=None):
         output_html = ""
         output_training = ""
         img_html = ""
+        model_desc = ""
         for item in json_data['items']:
             if item['name'] == model_name:
                 model_uploader = item['creator']['username']
