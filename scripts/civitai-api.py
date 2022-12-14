@@ -25,23 +25,35 @@ def api_next_page(next_page_url=None):
     if next_page_url is not None:
         return request_civit_api(next_page_url)
 
-def update_next_page():
+def update_next_page(show_nsfw):
     global json_data
     json_data = api_next_page()
     model_dict = {}
     try: json_data['items']
     except TypeError: return gr.Dropdown.update(choices=[], value=None)
-    for item in json_data['items']:
-        model_dict[item['name']] = item['name']
+    if show_nsfw:
+        for item in json_data['items']:
+            model_dict[item['name']] = item['name']
+    else:
+        for item in json_data['items']:
+            temp_nsfw = item['nsfw']
+            if not temp_nsfw:
+                model_dict[item['name']] = item['name']
     return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None), gr.Dropdown.update(choices=[], value=None)
 
 
-def update_model_list(content_type, sort_type, use_search_term, search_term):
+def update_model_list(content_type, sort_type, use_search_term, search_term, show_nsfw):
     global json_data
     json_data = api_to_data(content_type, sort_type, use_search_term, search_term)
     model_dict = {}
-    for item in json_data['items']:
-        model_dict[item['name']] = item['name']
+    if show_nsfw:
+        for item in json_data['items']:
+            model_dict[item['name']] = item['name']
+    else:
+        for item in json_data['items']:
+            temp_nsfw = item['nsfw']
+            if not temp_nsfw:
+                model_dict[item['name']] = item['name']
     return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None), gr.Dropdown.update(choices=[], value=None)
 
 def update_model_versions(model_name=None):
@@ -100,12 +112,15 @@ def request_civit_api(api_url=None):
 def on_ui_tabs():
     with gr.Blocks() as civitai_interface:
         with gr.Row():
-            content_type = gr.Radio(label='Content type:', choices=["Checkpoint","Hypernetwork","TextualInversion","AestheticGradient", "VAE"], value="Checkpoint", type="value")
-        with gr.Row():
-            sort_type = gr.Radio(label='Sort List by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Newest", type="value")
+            with gr.Column(scale=2):
+                content_type = gr.Radio(label='Content type:', choices=["Checkpoint","Hypernetwork","TextualInversion","AestheticGradient", "VAE"], value="Checkpoint", type="value")
+            with gr.Column(scale=2):
+                sort_type = gr.Radio(label='Sort List by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Newest", type="value")
+            with gr.Column(scale=1):
+                show_nsfw = gr.Checkbox(label="Show NSFW", value=True)
         with gr.Row():
             use_search_term = gr.Checkbox(label="Search by term?", value=False)
-            search_term = gr.Textbox(interactive=True, lines=1)
+            search_term = gr.Textbox(label="Search Term", interactive=True, lines=1)
         with gr.Row():
             get_list_from_api = gr.Button(label="Get List", value="Get List")
             get_next_page = gr.Button(value="Next Page")
@@ -124,6 +139,7 @@ def on_ui_tabs():
             sort_type,
             use_search_term,
             search_term,
+            show_nsfw,
             ],
             outputs=[
             list_models,
@@ -155,6 +171,7 @@ def on_ui_tabs():
         get_next_page.click(
             fn=update_next_page,
             inputs=[
+            show_nsfw,
             ],
             outputs=[
             list_models,
