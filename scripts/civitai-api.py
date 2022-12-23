@@ -4,6 +4,129 @@ import modules.scripts as scripts
 import gradio as gr
 from modules import script_callbacks
 import time
+import threading
+import urllib.request
+import os
+from tqdm import tqdm
+import re
+
+def download_file(url, file_name):
+    # Download the file and save it to a local file
+    #response = requests.get(url)
+    #open(file_name, "wb").write(response.content)
+    response = requests.get(url, stream=True)
+
+    # Get the total size of the file
+    total_size = int(response.headers.get("Content-Length", 0))
+    tokens = re.split(re.escape('\\'), file_name)
+    file_name_display = tokens[-1]
+    # Initialize the progress bar
+    progress = tqdm(total=total_size, unit="B", unit_scale=True, desc=f"Downloading {file_name_display}")
+
+    # Open a local file to save the download
+    with open(file_name, "wb") as f:
+        # Iterate over the response chunks and update the progress bar
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+                progress.update(len(chunk))
+
+    # Close the progress bar
+    progress.close()
+
+def download_file_thread(url, file_name, content_type, use_new_folder, model_name):
+    if content_type == "Checkpoint":
+        folder = "models/Stable-diffusion"
+        new_folder = "models/Stable-diffusion/new"
+    elif content_type == "Hypernetwork":
+        folder = "models/hypernetworks"
+        new_folder = "models/hypernetworks/new"
+    elif content_type == "TextualInversion":
+        folder = "embeddings"
+        new_folder = "embeddings/new"
+    elif content_type == "AestheticGradient":
+        folder = "extensions/stable-diffusion-webui-aesthetic-gradients/aesthetic_embeddings"
+        new_folder = "extensions/stable-diffusion-webui-aesthetic-gradients/aesthetic_embeddings/new"
+    elif content_type == "VAE":
+        folder = "models/VAE"
+        new_folder = "models/VAE/new"
+    if content_type == "TextualInversion" or content_type == "VAE" or content_type == "AestheticGradient":
+        if use_new_folder:
+            model_folder = new_folder
+            if not os.path.exists(new_folder):
+                os.makedirs(new_folder)
+            
+        else:
+            model_folder = folder
+            if not os.path.exists(model_folder):
+                os.makedirs(model_folder)
+    else:            
+        if use_new_folder:
+            model_folder = os.path.join(new_folder,model_name.replace(" ","_").replace("(","").replace(")","").replace("|",""))
+            if not os.path.exists(new_folder):
+                os.makedirs(new_folder)
+            if not os.path.exists(model_folder):
+                os.makedirs(model_folder)
+            
+        else:
+            model_folder = os.path.join(folder,model_name.replace(" ","_").replace("(","").replace(")","").replace("|",""))
+            if not os.path.exists(model_folder):
+                os.makedirs(model_folder)
+
+    path_to_new_file = os.path.join(model_folder, file_name)     
+
+    thread = threading.Thread(target=download_file, args=(url, path_to_new_file))
+
+        # Start the thread
+    thread.start()
+
+def save_text_file(file_name, content_type, use_new_folder, trained_words, model_name):
+    if content_type == "Checkpoint":
+        folder = "models/Stable-diffusion"
+        new_folder = "models/Stable-diffusion/new"
+    elif content_type == "Hypernetwork":
+        folder = "models/hypernetworks"
+        new_folder = "models/hypernetworks/new"
+    elif content_type == "TextualInversion":
+        folder = "embeddings"
+        new_folder = "embeddings/new"
+    elif content_type == "AestheticGradient":
+        folder = "extensions/stable-diffusion-webui-aesthetic-gradients/aesthetic_embeddings"
+        new_folder = "extensions/stable-diffusion-webui-aesthetic-gradients/aesthetic_embeddings/new"
+    elif content_type == "VAE":
+        folder = "models/VAE"
+        new_folder = "models/VAE/new"
+    if content_type == "TextualInversion" or content_type == "VAE" or content_type == "AestheticGradient":
+        if use_new_folder:
+            model_folder = new_folder
+            if not os.path.exists(new_folder):
+                os.makedirs(new_folder)
+            
+        else:
+            model_folder = folder
+            if not os.path.exists(model_folder):
+                os.makedirs(model_folder)
+    else:            
+        if use_new_folder:
+            model_folder = os.path.join(new_folder,model_name.replace(" ","_").replace("(","").replace(")","").replace("|",""))
+            if not os.path.exists(new_folder):
+                os.makedirs(new_folder)
+            if not os.path.exists(model_folder):
+                os.makedirs(model_folder)
+            
+        else:
+            model_folder = os.path.join(folder,model_name.replace(" ","_").replace("(","").replace(")","").replace("|",""))
+            if not os.path.exists(model_folder):
+                os.makedirs(model_folder)
+   
+        
+
+
+    path_to_new_file = os.path.join(model_folder, file_name.replace(".ckpt",".txt").replace(".safetensors",".txt").replace(".pt",".txt"))
+    if not os.path.exists(path_to_new_file):
+        with open(path_to_new_file, 'w') as f:
+            f.write(trained_words)
+
 
 # Set the URL for the API endpoint
 api_url = "https://civitai.com/api/v1/models?limit=50"
@@ -69,6 +192,27 @@ def update_model_versions(model_name=None):
     else:
         return gr.Dropdown.update(choices=[], value=None)
 
+def update_dl_url(model_name=None, model_version=None, model_filename=None):
+    if model_filename:
+        global json_data
+        dl_dict = {}
+        dl_url = None
+        model_version = model_version.replace(f' - {model_name}','').strip()
+        for item in json_data['items']:
+            if item['name'] == model_name:
+                print("found model name")
+                for model in item['modelVersions']:
+                    if model['name'] == model_version:
+                        print("Found model version")
+                        for file in model['files']:
+                            if file['name'] == model_filename:
+                                print("Found model filename")
+                                dl_url = file['downloadUrl']
+                                print(f'{dl_url} - {file["name"]}')
+                            #dl_dict[file['name']] = file['downloadUrl']
+        return gr.Textbox.update(value=dl_url)
+    else:
+        return gr.Textbox.update(value=None)
 
 def update_model_info(model_name=None, model_version=None):
     if model_name and model_version:
@@ -78,6 +222,7 @@ def update_model_info(model_name=None, model_version=None):
         output_training = ""
         img_html = ""
         model_desc = ""
+        dl_dict = {}
         for item in json_data['items']:
             if item['name'] == model_name:
                 model_uploader = item['creator']['username']
@@ -87,7 +232,13 @@ def update_model_info(model_name=None, model_version=None):
                     if model['name'] == model_version:
                         if model['trainedWords']:
                             output_training = " # ".join(model['trainedWords'])
+
+                        for file in model['files']:
+                            dl_dict[file['name']] = file['downloadUrl']
+
                         model_url = model['downloadUrl']
+                        #model_filename = model['files']['name']
+
                         img_html = '<HEAD><style>img { display: inline-block; }</style></HEAD><div class="column">'
                         for pic in model['images']:
                             img_html = img_html + f'<img src={pic["url"]} width=400px></img>'
@@ -96,9 +247,9 @@ def update_model_info(model_name=None, model_version=None):
 
 
 
-        return gr.HTML.update(value=output_html), gr.Textbox.update(value=output_training)
+        return gr.HTML.update(value=output_html), gr.Textbox.update(value=output_training), gr.Dropdown.update(choices=[k for k, v in dl_dict.items()], value=next(iter(dl_dict.keys())))
     else:
-        return gr.HTML.update(value=None), gr.Textbox.update(value=None)
+        return gr.HTML.update(value=None), gr.Textbox.update(value=None), gr.Dropdown.update(choices=[], value=None)
 
 
 def request_civit_api(api_url=None):
@@ -134,8 +285,36 @@ def on_ui_tabs():
         with gr.Row():
             txt_list = ""
             dummy = gr.Textbox(label='Trained Tags (if any)', value=f'{txt_list}', interactive=False, lines=1)
+            model_filename = gr.Dropdown(label="Model Filename", choices=[], interactive=True, value=None)
+            dl_url = gr.Textbox(label="Download Url", interactive=False, value=None)
+        with gr.Row():
+            save_text = gr.Button(value="Save Text")
+            download_model = gr.Button(value="Download Model")
+            save_model_in_new = gr.Checkbox(label="Save Model to new folder", value=False)
         with gr.Row():
             preview_image_html = gr.HTML()
+        save_text.click(
+            fn=save_text_file,
+            inputs=[
+            model_filename,
+            content_type,
+            save_model_in_new,
+            dummy,
+            list_models,
+            ],
+            outputs=[]
+        )
+        download_model.click(
+            fn=download_file_thread,
+            inputs=[
+            dl_url,
+            model_filename,
+            content_type,
+            save_model_in_new,
+            list_models,
+            ],
+            outputs=[]
+        )
         get_list_from_api.click(
             fn=update_model_list,
             inputs=[
@@ -170,7 +349,13 @@ def on_ui_tabs():
             outputs=[
             preview_image_html,
             dummy,
+            model_filename,
             ]
+        )
+        model_filename.change(
+            fn=update_dl_url,
+            inputs=[list_models, list_versions, model_filename,],
+            outputs=[dl_url,]
         )
         get_next_page.click(
             fn=update_next_page,
