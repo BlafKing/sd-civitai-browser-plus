@@ -193,9 +193,6 @@ def save_text_file(file_name, content_type, use_new_folder, trained_words, model
             if not os.path.exists(model_folder):
                 os.makedirs(model_folder)
    
-        
-
-
     path_to_new_file = os.path.join(model_folder, file_name.replace(".ckpt",".txt").replace(".safetensors",".txt").replace(".pt",".txt"))
     if not os.path.exists(path_to_new_file):
         with open(path_to_new_file, 'w') as f:
@@ -251,6 +248,7 @@ def update_model_list(content_type, sort_type, use_search_term, search_term, sho
             temp_nsfw = item['nsfw']
             if not temp_nsfw:
                 model_dict[item['name']] = item['name']
+
     return gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=None), gr.Dropdown.update(choices=[], value=None)
 
 def update_model_versions(model_name=None):
@@ -267,6 +265,7 @@ def update_model_versions(model_name=None):
         return gr.Dropdown.update(choices=[], value=None)
 
 def update_dl_url(model_name=None, model_version=None, model_filename=None):
+    print(model_filename)
     if model_filename:
         global json_data
         dl_dict = {}
@@ -284,6 +283,8 @@ def update_dl_url(model_name=None, model_version=None, model_filename=None):
         return gr.Textbox.update(value=None)
 
 def update_model_info(model_name=None, model_version=None):
+
+
     if model_name and model_version:
         model_version = model_version.replace(f' - {model_name}','').strip()
         global json_data
@@ -314,8 +315,6 @@ def update_model_info(model_name=None, model_version=None):
                         img_html = img_html + '</div>'
                         output_html = f"<p><b>Model:</b> {model_name}<br><b>Version:</b> {model_version}<br><b>Uploaded by:</b> {model_uploader}<br><br><a href={model_url}><b>Download Here</b></a></p><br><br>{model_desc}<br><div align=center>{img_html}</div>"
 
-
-
         return gr.HTML.update(value=output_html), gr.Textbox.update(value=output_training), gr.Dropdown.update(choices=[k for k, v in dl_dict.items()], value=next(iter(dl_dict.keys())))
     else:
         return gr.HTML.update(value=None), gr.Textbox.update(value=None), gr.Dropdown.update(choices=[], value=None)
@@ -332,6 +331,12 @@ def request_civit_api(api_url=None):
 
     data = json.loads(response.text)
     return data
+
+def update_everything(list_models, list_versions, model_filename, dl_url):
+    (a, d, f) = update_model_info(list_models, list_versions)
+    dl_url = update_dl_url(list_models, list_versions, f['value'])
+    return (a, d, f, list_versions, list_models, dl_url)
+        
 
 def on_ui_tabs():
     with gr.Blocks() as civitai_interface:
@@ -357,8 +362,9 @@ def on_ui_tabs():
             model_filename = gr.Dropdown(label="Model Filename", choices=[], interactive=True, value=None)
             dl_url = gr.Textbox(label="Download Url", interactive=False, value=None)
         with gr.Row():
-            save_text = gr.Button(value="Save Text")
-            download_model = gr.Button(value="Download Model")
+            update_info = gr.Button(value='1st - Get Model Info')
+            save_text = gr.Button(value="2nd - Save Text")
+            download_model = gr.Button(value="3rd - Download Model")
             save_model_in_new = gr.Checkbox(label="Save Model to new folder", value=False)
         with gr.Row():
             preview_image_html = gr.HTML()
@@ -398,7 +404,24 @@ def on_ui_tabs():
             list_versions,
             ]
         )
-
+        update_info.click(
+            fn=update_everything,
+            #fn=update_model_info,
+            inputs=[
+            list_models,
+            list_versions,
+            model_filename,
+            dl_url
+            ],
+            outputs=[
+            preview_image_html,
+            dummy,
+            model_filename,
+            list_versions,
+            list_models,
+            dl_url
+            ]
+        )
         list_models.change(
             fn=update_model_versions,
             inputs=[
