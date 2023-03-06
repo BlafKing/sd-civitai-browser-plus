@@ -373,7 +373,7 @@ def save_image_files(preview_image_html, model_filename, list_models, content_ty
 
     for i, img_url in enumerate(img_urls):
         filename = f'{name}_{i}.png'
-        img_url = img_url.replace("https", "http").replace("=","%3D")
+        img_url = img_url.replace("https", "http")
 
         print(img_url, filename)
         try:
