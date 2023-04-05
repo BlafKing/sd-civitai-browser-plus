@@ -130,6 +130,9 @@ def download_file_thread(url, file_name, content_type, use_new_folder, model_nam
     elif content_type == "LORA":
         folder = "models/Lora"
         new_folder = "models/Lora/new"
+    elif content_type == "LoCon":
+        folder = "models/Lora"
+        new_folder = "models/Lora/new"
     if content_type == "TextualInversion" or content_type == "VAE" or content_type == "AestheticGradient":
         if use_new_folder:
             model_folder = new_folder
@@ -178,6 +181,9 @@ def save_text_file(file_name, content_type, use_new_folder, trained_words, model
         folder = "models/VAE"
         new_folder = "models/VAE/new"
     elif content_type == "LORA":
+        folder = "models/Lora"
+        new_folder = "models/Lora/new"
+    elif content_type == "LoCon":
         folder = "models/Lora"
         new_folder = "models/Lora/new"
     if content_type == "TextualInversion" or content_type == "VAE" or content_type == "AestheticGradient":
@@ -364,6 +370,8 @@ def save_image_files(preview_image_html, model_filename, list_models, content_ty
         folder = "models/VAE"
     elif content_type == "LORA":
         folder = "models/Lora"
+    elif content_type == "LoCon":
+        folder = "models/Lora"
     
     model_folder = os.path.join(folder,list_models.replace(" ","_").replace("(","").replace(")","").replace("|","").replace(":","-"))
 
@@ -393,7 +401,7 @@ def on_ui_tabs():
     with gr.Blocks() as civitai_interface:
         with gr.Row():
             with gr.Column(scale=2):
-                content_type = gr.Radio(label='Content type:', choices=["Checkpoint","Hypernetwork","TextualInversion","AestheticGradient", "VAE", "LORA"], value="Checkpoint", type="value")
+                content_type = gr.Radio(label='Content type:', choices=["Checkpoint","Hypernetwork","TextualInversion","AestheticGradient", "VAE", "LORA", "LoCon"], value="Checkpoint", type="value")
             with gr.Column(scale=2):
                 sort_type = gr.Radio(label='Sort List by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Newest", type="value")
             with gr.Column(scale=1):
