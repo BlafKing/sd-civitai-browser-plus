@@ -1,24 +1,47 @@
 # sd-civitai-browser
-An extension to help download models from CivitAi without leaving WebUI
+An extension to help download models from CivitAi without leaving WebUI  
 
-This version was forked from the original by Vetchems who wasn't responding to pull requests.
+This modified add-on is based on [v1.1.0](https://github.com/SignalFlagZ/sd-civitai-browser/releases/tag/1.1.0) from [SignalFlagZ's Fork](https://github.com/SignalFlagZ/sd-civitai-browser)  
+I was still missing some features so I decided to add them myself.
 
-To install use the normal install process in A1111 or check out this repo and copy the folder into your extensions folder like so:
-![Screenshot 2023-02-23 at 9 15 54 PM](https://user-images.githubusercontent.com/305910/221075677-2fcbf89c-2685-40cb-8b37-b7bfcd17ffa2.png)
+NOTE: If an 'Error' shows up on the screen, it's most likely caused by the Civit API timing out, please wait a bit and try again in a few seconds!
 
-A111
- -> extensions
-    -> sd-civitai-browser
-       -> scripts
-         -> civitai-api.py
-         
-It needs to be in this directory tree because it uses relative paths to copy things around.  That might be something we fix in future versions.
-If you'd like for this to become the official fork let me know and we can circle the wagons here.  I'm happy to take pull requests.
+# Modifications
 
-The main things i've done are fix the problems relying on "onchange" for selects which don't trigger for single item select lists and added features to support Model Previews using https://github.com/Vetchems/sd-model-preview
 
-Future Ideas:
- - figure out a way to check to see if a model you own has an updated version in CivitAi
- - allow for tagging / categorization of the models more easily
- - allow for the model to have a local display name vs the author name (gooeydreamyfoobuElite might be meaningful to the person who made the model, but it would be nice to know it's a photorealistic landscape model trained on panoramas)
- - make sure support for LORAs and stuff like that continues
+https://github.com/BlafKing/sd-civitai-browser/assets/9644716/33da2d2e-6bb5-4ea1-be7a-14818b3a86f6
+
+
+(Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
+
+v1.0
+
+* Changed 'Get List' to 'Refresh', the button now reloads the current page unless any options have been changed.
+* Removed new folder option and removed the function that puts downloads in their own seperate folders.
+* Made the glow around frames always visible without hovering.
+* Added orange glow for any outdated installed packages.
+* Added 'Delete old version after download' option.
+* Added ability to manually fill in a page number to load the corresponding page.
+* Made the page refresh after a download and made it load during one.
+
+---
+
+v1.1
+
+* Added dropdown box which can filter by time period.
+* Changed 'Content type' from buttons to a dropdown box.
+* Made selecting a tile always trigger a load, also when the same tile is selected twice.
+
+---
+
+v1.2
+
+* Made the 'Version' tab show the installed version by default when selecting a model.
+* Automatically saves preview image when downloading a model.
+* Added [installed] text suffix for any versions that are installed in the 'Version' tab.
+* Changed 'Model Filename' from a dropbox to a textbox.
+* Made bottom textboxes non typeable.
+* Disabled bottom buttons when no model is selected.
+* Fixed margin error on the latest tile.
+* Fixed error where some old model version(s) did not get removed.
+* Improved version checking to be case sensitive.
