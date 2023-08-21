@@ -265,9 +265,9 @@ def model_list_html(json_data, model_dict, content_type, DeleteOld):
                     if len(item['modelVersions'][0]['images']) > 0:
                         if item["modelVersions"][0]["images"][0]['nsfw'] != "None" and not allownsfw:
                             nsfw = 'civcardnsfw'
-                        imgtag = f'<img src="{item["modelVersions"][0]["images"][0]["url"]}" style="border-radius: 10px;"></img>'
+                        imgtag = f'<img src={item["modelVersions"][0]["images"][0]["url"]}"></img>'
                     else:
-                        imgtag = f'<img src="./file=html/card-no-preview.png" style="border-radius: 10px;"></img>'
+                        imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
                     
                     model_folder = os.path.join(contenttype_folder(content_type))
                     
