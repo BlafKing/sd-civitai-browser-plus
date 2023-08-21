@@ -47,3 +47,16 @@ v1.2
 * Fixed margin error on the latest tile.
 * Fixed error where some old model version(s) did not get removed.
 * Improved version checking to be case sensitive.
+
+---
+
+v1.3
+
+* Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.  
+  (If a LORA with saved tags is used it will automatically input all tags into the txt box in image creation.)
+* Improved padding based on if Lobe theme is being used.
+* Added 'Save tags after download' toggle to automatically save .json tags
+* Removed "Get model info" button, click any tile to reload model info instead.
+* Removed download link box. (felt unnecessary since there is a Download button)
+* Removed "No" from search options, leave the search term empty to not use Search instead.
+* Added border radius to cards.
