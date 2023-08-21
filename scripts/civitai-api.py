@@ -9,6 +9,7 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import os
+import fnmatch
 from tqdm import tqdm
 import re
 from collections import defaultdict
@@ -84,7 +85,7 @@ def download_file(url, file_name, preview_image_html, content_type):
         isDownloading = False
         downloaded_size = os.path.getsize(file_name)
         if downloaded_size >= total_size:
-            print(f"Downloaded: {file_name_display}")
+            print(f"Model saved to: {file_name}")
             save_preview_image(preview_image_html, file_name, content_type)
             
         else:
@@ -160,7 +161,7 @@ def contenttype_folder(content_type):
             
     return folder
 
-def download_file_thread(url, file_name, content_type, model_name, delete_old_ver, preview_image_html):
+def download_file_thread(url, file_name, content_type, model_name, delete_old_ver, preview_image_html, create_json, trained_tags):
     global isDownloading, recently_downloaded_model
     
     recently_downloaded_model = model_name
@@ -181,17 +182,36 @@ def download_file_thread(url, file_name, content_type, model_name, delete_old_ve
     
     return_values = update_model_list(*previous_inputs[:-1], delete_old_ver)
     
+    if create_json == True:
+        save_json_file(file_name, content_type, trained_tags)
+    
     return return_values
 
-def save_text_file(file_name, content_type, trained_words):
+def save_json_file(file_name, content_type, trained_tags):
     model_folder = os.path.join(contenttype_folder(content_type))
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
-    path_to_new_file = os.path.join(model_folder, file_name.replace(".ckpt",".txt").replace(".safetensors",".txt").replace(".pt",".txt").replace(".yaml",".txt").replace(".zip",".txt"))
-    print(f"Saved to: {path_to_new_file}")
-    if not os.path.exists(path_to_new_file):
-        with open(path_to_new_file, 'w') as f:
-            f.write(trained_words)
+
+    path_to_new_file = os.path.join(model_folder, 
+                                    file_name.replace(".ckpt", ".json")
+                                    .replace(".safetensors", ".json")
+                                    .replace(".pt", ".json")
+                                    .replace(".yaml", ".json")
+                                    .replace(".zip", ".json"))
+
+    if os.path.exists(path_to_new_file):
+        with open(path_to_new_file, 'r') as f:
+            content = json.load(f)
+        content["activation text"] = trained_tags
+    else:
+        content = {"activation text": trained_tags}
+
+    with open(path_to_new_file, 'w') as f:
+        json.dump(content, f)
+
+    print(f"Tags saved to: {path_to_new_file}")
+
+    return trained_tags
 
 def api_to_data(content_type, sort_type, period_type, use_search_term, search_term=None):
     global previous_tile_count, previous_search_term
@@ -205,7 +225,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, search_te
     
     period_type = period_type.replace(" ", "")
     query = {'types': content_type, 'sort': sort_type, 'period': period_type}
-    if use_search_term != "No" and search_term:
+    if use_search_term != "None" and search_term:
         match use_search_term:
             case "User name":
                 query |= {'username': search_term }
@@ -242,9 +262,9 @@ def model_list_html(json_data, model_dict, content_type, DeleteOld):
                     if len(item['modelVersions'][0]['images']) > 0:
                         if item["modelVersions"][0]["images"][0]['nsfw'] != "None" and not allownsfw:
                             nsfw = 'civcardnsfw'
-                        imgtag = f'<img src={item["modelVersions"][0]["images"][0]["url"]}"></img>'
+                        imgtag = f'<img src="{item["modelVersions"][0]["images"][0]["url"]}" style="border-radius: 10px;"></img>'
                     else:
-                        imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
+                        imgtag = f'<img src="./file=html/card-no-preview.png" style="border-radius: 10px;"></img>'
                     
                     model_folder = os.path.join(contenttype_folder(content_type))
                     
@@ -352,7 +372,6 @@ def update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_
             gr.Textbox.update(value=pages),\
             gr.Button.update(interactive=False),\
             gr.Button.update(interactive=False),\
-            gr.Button.update(interactive=False),\
             gr.Button.update(interactive=False)
 
 def pagecontrol(json_data):
@@ -402,7 +421,6 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             gr.Button.update(interactive=hasPrev),\
             gr.Button.update(interactive=hasNext),\
             gr.Textbox.update(value=pages),\
-            gr.Button.update(interactive=False),\
             gr.Button.update(interactive=False),\
             gr.Button.update(interactive=False),\
             gr.Button.update(interactive=False)
@@ -532,13 +550,6 @@ def request_civit_api(api_url=None, payload=None):
         data = json.loads(response.text)
     return data
 
-def update_everything(list_models, model_version, dl_url):
-    if model_version:
-        model_version = model_version.replace(" [Installed]", "")
-    (a, d, f, base_model) = update_model_info(list_models, model_version)
-    dl_url = update_dl_url(list_models, model_version, f['value'])
-    return (a, d, f, model_version, list_models, dl_url, base_model)
-
 def save_image_files(preview_image_html, model_filename, list_models, content_type, base_model):
     model_folder = os.path.join(contenttype_folder(content_type))
     if not os.path.exists(model_folder):
@@ -592,6 +603,19 @@ def update_global_page_count(page_value):
 
 def on_ui_tabs():
     global list_models, list_versions, list_html, get_prev_page, get_next_page, pages
+    
+    base_path = "extensions"
+    lobe_directory = None
+
+    for root, dirs, files in os.walk(base_path):
+        for dir_name in fnmatch.filter(dirs, '*lobe*'):
+            lobe_directory = os.path.join(root, dir_name)
+            break
+        if lobe_directory:
+            break
+
+    component_id = "lobe_active" if lobe_directory else None
+    
     with gr.Blocks() as civitai_interface:
         with gr.Row():
             with gr.Column(scale=1):
@@ -600,14 +624,15 @@ def on_ui_tabs():
                 period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
             with gr.Column(scale=1, min_width=250):
                 sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value")
-            with gr.Column(scale=1, min_width=250):
+            with gr.Column(scale=1, min_width=250, elem_id=component_id):
                 delete_old_ver = gr.Checkbox(label=f"Delete old version after download", value=False)
+                create_json = gr.Checkbox(label=f"Save tags after download", value=False)
                 show_nsfw = gr.Checkbox(label="NSFW content", value=False)
         with gr.Row():
             with gr.Column(scale=5):
                 search_term = gr.Textbox(label="Search Term:", interactive=True, lines=1)
             with gr.Column(scale=3,min_width=80):
-                use_search_term = gr.Radio(label="Search:", choices=["No", "Model name", "User name", "Tag"],value="No")
+                use_search_term = gr.Radio(label="Search:", choices=["Model name", "User name", "Tag"],value="Model name")
             with gr.Column(scale=1,min_width=160 ):
                 tile_slider = gr.Slider(label="Tile count:", min=5, max=50, value=15, step=1, max_width=100)
         with gr.Row():
@@ -627,13 +652,12 @@ def on_ui_tabs():
             list_versions = gr.Dropdown(label="Version:", choices=[], interactive=False, elem_id="quicksettings", value=None)
         with gr.Row():
             txt_list = ""
-            dummy = gr.Textbox(label='Trained Tags (if any):', value=f'{txt_list}', interactive=False, lines=1)
+            trained_tags = gr.Textbox(label='Trained Tags (if any):', value=f'{txt_list}', interactive=False, lines=1)
             base_model = gr.Textbox(label='Base Model:', value='', interactive=False, lines=1)
             model_filename = gr.Textbox(label="Model Filename:", interactive=False, value=None)
-            dl_url = gr.Textbox(label="Download Url:", interactive=False, value=None)
+            dl_url = gr.Textbox(value=None, visible=False)
         with gr.Row():
-            update_info = gr.Button(value='Get Model Info', interactive=False)
-            save_text = gr.Button(value="Save Text", interactive=False)
+            save_text = gr.Button(value="Save Tags", interactive=False)
             save_images = gr.Button(value="Save Images", interactive=False)
             download_model = gr.Button(value="Download Model", interactive=False)
         with gr.Row():
@@ -653,13 +677,13 @@ def on_ui_tabs():
         )
         
         save_text.click(
-            fn=save_text_file,
+            fn=save_json_file,
             inputs=[
                 model_filename,
                 content_type,
-                dummy
-            ],
-            outputs=[]
+                trained_tags
+                ],
+            outputs=[trained_tags]
         )
         
         save_images.click(
@@ -670,7 +694,7 @@ def on_ui_tabs():
                 list_models,
                 content_type,
                 base_model
-            ],
+                ],
             outputs=[]
         )
         
@@ -682,8 +706,10 @@ def on_ui_tabs():
                 content_type,
                 list_models,
                 delete_old_ver,
-                preview_image_html
-            ],
+                preview_image_html,
+                create_json,
+                trained_tags
+                ],
             outputs=[
                 list_models,
                 list_versions,
@@ -691,24 +717,6 @@ def on_ui_tabs():
                 get_prev_page,
                 get_next_page,
                 pages
-            ]
-        )
-        
-        update_info.click(
-            fn=update_everything,
-            inputs=[
-                list_models,
-                list_versions,
-                dl_url
-            ],
-            outputs=[
-                preview_image_html,
-                dummy,
-                model_filename,
-                list_versions,
-                list_models,
-                dl_url,
-                base_model
             ]
         )
         
@@ -726,10 +734,10 @@ def on_ui_tabs():
             inputs=[
                 list_models,
                 list_versions
-            ],
+                ],
             outputs=[
                 preview_image_html,
-                dummy,
+                trained_tags,
                 model_filename,
                 base_model
             ]
@@ -741,7 +749,7 @@ def on_ui_tabs():
                 list_models,
                 list_versions, 
                 model_filename
-            ],
+                ],
             outputs=[dl_url]
         )
         
@@ -755,7 +763,7 @@ def on_ui_tabs():
                 period_type,
                 use_search_term,
                 search_term
-            ],
+                ],
             outputs=[
                 list_models,
                 list_versions,
@@ -763,7 +771,6 @@ def on_ui_tabs():
                 get_prev_page,
                 get_next_page,
                 pages,
-                update_info,
                 save_text,
                 save_images,
                 download_model
@@ -780,7 +787,7 @@ def on_ui_tabs():
                 search_term,
                 show_nsfw,
                 delete_old_ver
-            ],
+                ],
             outputs=[
                 list_models,
                 list_versions,
@@ -788,7 +795,6 @@ def on_ui_tabs():
                 get_prev_page,
                 get_next_page,
                 pages,
-                update_info,
                 save_text,
                 save_images,
                 download_model
@@ -805,7 +811,7 @@ def on_ui_tabs():
                 period_type,
                 use_search_term,
                 search_term
-            ],
+                ],
             outputs=[
                 list_models,
                 list_versions,
@@ -813,7 +819,6 @@ def on_ui_tabs():
                 get_prev_page,
                 get_next_page,
                 pages,
-                update_info,
                 save_text,
                 save_images,
                 download_model
@@ -832,44 +837,44 @@ def on_ui_tabs():
             inputs=[
                 event_text,
                 content_type
-            ],
+                ],
             outputs=[
                 list_models,
                 list_versions,
                 preview_image_html,
                 dl_url,
-                dummy,
+                trained_tags,
                 model_filename
             ]
         )
 
-        def unlock_buttons(base_model):
+        def unlock_buttons(base_model, trained_tags):
             
             if base_model:
                 return  gr.Dropdown.update(interactive=True),\
-                        gr.Button.update(interactive=True),\
-                        gr.Button.update(interactive=True),\
+                        gr.Button.update(interactive=True if trained_tags else False),\
                         gr.Button.update(interactive=True),\
                         gr.Button.update(interactive=True)
             else:
                 return  gr.Dropdown.update(interactive=False, value=""),\
                         gr.Button.update(interactive=False),\
                         gr.Button.update(interactive=False),\
-                        gr.Button.update(interactive=False),\
                         gr.Button.update(interactive=False)
     
         base_model.change(
             fn=unlock_buttons,
-            inputs=[base_model],
+            inputs=[
+                base_model,
+                trained_tags
+                ],
             outputs=[
                 list_versions,
-                update_info,
                 save_text,
                 save_images,
                 download_model
             ]
         )
 
-    return (civitai_interface, "CivitAI", "civitai_interface"),
+    return (civitai_interface, "Civit AI", "civitai_interface"),
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
