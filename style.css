@@ -2,14 +2,16 @@
 	display: flex;
 	flex-wrap: wrap;
 }
+
 .civmodellist figure {
 	margin: 4px;
-	transition: transform .3s ease-out;
+	transition: transform .3s ease-out, box-shadow 0.3s ease;
+	border-radius: 10px;
 	cursor: pointer;
 }
 
 .civmodelcard {
-	position: relative;
+    position: relative;
 }
 
 .civmodelcard:hover {
@@ -17,14 +19,17 @@
 	position: relative;
 	z-index: var(--layer-5);
 	box-shadow: 0px 0px 1px 3px whitesmoke;
+	border-radius: 10px;
 }
 
-.civmodelcardinstalled, .civmodelcardinstalled:hover {
+.civmodelcardinstalled {
 	box-shadow: 0px 0px 1px 3px aquamarine;
+	border-radius: 10px;
 }
 
-.civmodelcardoutdated, .civmodelcardoutdated:hover {
+.civmodelcardoutdated {
 	box-shadow: 0px 0px 1px 3px orange;
+	border-radius: 10px;
 }
 
 .civmodelcard:hover figcaption{
@@ -57,8 +62,8 @@
 	max-width: None !important;
 }
 
-#component-1391{
-	margin-top: 18px;
+#lobe_active{
+	margin-top: 3px;
 }
 
 .gradio-container-3-32-0 .prose :last-child {
