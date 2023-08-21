@@ -188,6 +188,9 @@ def download_file_thread(url, file_name, content_type, model_name, delete_old_ve
     return return_values
 
 def save_json_file(file_name, content_type, trained_tags):
+    if not trained_tags:
+        return trained_tags
+    
     model_folder = os.path.join(contenttype_folder(content_type))
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
