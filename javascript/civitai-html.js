@@ -7,5 +7,7 @@ function select_model(model_name) {
 		let paddedNumber = String(randomNumber).padStart(3, '0');
 		model_dropdown.value = model_name + "." + paddedNumber;
 		updateInput(model_dropdown)
+
+		console.log("Selected Model:", model_name);
 	}
 }
