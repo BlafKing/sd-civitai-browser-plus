@@ -513,7 +513,7 @@ def update_model_info(model_name=None, model_version=None):
                         if model['trainedWords']:
                             output_training = ",".join(model['trainedWords'])
                             output_training = re.sub(r'<[^>]*:[^>]*>', '', output_training)
-                            output_training = output_training.replace(',', ', ')
+                            output_training = re.sub(r', ?', ', ', output_training)
                             output_training = output_training.strip(', ')
                         if model['baseModel']:
                             output_basemodel = model['baseModel']
