@@ -8,9 +8,7 @@ NOTE: If an 'Error' shows up on the screen, it's most likely caused by the Civit
 
 # Preview
 
-
 https://github.com/BlafKing/sd-civitai-browser/assets/9644716/33da2d2e-6bb5-4ea1-be7a-14818b3a86f6
-
 
 (Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
 
