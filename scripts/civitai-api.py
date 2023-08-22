@@ -190,7 +190,13 @@ def download_file_thread(url, file_name, content_type, model_name, delete_old_ve
 def save_json_file(file_name, content_type, trained_tags):
     if not trained_tags:
         return trained_tags
-    
+
+    trained_tags = trained_tags.split(',')
+    trained_tags = [tag.strip() for tag in trained_tags if not (tag.strip().startswith('<') and ':' in tag.strip() and tag.strip().endswith('>'))]
+    trained_tags = ', '.join(trained_tags).strip()
+    if trained_tags.endswith(','):
+        trained_tags = trained_tags[:-1]
+
     model_folder = os.path.join(contenttype_folder(content_type))
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
@@ -455,7 +461,6 @@ def update_model_versions(model_name=None, content_type=None):
     else:
         return gr.Dropdown.update(choices=[], value=None)
 
-        
 def update_dl_url(model_name=None, model_version=None, model_filename=None):
     if model_version:
         model_version = model_version.replace(" [Installed]", "")
@@ -506,14 +511,15 @@ def update_model_info(model_name=None, model_version=None):
                 for model in item['modelVersions']:
                     if model['name'] == model_version:
                         if model['trainedWords']:
-                            output_training = ", ".join(model['trainedWords'])
+                            output_training = ",".join(model['trainedWords'])
+                            output_training = re.sub(r'<[^>]*:[^>]*>', '', output_training)
+                            output_training = output_training.replace(',', ', ')
+                            output_training = output_training.strip(', ')
                         if model['baseModel']:
                             output_basemodel = model['baseModel']
                         for file in model['files']:
                             dl_dict[file['name']] = file['downloadUrl']
-
                         model_url = model['downloadUrl']
-
                         img_html = '<div class="sampleimgs">'
                         for pic in model['images']:
                             nsfw = None
@@ -851,9 +857,8 @@ def on_ui_tabs():
             ]
         )
 
-        def unlock_buttons(base_model, trained_tags):
-            
-            if base_model:
+        def unlock_buttons(list_models, trained_tags):
+            if list_models:
                 return  gr.Dropdown.update(interactive=True),\
                         gr.Button.update(interactive=True if trained_tags else False),\
                         gr.Button.update(interactive=True),\
@@ -863,11 +868,11 @@ def on_ui_tabs():
                         gr.Button.update(interactive=False),\
                         gr.Button.update(interactive=False),\
                         gr.Button.update(interactive=False)
-    
-        base_model.change(
+        
+        list_models.change(
             fn=unlock_buttons,
             inputs=[
-                base_model,
+                list_models,
                 trained_tags
                 ],
             outputs=[
