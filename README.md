@@ -60,3 +60,10 @@ v1.3
 * Removed download link box. (felt unnecessary since there is a Download button)
 * Removed "No" from search options, leave the search term empty to not use Search instead.
 * Added border radius to cards.
+
+---
+
+v1.3.1
+
+* Fixed new tag saving bugs/oversights.
+* Improved trained tags display to not include the model itself.
