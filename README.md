@@ -5,10 +5,12 @@ This modified add-on is based on [v1.1.0](https://github.com/SignalFlagZ/sd-civi
 I was still missing some features so I decided to add them myself.
 
 NOTE: If an 'Error' shows up on the screen, it's most likely caused by the Civit API timing out, please wait a bit and try again in a few seconds!
-
+      If 
 # Preview
 
-https://github.com/BlafKing/sd-civitai-browser/assets/9644716/33da2d2e-6bb5-4ea1-be7a-14818b3a86f6
+
+https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8-907a-e9bddf13bc55
+
 
 (Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
 
@@ -65,3 +67,16 @@ v1.3.1
 
 * Fixed new tag saving bugs/oversights.
 * Improved trained tags display to not include the model itself.
+
+---
+
+v1.4
+
+* Download progress load bar is now on web page instead of CMD.
+* Better margin fixes with theme detection.
+* Delete option now also removes .json files.
+* Buttons are now disabled during download (except cancel button).
+* Added Cancel and Delete buttons
+* Download button will now change according to circumstances:
+  - Cancel button if there's a current download.
+  - Delete button if the selected version is installed.
