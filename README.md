@@ -76,7 +76,7 @@ v1.4
 * Better margin fixes with theme detection.
 * Delete option now also removes .json files.
 * Buttons are now disabled during download (except cancel button).
-* Added Cancel and Delete buttons
+* Added Cancel and Delete buttons.
 * Download button will now change according to circumstances:
   - Cancel button if there's a current download.
   - Delete button if the selected version is installed.
