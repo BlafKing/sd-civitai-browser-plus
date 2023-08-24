@@ -1,5 +1,7 @@
 # CivitAI Browser
-An extension to help download models from CivitAi without leaving WebUI  
+Add-on for [Automatic1111's Stable Difussion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)  
+
+This extension allows you to download models from CivitAi without leaving WebUI!  
 
 This modified add-on is based on [v1.1.0](https://github.com/SignalFlagZ/sd-civitai-browser/releases/tag/1.1.0) from [SignalFlagZ's Fork](https://github.com/SignalFlagZ/sd-civitai-browser)  
 I was still missing some features so I decided to add them myself.
