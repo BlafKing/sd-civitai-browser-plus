@@ -784,7 +784,7 @@ def download_cancel(content_type, sort_type, period_type, use_search_term, searc
     cancel_status = True
     isDownloading = False
     time.sleep(2)
-    delete_file(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, current_download)
+    delete_file(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, current_download, page_count)
     
     return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
     
