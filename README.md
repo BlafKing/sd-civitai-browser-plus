@@ -100,5 +100,7 @@ v1.5
 v1.6
 
 * LoCon models now get saved in the Lora folder if A1111's version is 1.5 or higher.
+* improved page_count detection.  
+(You can fill in the page number you'd like to visit and press refresh to go to that page)
 * Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.  
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
