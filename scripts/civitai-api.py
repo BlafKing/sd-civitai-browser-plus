@@ -4,6 +4,7 @@ import modules.scripts as scripts
 import gradio as gr
 from modules import script_callbacks
 import time
+import subprocess
 import threading
 import urllib.request
 import urllib.parse
@@ -13,8 +14,8 @@ import random
 import fnmatch
 import re
 from collections import defaultdict
+from packaging import version
 from requests.exceptions import ConnectionError
-from concurrent.futures import ThreadPoolExecutor
 from modules.shared import opts, cmd_opts
 from modules.paths import models_path
 import shutil
@@ -34,6 +35,16 @@ isDownloading = False
 pageChange = False
 page_count = "1"
 tile_count = 15
+
+git = os.environ.get('GIT', "git")
+
+def git_tag():
+    try:
+        return subprocess.check_output([git, "describe", "--tags"], shell=False, encoding='utf8').strip()
+    except:
+        return "None"
+
+ver = git_tag()
 
 def download_file(url, file_name, preview_image_html, install_path, progress=gr.Progress()):
     max_retries = 5
@@ -147,7 +158,9 @@ def contenttype_folder(content_type):
         folder = cmd_opts.lora_dir
         
     elif content_type == "LoCon":
-        if "lyco_dir" in cmd_opts:
+        if version.parse(ver) >= version.parse("1.5"):
+            folder = cmd_opts.lora_dir
+        elif "lyco_dir" in cmd_opts:
             folder = f"{cmd_opts.lyco_dir}"
         elif "lyco_dir_backcompat" in cmd_opts:
             folder = f"{cmd_opts.lyco_dir_backcompat}"
@@ -288,8 +301,13 @@ def model_list_html(json_data, model_dict, content_type, DeleteOld):
                 model_name = escape(item["name"].replace("'", "\\'"), quote=True)
                 nsfw = ""
                 installstatus = ""
+                baseModel = ""
                 latest_version_installed = False
                 model_folder = os.path.join(contenttype_folder(content_type))
+
+                # Check for baseModel and assign it
+                if 'baseModel' in item['modelVersions'][0]:
+                    baseModel = item['modelVersions'][0]['baseModel']
                 if any(item['modelVersions']):
                     if len(item['modelVersions'][0]['images']) > 0:
                         if item["modelVersions"][0]["images"][0]['nsfw'] != "None" and not allownsfw:
@@ -349,9 +367,9 @@ def model_list_html(json_data, model_dict, content_type, DeleteOld):
                                         print(f'Removed: "{json_file}"')
                                         os.remove(json_file)
 
-                HTML = HTML + f'<figure class="civmodelcard {nsfw} {installstatus}" onclick="select_model(\'{model_name}\')">' \
-                             + imgtag \
-                             + f'<figcaption>{item["name"]}</figcaption></figure>'
+                HTML = HTML + f'<figure class="civmodelcard {nsfw} {installstatus}" base-model="{baseModel}" onclick="select_model(\'{model_name}\')">' \
+                            + imgtag \
+                            + f'<figcaption>{item["name"]}</figcaption></figure>'
     
     HTML = HTML + '</div>'
     return HTML
@@ -803,11 +821,13 @@ def on_ui_tabs():
     with gr.Blocks() as civitai_interface:
         with gr.Row():
             with gr.Column(scale=1):
-                content_type = gr.Dropdown(label='Content type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value="Checkpoint", type="value")
+                content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value="Checkpoint", type="value")
             with gr.Column(scale=1, min_width=250):
-                period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
+                period_type = gr.Dropdown(label='Time Period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
             with gr.Column(scale=1, min_width=250):
-                sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value")
+                sort_type = gr.Dropdown(label='Sort By:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value")
+            with gr.Column(scale=1, min_width=250):
+                base_filter = gr.Dropdown(label='Filter Base Model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 2.0","SD 2.1", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value")
             with gr.Column(scale=1, min_width=250, elem_id=component_id):
                 delete_old_ver = gr.Checkbox(label=f"Delete old version(s) after download", value=False, elem_id=toggle1)
                 create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle2)
@@ -875,7 +895,19 @@ def on_ui_tabs():
             outputs=[install_path]
         )
         
-        refresh.click(
+        list_html.change(
+            fn=None,
+            inputs=[base_filter],
+            _js="(baseModelValue) => filterByBaseModel(baseModelValue)"
+        )
+        
+        base_filter.change(
+            fn=None,
+            inputs=[base_filter],
+            _js="(baseModelValue) => filterByBaseModel(baseModelValue)"
+        )
+        
+        list_html.change(
             fn=None,
             inputs=[size_slider],
             _js="(size) => updateCardSize(size, size * 1.5)"
