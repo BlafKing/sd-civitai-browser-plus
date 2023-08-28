@@ -82,3 +82,15 @@ v1.4
 * Download button will now change according to circumstances:
   - Cancel button if there's a current download.
   - Delete button if the selected version is installed.
+
+---
+
+v1.5
+
+* Added slider to change tile size
+* Added Download Folder textbox which can be used to define a custom download path.
+* Added Sub Folder Dropdown to select any available subfolder(s) as download location.
+* Any nested files can now be detected as installed or outdated.
+* Automatically selects corresponding folder of any installed models.
+* Improved cancellation logic to prevent downloads from continuing.
+* Display a timed out message instead of an error icon.
