@@ -253,6 +253,9 @@ def save_json_file(file_name, install_path, trained_tags):
 def api_to_data(content_type, sort_type, period_type, use_search_term, page_count, search_term=None, timeOut=None, isNext=None):
     global previous_tile_count, previous_search_term
     
+    if page_count in ("0", ""):
+        page_count = "1"
+    
     page_value = page_count.split('/')[0]
     if search_term != previous_search_term or tile_count != previous_tile_count or inputs_changed == True:
         previous_search_term = search_term
@@ -381,7 +384,7 @@ def update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_
     
     if json_data is None or json_data == "timeout":
         timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, timeOut, isNext)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count, timeOut, isNext)
         timeOut = False
         
         return return_values
@@ -399,7 +402,7 @@ def update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_
     previous_inputs = current_inputs
 
     if inputs_changed == True:
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
         return return_values
     
     if isNext:
@@ -509,7 +512,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             gr.Textbox.update(interactive=False, value=None),\
             gr.Dropdown.update(choices=[], value="", interactive=False)
 
-def delete_file(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, model_filename):
+def delete_file(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, model_filename, page_count):
     model_folder = os.path.join(contenttype_folder(content_type))
     path_file = None
     for root, dirs, files in os.walk(model_folder):
@@ -533,7 +536,7 @@ def delete_file(content_type, sort_type, period_type, use_search_term, search_te
             print(f'Removed: "{json_file}"')
             os.remove(json_file)
     
-    return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver)
+    return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
     return *return_value[:-2],\
            gr.Button.update(interactive=False, visible=False),\
            gr.Button.update(interactive=True)
@@ -767,23 +770,23 @@ def start_download(model_name, model_filename):
             gr.Textbox.update(value=number),\
             gr.Dropdown.update(interactive=False, value="")
 
-def finish_download(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver):
+def finish_download(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count):
     global recent_model
-    return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver)
+    return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
     recent_model = None
     return  *return_value[:-2],\
             gr.Button.update(interactive=False, visible=False),\
             gr.Button.update(interactive=True),\
             gr.Dropdown.update(interactive=True, value="")
     
-def download_cancel(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver):
+def download_cancel(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count):
     global recent_model, cancel_status, isDownloading
     cancel_status = True
     isDownloading = False
     time.sleep(2)
     delete_file(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, current_download)
     
-    return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver)
+    return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
     
     recent_model = None
     return  *return_value[:-2],\
@@ -834,14 +837,14 @@ def on_ui_tabs():
             with gr.Column(scale=1,min_width=160 ):
                 tile_slider = gr.Slider(label="Tile count:", min=5, max=50, value=15, step=1, max_width=100)
         with gr.Row():
-            with gr.Column(scale=4):
+            with gr.Column(scale=5):
                 refresh = gr.Button(label="Refresh", value="Refresh")
-            with gr.Column(scale=2,min_width=80):
+            with gr.Column(scale=3,min_width=80):
                 get_prev_page = gr.Button(value="Prev Page", interactive=False)
-            with gr.Column(scale=2,min_width=80):
+            with gr.Column(scale=3,min_width=80):
                 get_next_page = gr.Button(value="Next Page", interactive=False)
-            with gr.Column(scale=1,min_width=80):
-                pages = gr.Textbox(label='Pages',show_label=False)
+            with gr.Column(scale=1,min_width=50):
+                pages = gr.Textbox(label='Pages', show_label=False)
         with gr.Row():
             list_html = gr.HTML()
             download_start = gr.Textbox(value=None, visible=False)
@@ -951,7 +954,8 @@ def on_ui_tabs():
                 search_term,
                 show_nsfw,
                 delete_old_ver,
-                model_filename
+                model_filename,
+                pages
                 ],
             outputs=[
                 list_models,
@@ -978,7 +982,8 @@ def on_ui_tabs():
                 use_search_term,
                 search_term,
                 show_nsfw,
-                delete_old_ver
+                delete_old_ver,
+                pages
                 ],
             outputs=[
                 list_models,
@@ -1005,7 +1010,8 @@ def on_ui_tabs():
                 use_search_term,
                 search_term,
                 show_nsfw,
-                delete_old_ver
+                delete_old_ver,
+                pages
                 ],
             outputs=[
                 list_models,
