@@ -19,3 +19,40 @@ function updateCardSize(width, height) {
     styleSheet.insertRule(`.civmodelcard img { ${imgKeyframes} }`, styleSheet.cssRules.length);
     styleSheet.insertRule(`.civmodelcard figcaption { ${textKeyframes} }`, styleSheet.cssRules.length);
 }
+
+function filterByBaseModel(selectedBaseModels) {
+    if (!selectedBaseModels || selectedBaseModels.length === 0) {
+        document.querySelectorAll('.civmodelcard').forEach(card => {
+            card.style.display = 'block';
+        });
+        return;
+    }
+
+    if (!Array.isArray(selectedBaseModels)) {
+        selectedBaseModels = [selectedBaseModels];
+    }
+
+    document.querySelectorAll('.civmodelcard').forEach(card => {
+        const cardBaseModel = card.getAttribute('base-model');
+        let shouldDisplay = false;
+
+        for (let i = 0; i < selectedBaseModels.length; i++) {
+            if (cardBaseModel === selectedBaseModels[i]) {
+                shouldDisplay = true;
+                break;
+            }
+
+            if (selectedBaseModels[i] === "SD 2.0" && (cardBaseModel === "SD 2.0" || cardBaseModel === "SD 2.0 768")) {
+                shouldDisplay = true;
+                break;
+            }
+
+            if (selectedBaseModels[i] === "SD 2.1" && ["SD 2.1", "SD 2.1 768", "SD 2.1 Unclip"].includes(cardBaseModel)) {
+                shouldDisplay = true;
+                break;
+            }
+        }
+
+        card.style.display = shouldDisplay ? 'block' : 'none';
+    });
+}
