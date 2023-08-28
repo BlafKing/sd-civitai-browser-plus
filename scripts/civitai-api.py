@@ -33,7 +33,6 @@ previous_inputs = None
 inputs_changed = False
 isDownloading = False
 pageChange = False
-page_count = "1"
 tile_count = 15
 
 git = os.environ.get('GIT', "git")
@@ -251,7 +250,7 @@ def save_json_file(file_name, install_path, trained_tags):
 
     return trained_tags
 
-def api_to_data(content_type, sort_type, period_type, use_search_term, search_term=None, timeOut=None, isNext=None):
+def api_to_data(content_type, sort_type, period_type, use_search_term, page_count, search_term=None, timeOut=None, isNext=None):
     global previous_tile_count, previous_search_term
     
     page_value = page_count.split('/')[0]
@@ -374,10 +373,10 @@ def model_list_html(json_data, model_dict, content_type, DeleteOld):
     HTML = HTML + '</div>'
     return HTML
 
-def update_prev_page(show_nsfw, content_type, delete_old_ver, sort_type, period_type, use_search_term, search_term):
-    return update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_type, use_search_term, search_term, isNext=False)
+def update_prev_page(show_nsfw, content_type, delete_old_ver, sort_type, period_type, use_search_term, search_term, page_count):
+    return update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_type, use_search_term, search_term, page_count, isNext=False)
 
-def update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_type, use_search_term, search_term, isNext=True):
+def update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_type, use_search_term, search_term, page_count, isNext=True):
     global json_data, pages, previous_inputs, inputs_changed, pageChange
     
     if json_data is None or json_data == "timeout":
@@ -459,7 +458,7 @@ def pagecontrol(json_data):
         hasPrev = True
     return hasPrev,hasNext,pages_ctrl
 
-def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, timeOut=None, isNext=None):
+def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count, timeOut=None, isNext=None):
     global json_data, pages, previous_inputs, inputs_changed, pageChange
     if pageChange == False:
     
@@ -472,7 +471,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
         
         previous_inputs = current_inputs
     
-    json_data = api_to_data(content_type, sort_type, period_type, use_search_term, search_term, timeOut, isNext)
+    json_data = api_to_data(content_type, sort_type, period_type, use_search_term, page_count, search_term, timeOut, isNext)
     if json_data == "timeout":
         HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
         page_value = page_count.split('/')[0]
@@ -745,13 +744,6 @@ def update_global_slider_value(slider_value):
     global tile_count
     tile_count = slider_value
 
-def update_global_page_count(page_value):
-    global page_count
-    try:
-        page_count = page_value
-    except:
-        page_count = "1"
-
 def start_download(model_name, model_filename):
     global last_start, recent_model, cancel_status, current_download
     current_download = model_filename
@@ -874,13 +866,6 @@ def on_ui_tabs():
             delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
         with gr.Row():
             preview_image_html = gr.HTML()
-        
-        for event in [pages.change, pages.submit]:
-            event(
-            fn=update_global_page_count,
-            inputs=[pages],
-            outputs=[]
-        )
         
         def select_subfolder(sub_folder):
             if sub_folder == "None":
@@ -1120,7 +1105,8 @@ def on_ui_tabs():
                 sort_type,
                 period_type,
                 use_search_term,
-                search_term
+                search_term,
+                pages
                 ],
             outputs=[
                 list_models,
@@ -1146,7 +1132,8 @@ def on_ui_tabs():
                 use_search_term,
                 search_term,
                 show_nsfw,
-                delete_old_ver
+                delete_old_ver,
+                pages
                 ],
             outputs=[
                 list_models,
@@ -1172,7 +1159,8 @@ def on_ui_tabs():
                 sort_type,
                 period_type,
                 use_search_term,
-                search_term
+                search_term,
+                pages
                 ],
             outputs=[
                 list_models,
