@@ -1,4 +1,4 @@
-# CivitAI Browser
+# CivitAI Browser+
 Add-on for [Automatic1111's Stable Difussion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)  
 
 This extension allows you to download models from CivitAi without leaving WebUI!  
@@ -94,3 +94,11 @@ v1.5
 * Automatically selects corresponding folder of any installed models.
 * Improved cancellation logic to prevent downloads from continuing.
 * Display a timed out message instead of an error icon.
+
+---
+
+v1.6
+
+* LoCon models now get saved in the Lora folder if A1111's version is 1.5 or higher.
+* Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.  
+(Please note: This does not impact search results, since the CivitAI API does not yet support this)
