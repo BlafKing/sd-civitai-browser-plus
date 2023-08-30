@@ -72,11 +72,9 @@ def download_file(url, file_path, preview_image_html, install_path, progress=gr.
                 try:
                     if cancel_status:
                         return
-
                     try:
                         if cancel_status:
                             return
-                        print("response start")
                         response = requests.get(url, headers=headers, stream=True, timeout=4)
                         total_size = int(response.headers.get("Content-Length", 0))
                     except:
