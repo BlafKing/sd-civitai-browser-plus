@@ -21,6 +21,8 @@ from modules.paths import models_path
 import shutil
 from html import escape 
 
+cancel_status = None
+contentChange = False
 recent_model = None
 json_data = None
 json_info = None
@@ -45,30 +47,41 @@ def git_tag():
 
 ver = git_tag()
 
-def download_file(url, file_name, preview_image_html, install_path, progress=gr.Progress()):
+class TimeOutFunction(Exception):
+    pass
+
+def download_file(url, file_path, preview_image_html, install_path, progress=gr.Progress()):
+    global isDownloading, total_size
     max_retries = 5
-    retry_delay = 10
-    if os.path.exists(file_name):
-        os.remove(file_name)
+    if os.path.exists(file_path):
+        os.remove(file_path)
     downloaded_size = 0
-    tokens = re.split(re.escape('\\'), file_name)
+    tokens = re.split(re.escape('\\'), file_path)
     file_name_display = tokens[-1]
-    global isDownloading
+    
     while True:
         if cancel_status:
             return
-        if os.path.exists(file_name):
-            downloaded_size = os.path.getsize(file_name)
+        if os.path.exists(file_path):
+            downloaded_size = os.path.getsize(file_path)
             headers = {"Range": f"bytes={downloaded_size}-"}
         else:
             headers = {}
-        with open(file_name, "ab") as f:
+        with open(file_path, "ab") as f:
             while isDownloading:
                 try:
                     if cancel_status:
                         return
-                    response = requests.get(url, headers=headers, stream=True)
-                    total_size = int(response.headers.get("Content-Length", 0))
+
+                    try:
+                        if cancel_status:
+                            return
+                        print("response start")
+                        response = requests.get(url, headers=headers, stream=True, timeout=4)
+                        total_size = int(response.headers.get("Content-Length", 0))
+                    except:
+                        raise TimeOutFunction("Timed Out")
+                    
                     if total_size == 0:
                         total_size = downloaded_size
 
@@ -82,28 +95,34 @@ def download_file(url, file_name, preview_image_html, install_path, progress=gr.
                             if isDownloading == False:
                                 response.close
                                 break
-                    downloaded_size = os.path.getsize(file_name)
+                    downloaded_size = os.path.getsize(file_path)
                     break
                 
-                except ConnectionError as e:
+                except TimeOutFunction:
+                    progress(0, desc="CivitAI API did not respond, retrying...")
                     max_retries -= 1
                     if max_retries == 0:
-                        raise e
-
-                    time.sleep(retry_delay)
+                        progress(0, desc="Unable to download file due to time-out, please try to download again.")
+                        time.sleep(2)
+                        return
+                    time.sleep(5)
 
         if (isDownloading == False):
             break
         
         isDownloading = False
-        downloaded_size = os.path.getsize(file_name)
+        downloaded_size = os.path.getsize(file_path)
         if downloaded_size >= total_size:
             if not cancel_status:
-                print(f"Model saved to: {file_name}")
-                save_preview_image(preview_image_html, file_name, install_path)
+                print(f"Model saved to: {file_path}")
+                save_preview_image(preview_image_html, file_path, install_path)
             
         else:
-            print(f"Error: File download failed. Retrying... {file_name_display}")
+            progress(0, desc="Download failed, please try again.")
+            print(f"Error: File download failed: {file_name_display}")
+            time.sleep(2)
+            if os.path.exists(file_path):
+                os.remove(file_path)
             
 def convert_size(size):
     for unit in ['bytes', 'KB', 'MB', 'GB']:
@@ -189,9 +208,16 @@ def contenttype_folder(content_type):
 def download_file_thread(url, file_name, preview_image_html, create_json, trained_tags, install_path, progress=gr.Progress()):
     global isDownloading, last_dwn
     
+    number = str(random.randint(10000, 99999))
+    while number == last_dwn:
+        number = str(random.randint(10000, 99999))
+
+    last_dwn = number
+    
     if isDownloading:
         isDownloading = False
         return
+    
     isDownloading = True
     if not os.path.exists(install_path):
         os.makedirs(install_path)
@@ -203,16 +229,22 @@ def download_file_thread(url, file_name, preview_image_html, create_json, traine
     thread.start()
     thread.join()
     
-    if create_json == True:
+    if create_json and not cancel_status:
         save_json_file(file_name, install_path, trained_tags)
     
-    number = str(random.randint(10000, 99999))
-
-    while number == last_dwn:
-        number = str(random.randint(10000, 99999))
-
-    last_dwn = number
+    if os.path.exists(path_to_new_file):
+        actual_size = os.path.getsize(path_to_new_file)
+        if 'total_size' in globals():
+            if actual_size != total_size:
+                print(f"{path_to_new_file} Is not the right size ({actual_size} | {total_size}) Removing it.")
+                os.remove(path_to_new_file)
+        else:
+            print(f"Error occured during download, Removing: {path_to_new_file}")
+            os.remove(path_to_new_file)
     
+    if isDownloading:
+        isDownloading = False
+
     return gr.HTML.update(), number
 
 def save_json_file(file_name, install_path, trained_tags):
@@ -257,7 +289,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, page_coun
         page_count = "1"
     
     page_value = page_count.split('/')[0]
-    if search_term != previous_search_term or tile_count != previous_tile_count or inputs_changed == True:
+    if search_term != previous_search_term or tile_count != previous_tile_count or inputs_changed or contentChange:
         previous_search_term = search_term
         previous_tile_count = tile_count
         api_url = f"https://civitai.com/api/v1/models?limit={tile_count}&page=1"
@@ -294,6 +326,8 @@ def api_next_page(next_page_url=None):
     return request_civit_api(next_page_url)
 
 def model_list_html(json_data, model_dict, content_type, DeleteOld):
+    global contentChange
+    contentChange = False
     allownsfw = json_data['allownsfw']
     HTML = '<div class="column civmodellist">'
 
@@ -401,7 +435,7 @@ def update_next_page(show_nsfw, content_type, delete_old_ver, sort_type, period_
     
     previous_inputs = current_inputs
 
-    if inputs_changed == True:
+    if inputs_changed or contentChange:
         return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
         return return_values
     
@@ -462,7 +496,7 @@ def pagecontrol(json_data):
     return hasPrev,hasNext,pages_ctrl
 
 def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count, timeOut=None, isNext=None):
-    global json_data, pages, previous_inputs, inputs_changed, pageChange
+    global json_data, pages, previous_inputs, inputs_changed, pageChange, contentChange
     if pageChange == False:
     
         current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, tile_count)
@@ -486,7 +520,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
     if json_data is None:
         return
     
-    if pageChange == True:
+    if pageChange:
         pageChange = False
     
     if json_data != None and json_data != "timeout":
@@ -499,6 +533,8 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
                 model_dict[item['name']] = item['name']
         
         HTML = model_list_html(json_data, model_dict, content_type, delete_old_ver)
+    
+    contentChange = False
     
     return  gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value="", interactive=True),\
             gr.Dropdown.update(choices=[], value=""),\
@@ -537,9 +573,10 @@ def delete_file(content_type, sort_type, period_type, use_search_term, search_te
             os.remove(json_file)
     
     return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
-    return *return_value[:-2],\
-           gr.Button.update(interactive=False, visible=False),\
-           gr.Button.update(interactive=True)
+    return  *return_value[:-3],\
+            gr.Button.update(interactive=False, visible=True),\
+            gr.Button.update(interactive=False, visible=False),\
+            gr.Button.update(interactive=True)
 
 def update_model_versions(model_name=None, content_type=None):
     global json_data, main_folder
@@ -774,30 +811,33 @@ def finish_download(content_type, sort_type, period_type, use_search_term, searc
     global recent_model
     return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
     recent_model = None
-    return  *return_value[:-2],\
+    return  *return_value[:-3],\
+            gr.Button.update(interactive=False, visible=True),\
             gr.Button.update(interactive=False, visible=False),\
             gr.Button.update(interactive=True),\
             gr.Dropdown.update(interactive=True, value="")
     
 def download_cancel(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count):
-    global recent_model, cancel_status, isDownloading
+    global recent_model, cancel_status
     cancel_status = True
-    isDownloading = False
-    time.sleep(2)
-    delete_file(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, current_download, page_count)
     
+    while True:        
+        if not isDownloading:
+            delete_file(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, current_download, page_count)
+            break
+        else:
+            time.sleep(0.5)
+            
     return_value = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, delete_old_ver, page_count)
     
     recent_model = None
-    return  *return_value[:-2],\
+    return  *return_value[:-3],\
+            gr.Button.update(interactive=False, visible=True),\
             gr.Button.update(interactive=False, visible=False),\
             gr.Button.update(interactive=True),\
             gr.Dropdown.update(interactive=True, value="")
 
-def on_ui_tabs():
-    global list_models, list_versions, list_html, get_prev_page, get_next_page, pages, cancel_status
-    
-    cancel_status = None
+def on_ui_tabs():    
     base_path = "extensions"
     lobe_directory = None
 
@@ -815,7 +855,7 @@ def on_ui_tabs():
     
     with gr.Blocks() as civitai_interface:
         with gr.Row():
-            with gr.Column(scale=1):
+            with gr.Column(scale=1, min_width=250):
                 content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value="Checkpoint", type="value")
             with gr.Column(scale=1, min_width=250):
                 period_type = gr.Dropdown(label='Time Period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
@@ -845,6 +885,8 @@ def on_ui_tabs():
                 get_next_page = gr.Button(value="Next Page", interactive=False)
             with gr.Column(scale=1,min_width=50):
                 pages = gr.Textbox(label='Pages', show_label=False)
+            with gr.Column(scale=0.25,min_width=30):
+                pages_txt = gr.HTML(value='<div style="margin-top: 10px;"></div>', elem_id="pageTitle")
         with gr.Row():
             list_html = gr.HTML()
             download_start = gr.Textbox(value=None, visible=False)
@@ -869,6 +911,15 @@ def on_ui_tabs():
             delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
         with gr.Row():
             preview_image_html = gr.HTML()
+        
+        def changeInput():
+            global contentChange
+            contentChange = True
+        
+        content_type.input(
+            fn=changeInput,
+            inputs=[]
+        )
         
         def select_subfolder(sub_folder):
             if sub_folder == "None":
