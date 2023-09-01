@@ -48,6 +48,7 @@
 	width: 8em;
 	word-break: break-word;
 	background-color: rgba(32, 32, 32, 0.5);
+	color: var(--fbc-light-gray) !important;
 }
 
 .civnsfw img {
