@@ -104,3 +104,13 @@ v1.6
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
 * Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.  
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
+
+---
+
+v1.7
+
+* Introduced seperate download progress bar, allows to keep browsing whilst downloading.
+* Removed force refresh after installing, cancelling and deleting.
+* Removed 'Automatically delete old version' option since this relied on a reload after installation.
+* Added toggle to sort Tiles by date, this adds a header with the update date and groups models.
+* Dynamic changing of tile borders after installation & deletion (doesn't detect old versions yet).
