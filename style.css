@@ -16,7 +16,7 @@
 
 .civmodelcard:hover {
 	transform: scale(1.1, 1.1);
-	position: relative;
+	position: relative;	
 	z-index: var(--layer-5);
 	box-shadow: 0px 0px 1px 3px whitesmoke;
 }
@@ -24,6 +24,7 @@
 .civmodelcardinstalled {
 	box-shadow: 0px 0px 1px 3px aquamarine;
 }
+
 .civmodelcardoutdated {
 	box-shadow: 0px 0px 1px 3px orange;
 }
@@ -58,6 +59,7 @@
 
 #quicksettings > div{
 	max-width: None !important;
+	width: auto !important;
 }
 
 #lobe_toggles{
@@ -74,4 +76,15 @@
 
 .gradio-container-3-32-0 .prose :last-child {
     margin-bottom: auto !important;
+}
+
+.date-section {
+	display: block;
+	width: 100%;
+	margin-bottom: 5px;
+}
+
+.card-row {
+	display: flex;
+	flex-wrap: wrap;
 }
