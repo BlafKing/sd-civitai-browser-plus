@@ -56,3 +56,35 @@ function filterByBaseModel(selectedBaseModels) {
         card.style.display = shouldDisplay ? 'block' : 'none';
     });
 }
+
+function installedCard(modelName) {
+    console.log(`Model ${modelName} has been enabled.`);  // Added console log
+    const parentDiv = document.querySelector('.civmodellist');
+
+    if (parentDiv) {
+        const cards = parentDiv.querySelectorAll('.civmodelcard');
+
+        cards.forEach((card) => {
+            const onclickAttr = card.getAttribute('onclick');
+            if (onclickAttr && onclickAttr.includes(`select_model('${modelName}')`)) {
+                card.className = 'civmodelcard  civmodelcardinstalled';
+            }
+        });
+    }
+}
+
+function removedCard(modelName) {
+    console.log(`Model ${modelName} has been disabled.`);  // Added console log
+    const parentDiv = document.querySelector('.civmodellist');
+
+    if (parentDiv) {
+        const cards = parentDiv.querySelectorAll('.civmodelcard');
+        
+        cards.forEach((card) => {
+            const onclickAttr = card.getAttribute('onclick');
+            if (onclickAttr && onclickAttr.includes(`select_model('${modelName}')`)) {
+                card.className = 'civmodelcard ';
+            }
+        });
+    }
+}
