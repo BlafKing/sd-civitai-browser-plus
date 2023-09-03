@@ -283,8 +283,6 @@ def cardUpdate(model_name, content_type, list_versions, is_install):
         model_name += ".Old"
     else:
         model_name += ".None"
-
-    print(f"Adjusted Model Name: {model_name}")
     
     return model_name, version_value_clean, version_choices_clean
 
