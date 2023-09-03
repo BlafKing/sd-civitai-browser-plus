@@ -16,7 +16,6 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 # Changelog
 
 v1.0
-
 * Changed 'Get List' to 'Refresh', the button now reloads the current page unless any options have been changed.
 * Removed new folder option and removed the function that puts downloads in their own seperate folders.
 * Made the glow around frames always visible without hovering.
@@ -28,7 +27,6 @@ v1.0
 ---
 
 v1.1
-
 * Added dropdown box which can filter by time period.
 * Changed 'Content type' from buttons to a dropdown box.
 * Made selecting a tile always trigger a load, also when the same tile is selected twice.
@@ -36,7 +34,6 @@ v1.1
 ---
 
 v1.2
-
 * Made the 'Version' tab show the installed version by default when selecting a model.
 * Automatically saves preview image when downloading a model.
 * Added [installed] text suffix for any versions that are installed in the 'Version' tab.
@@ -50,7 +47,6 @@ v1.2
 ---
 
 v1.3
-
 * Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.  
   (If a LORA with saved tags is used it will automatically input all tags into the txt box in image creation.)
 * Improved padding based on if Lobe theme is being used.
@@ -63,14 +59,12 @@ v1.3
 ---
 
 v1.3.1
-
 * Fixed new tag saving bugs/oversights.
 * Improved trained tags display to not include the model itself.
 
 ---
 
 v1.4
-
 * Download progress load bar is now on web page instead of CMD.
 * Better margin fixes with theme detection.
 * Delete option now also removes .json files.
@@ -83,7 +77,6 @@ v1.4
 ---
 
 v1.5
-
 * Added slider to change tile size
 * Added Download Folder textbox which can be used to define a custom download path.
 * Added Sub Folder Dropdown to select any available subfolder(s) as download location.
@@ -95,7 +88,6 @@ v1.5
 ---
 
 v1.6
-
 * LoCon models now get saved in the Lora folder if A1111's version is 1.5 or higher.
 * improved page_count detection.  
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
@@ -105,7 +97,6 @@ v1.6
 ---
 
 v1.7
-
 * Introduced seperate download progress bar, allows to keep browsing whilst downloading.
 * Removed force refresh after installing, cancelling and deleting.
 * Removed 'Automatically delete old version' option since this relied on a reload after installation.
@@ -115,5 +106,4 @@ v1.7
 ---
 
 v1.7.1
-
 * Dynamic changing of tile borders after installation & deletion now correctly detects old versions.
