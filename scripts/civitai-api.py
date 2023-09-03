@@ -32,6 +32,7 @@ main_folder = None
 previous_search_term = None
 previous_tile_count = None
 previous_inputs = None
+
 sortNewest = False
 contentChange = False
 inputs_changed = False
