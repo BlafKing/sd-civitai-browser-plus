@@ -96,7 +96,7 @@ def download_cancel(content_type, model_name, list_versions):
             gr.HTML.update(value='<div style="min-height: 0px;"></div>') # Download Progress
     )
 
-def download_file(url, file_path, preview_image_html, install_path, progress=gr.Progress()):
+def download_file(url, file_path, preview_html, install_path, progress=gr.Progress()):
     global isDownloading, total_size
     max_retries = 5
     if os.path.exists(file_path):
@@ -166,7 +166,7 @@ def download_file(url, file_path, preview_image_html, install_path, progress=gr.
         if downloaded_size >= total_size:
             if not cancel_status:
                 print(f"Model saved to: {file_path}")
-                save_preview_image(preview_image_html, file_path, install_path)
+                save_preview_image(preview_html, file_path, install_path)
             
         else:
             progress(0, desc="Download failed, please try again.")
@@ -175,7 +175,7 @@ def download_file(url, file_path, preview_image_html, install_path, progress=gr.
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-def download_file_thread(url, file_name, preview_image_html, create_json, trained_tags, install_path, list_models, progress=gr.Progress()):
+def download_file_thread(url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
     global isDownloading, last_dwn
     
     number = str(random.randint(10000, 99999))
@@ -183,6 +183,8 @@ def download_file_thread(url, file_name, preview_image_html, create_json, traine
         number = str(random.randint(10000, 99999))
 
     last_dwn = number
+    
+    (model, _, _) = cardUpdate(model_name, content_type, list_versions, True)
     
     if isDownloading:
         isDownloading = False
@@ -194,7 +196,7 @@ def download_file_thread(url, file_name, preview_image_html, create_json, traine
         
     path_to_new_file = os.path.join(install_path, file_name)
     
-    thread = threading.Thread(target=download_file, args=(url, path_to_new_file, preview_image_html, install_path, progress))
+    thread = threading.Thread(target=download_file, args=(url, path_to_new_file, preview_html, install_path, progress))
 
     thread.start()
     thread.join()
@@ -203,7 +205,7 @@ def download_file_thread(url, file_name, preview_image_html, create_json, traine
         save_json_file(file_name, install_path, trained_tags)
     
     if not cancel_status:
-        modelName = list_models
+        modelName = model
     else:
         modelName = None
     
@@ -221,9 +223,9 @@ def download_file_thread(url, file_name, preview_image_html, create_json, traine
         isDownloading = False
 
     return  (
-            gr.HTML.update(),
-            gr.Textbox.update(value=modelName),
-            number
+            gr.HTML.update(), # Download Progress HTML
+            gr.Textbox.update(value=modelName), # Current Model
+            gr.Textbox.update(value=number) # Download Finish Trigger
     )
 
 def update_dl_url(trained_tags, model_name=None, model_version=None, model_filename=None):
@@ -243,21 +245,53 @@ def update_dl_url(trained_tags, model_name=None, model_version=None, model_filen
                                 global json_info
                                 json_info = model
                                 
-        return  gr.Textbox.update(value=dl_url),\
-                gr.Dropdown.update(interactive=True if model_filename else False),\
-                gr.Button.update(interactive=True if trained_tags else False),\
-                gr.Button.update(interactive=True if model_filename else False),\
-                gr.Button.update(interactive=True if model_filename else False)
+        return  (
+                gr.Textbox.update(value=dl_url), # Download URL
+                gr.Dropdown.update(interactive=True if model_filename else False), # Version List
+                gr.Button.update(interactive=True if trained_tags else False), # Save Tags Button
+                gr.Button.update(interactive=True if model_filename else False), # Save Images Button
+                gr.Button.update(interactive=True if model_filename else False) # Download Button
+        )
     else:
-        return  gr.Textbox.update(value=None),\
-                gr.Dropdown.update(interactive=True if model_filename else False),\
-                gr.Button.update(interactive=True if trained_tags else False),\
-                gr.Button.update(interactive=True if model_filename else False),\
-                gr.Button.update(interactive=True if model_filename else False)
+        return  (
+                gr.Textbox.update(value=None), # Download URL
+                gr.Dropdown.update(interactive=True if model_filename else False), # Version List
+                gr.Button.update(interactive=True if trained_tags else False), # Save Tags Button
+                gr.Button.update(interactive=True if model_filename else False), # Save Images Button
+                gr.Button.update(interactive=True if model_filename else False) # Download Button
+        )
+
+def cardUpdate(model_name, content_type, list_versions, is_install):
+    gr_components = update_model_versions(model_name, content_type)
+    version_choices = gr_components[0]['choices']
+    
+    if is_install:
+        version_value_clean = list_versions + " [Installed]"
+        version_choices_clean = [version if version + " [Installed]" != version_value_clean else version_value_clean for version in version_choices]
+    
+    else:
+        version_value_clean = list_versions.replace(" [Installed]", "")
+        version_choices_clean = [version if version.replace(" [Installed]", "") != version_value_clean else version_value_clean for version in version_choices]
+    
+    first_version_installed = "[Installed]" in version_choices_clean[0]
+    any_later_version_installed = any("[Installed]" in version for version in version_choices_clean[1:])
+
+    if first_version_installed:
+        model_name += ".New"
+    elif any_later_version_installed:
+        model_name += ".Old"
+    else:
+        model_name += ".None"
+
+    print(f"Adjusted Model Name: {model_name}")
+    
+    return model_name, version_value_clean, version_choices_clean
 
 def delete_file(content_type, model_filename, model_name, list_versions):
     global last_del
-    adjusted_ver = list_versions.replace(" [Installed]", "")
+
+    (model_name, ver_value, ver_choices) = cardUpdate(model_name, content_type, list_versions, False)
+    
     model_folder = os.path.join(contenttype_folder(content_type))
     path_file = None
     for root, dirs, files in os.walk(model_folder):
@@ -288,12 +322,14 @@ def delete_file(content_type, model_filename, model_name, list_versions):
             print(f'Removed: "{json_file}"')
             os.remove(json_file)
     
-    return  gr.Button.update(interactive=False, visible=True),\
-            gr.Button.update(interactive=False, visible=False),\
-            gr.Button.update(interactive=False, visible=False),\
-            gr.Textbox.update(value=number),\
-            gr.Textbox.update(value=model_name),\
-            gr.Dropdown.update(value=adjusted_ver)
+    return  (
+            gr.Button.update(interactive=False, visible=True), # Download Button
+            gr.Button.update(interactive=False, visible=False), # Cancel Button
+            gr.Button.update(interactive=False, visible=False), # Delete Button
+            gr.Textbox.update(value=number), # Delete Finish Trigger
+            gr.Textbox.update(value=model_name), # Current Model 
+            gr.Dropdown.update(value=ver_value, choices=ver_choices) # Version List
+    )
 
 def contenttype_folder(content_type):
     if content_type == "Checkpoint":
@@ -525,17 +561,19 @@ def update_next_page(show_nsfw, content_type, sort_type, period_type, use_search
                 model_dict[item['name']] = item['name']
         HTML = model_list_html(json_data, model_dict, content_type)
 
-    return  gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=""),\
-            gr.Dropdown.update(choices=[], value=""),\
-            gr.HTML.update(value=HTML),\
-            gr.Button.update(interactive=hasPrev),\
-            gr.Button.update(interactive=hasNext),\
-            gr.Textbox.update(value=pages),\
-            gr.Button.update(interactive=False),\
-            gr.Button.update(interactive=False),\
-            gr.Button.update(interactive=False),\
-            gr.Textbox.update(interactive=False, value=None),\
-            gr.Dropdown.update(choices=[], value="")
+    return  (
+            gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=""), # Model List
+            gr.Dropdown.update(choices=[], value=""), # Version List
+            gr.HTML.update(value=HTML), # Model Cards HTML
+            gr.Button.update(interactive=hasPrev), # Prev Button
+            gr.Button.update(interactive=hasNext), # Next Button
+            gr.Textbox.update(value=pages), # Pages
+            gr.Button.update(interactive=False), # Save Tags Button
+            gr.Button.update(interactive=False), # Save Images Button
+            gr.Button.update(interactive=False), # Download Button
+            gr.Textbox.update(interactive=False, value=None), # Install Path
+            gr.Dropdown.update(choices=[], value="") # Sub Folder List
+    )
 
 def pagecontrol(json_data):
     pages_ctrl = f"{json_data['metadata']['currentPage']}/{json_data['metadata']['totalPages']}"
@@ -637,13 +675,18 @@ def update_model_versions(model_name, content_type):
         display_version_names = [f"{v} [Installed]" if v in installed_versions else v for v in version_names]
         default_installed = next((f"{v} [Installed]" for v in installed_versions), None)
         default_value = default_installed or next(iter(version_names), None)
-        return  gr.Dropdown.update(choices=display_version_names, value=default_value),\
-                gr.Textbox.update(interactive=True, value=folder_location if model_name else None),\
-                gr.Dropdown.update(choices=sub_folders, value=default_subfolder, interactive=True)
+        
+        return  (
+                gr.Dropdown.update(choices=display_version_names, value=default_value), # Version List
+                gr.Textbox.update(interactive=True, value=folder_location if model_name else None), # Install Path
+                gr.Dropdown.update(choices=sub_folders, value=default_subfolder, interactive=True) # Sub Folder List
+        )
     else:
-        return  gr.Dropdown.update(choices=[], value=None),\
-                gr.Textbox.update(interactive=False, value=None),\
-                gr.Dropdown.update(choices=[], value="", interactive=False)
+        return  (
+                gr.Dropdown.update(choices=[], value=None), # Version List
+                gr.Textbox.update(interactive=False, value=None), # Install Path
+                gr.Dropdown.update(choices=[], value="", interactive=False) # Sub Folder List
+        )
 
 def update_model_info(model_name=None, model_version=None):
     if model_version and "[Installed]" in model_version:
@@ -707,19 +750,23 @@ def update_model_info(model_name=None, model_version=None):
                         img_html = img_html + '</div>'
                         output_html = f"<p><b>Model</b>: {escape(str(model_name))}<br><b>Version</b>: {escape(str(model_version))}<br><b>Uploaded by</b>: {escape(str(model_uploader))}<br><b>Base Model</b>: {escape(str(output_basemodel))}</br><b>Tags</b>: {escape(str(tags))}<br><b>Trained Tags</b>: {escape(str(output_training))}<br>{escape(str(allow))}<br><a href={model_url}><b>Download Here</b></a></p><br><br>{model_desc}<br><div align=center>{img_html}</div>"
                         
-        return  gr.HTML.update(value=output_html),\
-                gr.Textbox.update(value=output_training),\
-                gr.Dropdown.update(choices=[k for k, v in dl_dict.items()], value=next(iter(dl_dict.keys()), None)),\
-                gr.Textbox.update(value=output_basemodel),\
-                gr.Button.update(visible=BtnDown, interactive=BtnDown),\
-                gr.Button.update(visible=BtnDel, interactive=BtnDel)
+        return  (
+                gr.HTML.update(value=output_html), # Model Preview
+                gr.Textbox.update(value=output_training), # Trained Tags
+                gr.Textbox.update(value=next(iter(dl_dict.keys()), None)), # Model Filename
+                gr.Textbox.update(value=output_basemodel), # Base Model Number
+                gr.Button.update(visible=BtnDown, interactive=BtnDown), # Download Button
+                gr.Button.update(visible=BtnDel, interactive=BtnDel) # Delete Button
+        )
     else:
-        return  gr.HTML.update(value=None),\
-                gr.Textbox.update(value=None),\
-                gr.Dropdown.update(choices=[], value=None),\
-                gr.Textbox.update(value=''),\
-                gr.Button.update(visible=BtnDown),\
-                gr.Button.update(visible=BtnDel, interactive=BtnDel)
+        return  (
+                gr.HTML.update(value=None), # Model Preview
+                gr.Textbox.update(value=None), # Trained Tags
+                gr.Textbox.update(value=None), # Model Filename
+                gr.Textbox.update(value=''), # Base Model Number
+                gr.Button.update(visible=BtnDown), # Download Button
+                gr.Button.update(visible=BtnDel, interactive=BtnDel) # Delete Button
+        )
 
 def request_civit_api(api_url=None, payload=None):
     if payload is not None:
@@ -734,10 +781,10 @@ def request_civit_api(api_url=None, payload=None):
         data = json.loads(response.text)
     return data
 
-def save_preview_image(preview_image_html, file_name, install_path):
+def save_preview_image(preview_html, file_name, install_path):
     if not os.path.exists(install_path):
         os.makedirs(install_path)
-    img_urls = re.findall(r'src=[\'"]?([^\'" >]+)', preview_image_html)
+    img_urls = re.findall(r'src=[\'"]?([^\'" >]+)', preview_html)
     
     if not img_urls:
         return
@@ -759,10 +806,10 @@ def save_preview_image(preview_image_html, file_name, install_path):
     except urllib.error.URLError as e:
         print(f'Error downloading preview image: {e.reason}')
 
-def save_image_files(preview_image_html, model_filename, content_type, install_path):
+def save_image_files(preview_html, model_filename, content_type, install_path):
     if not os.path.exists(install_path):
         os.makedirs(install_path)
-    img_urls = re.findall(r'src=[\'"]?([^\'" >]+)', preview_image_html)
+    img_urls = re.findall(r'src=[\'"]?([^\'" >]+)', preview_html)
     
     name = os.path.splitext(model_filename)[0]
 
@@ -770,7 +817,7 @@ def save_image_files(preview_image_html, model_filename, content_type, install_p
     opener.addheaders = [('User-agent', 'Mozilla/5.0')]
     urllib.request.install_opener(opener)
 
-    HTML = preview_image_html
+    HTML = preview_html
     for i, img_url in enumerate(img_urls):
         filename = f'{name}_{i}.png'
         filenamethumb = f'{name}.png'
@@ -854,15 +901,15 @@ def on_ui_tabs():
     
     with gr.Blocks() as civitai_interface:
         with gr.Row():
-            with gr.Column(scale=1, min_width=200):
+            with gr.Column(scale=2, min_width=200):
                 content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value="Checkpoint", type="value")
-            with gr.Column(scale=1, min_width=200):
+            with gr.Column(scale=2, min_width=200):
                 period_type = gr.Dropdown(label='Time Period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
-            with gr.Column(scale=1, min_width=200):
+            with gr.Column(scale=2, min_width=200):
                 sort_type = gr.Dropdown(label='Sort By:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value")
-            with gr.Column(scale=1, min_width=200):
+            with gr.Column(scale=2, min_width=200):
                 base_filter = gr.Dropdown(label='Filter Base Model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 2.0","SD 2.1", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value")
-            with gr.Column(scale=1, min_width=250, elem_id=component_id):
+            with gr.Column(scale=1, min_width=200, elem_id=component_id):
                 create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1)
                 toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle2)
                 show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle3)
@@ -886,10 +933,6 @@ def on_ui_tabs():
                 pages = gr.Textbox(label='Pages', show_label=False)
         with gr.Row():
             list_html = gr.HTML(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Please press \'Refresh\' to load selected content!</div>')
-            download_start = gr.Textbox(value=None, visible=False)
-            download_finish = gr.Textbox(value=None, visible=False)
-            delete_finish = gr.Textbox(value=None, visible=False)
-            current_model = gr.Textbox(value=None, visible=False)
         with gr.Row():
             download_progress = gr.HTML(value='<div style="min-height: 0px;"></div>', elem_id="DownloadProgress")
         with gr.Row():
@@ -911,7 +954,11 @@ def on_ui_tabs():
             cancel_model = gr.Button(value="Cancel Download", interactive=False, visible=False)
             delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
         with gr.Row():
-            preview_image_html = gr.HTML()
+            download_start = gr.Textbox(value=None, visible=False)
+            download_finish = gr.Textbox(value=None, visible=False)
+            delete_finish = gr.Textbox(value=None, visible=False)
+            current_model = gr.Textbox(value=None, visible=False)
+            preview_html = gr.HTML()
         
         def changeInput():
             global contentChange
@@ -947,7 +994,13 @@ def on_ui_tabs():
         download_finish.change(
             fn=None,
             inputs=[current_model],
-            _js="(modelName) => installedCard(modelName)"
+            _js="(modelName) => updateCard(modelName)"
+        )
+        
+        delete_finish.change(
+            fn=None,
+            inputs=[current_model],
+            _js="(modelName) => updateCard(modelName)"
         )
         
         list_html.change(
@@ -993,23 +1046,19 @@ def on_ui_tabs():
             inputs=[
                 dl_url,
                 model_filename,
-                preview_image_html,
+                preview_html,
                 create_json,
                 trained_tags,
                 install_path,
-                list_models
+                list_models,
+                content_type,
+                list_versions
                 ],
             outputs=[
                 download_progress,
                 current_model,
                 download_finish
             ]
-        )
-        
-        delete_finish.change(
-            fn=None,
-            inputs=[current_model],
-            _js="(modelName) => removedCard(modelName)"
         )
         
         delete_model.click(
@@ -1074,7 +1123,7 @@ def on_ui_tabs():
         save_images.click(
             fn=save_image_files,
             inputs=[
-                preview_image_html,
+                preview_html,
                 model_filename,
                 content_type,
                 install_path
@@ -1102,7 +1151,7 @@ def on_ui_tabs():
                 list_versions
                 ],
             outputs=[
-                preview_image_html,
+                preview_html,
                 trained_tags,
                 model_filename,
                 base_model,
@@ -1126,10 +1175,6 @@ def on_ui_tabs():
                 save_images,
                 download_model
                 ]
-        )
-        
-        sort_type.input(
-            fn=None
         )
         
         get_next_page.click(
@@ -1224,7 +1269,7 @@ def on_ui_tabs():
             outputs=[
                 list_models,
                 list_versions,
-                preview_image_html,
+                preview_html,
                 dl_url,
                 trained_tags,
                 model_filename,
