@@ -57,33 +57,30 @@ function filterByBaseModel(selectedBaseModels) {
     });
 }
 
-function installedCard(modelName) {
-    console.log(`Model ${modelName} has been enabled.`);  // Added console log
-    const parentDiv = document.querySelector('.civmodellist');
-
-    if (parentDiv) {
-        const cards = parentDiv.querySelectorAll('.civmodelcard');
-
-        cards.forEach((card) => {
-            const onclickAttr = card.getAttribute('onclick');
-            if (onclickAttr && onclickAttr.includes(`select_model('${modelName}')`)) {
-                card.className = 'civmodelcard  civmodelcardinstalled';
-            }
-        });
+function updateCard(modelNameWithSuffix) {
+    const [modelName, suffix] = modelNameWithSuffix.split('.');
+    let additionalClassName = '';
+    switch(suffix) {
+        case 'None':
+            additionalClassName = '';
+            break;
+        case 'Old':
+            additionalClassName = 'civmodelcardoutdated';
+            break;
+        case 'New':
+            additionalClassName = 'civmodelcardinstalled';
+            break;
+        default:
+            console.error('Unknown suffix', suffix);
+            return;
     }
-}
-
-function removedCard(modelName) {
-    console.log(`Model ${modelName} has been disabled.`);  // Added console log
     const parentDiv = document.querySelector('.civmodellist');
-
     if (parentDiv) {
         const cards = parentDiv.querySelectorAll('.civmodelcard');
-        
         cards.forEach((card) => {
             const onclickAttr = card.getAttribute('onclick');
             if (onclickAttr && onclickAttr.includes(`select_model('${modelName}')`)) {
-                card.className = 'civmodelcard ';
+                card.className = `civmodelcard  ${additionalClassName}`;
             }
         });
     }
