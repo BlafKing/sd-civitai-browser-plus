@@ -111,3 +111,9 @@ v1.7
 * Removed 'Automatically delete old version' option since this relied on a reload after installation.
 * Added toggle to sort Tiles by date, this adds a header with the update date and groups models.
 * Dynamic changing of tile borders after installation & deletion (doesn't detect old versions yet).
+
+---
+
+v1.7.1
+
+* Dynamic changing of tile borders after installation & deletion now correctly detects old versions.
