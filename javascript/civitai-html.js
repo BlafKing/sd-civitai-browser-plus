@@ -5,6 +5,7 @@ function select_model(model_name) {
 	if (model_dropdown && model_name) {
 		let randomNumber = Math.floor(Math.random() * 1000);
 		let paddedNumber = String(randomNumber).padStart(3, '0');
+		
 		model_dropdown.value = model_name + "." + paddedNumber;
 		updateInput(model_dropdown)
 	}
@@ -13,47 +14,58 @@ function select_model(model_name) {
 function updateCardSize(width, height) {
     var styleSheet = document.styleSheets[0];
     var imgKeyframes = `width: ${width}em !important; height: ${height}em !important;`;
+	
     var fontSize = (width / 8) * 100;
     var textKeyframes = `font-size: ${fontSize}% !important;`;
+	
+    var blurValue = width / 2;
+    var blurKeyframes = `filter: blur(${blurValue}px) !important;`;
+	
+    addOrUpdateRule(styleSheet, '.civmodelcard img', imgKeyframes);
+    addOrUpdateRule(styleSheet, '.civmodelcard figcaption', textKeyframes);
+    addOrUpdateRule(styleSheet, '.civcardnsfw img', blurKeyframes);
+}
 
-    styleSheet.insertRule(`.civmodelcard img { ${imgKeyframes} }`, styleSheet.cssRules.length);
-    styleSheet.insertRule(`.civmodelcard figcaption { ${textKeyframes} }`, styleSheet.cssRules.length);
+function addOrUpdateRule(styleSheet, selector, newRules) {
+    for (let i = 0; i < styleSheet.cssRules.length; i++) {
+        let rule = styleSheet.cssRules[i];
+        if (rule.selectorText === selector) {
+            rule.style.cssText = newRules;
+            return;
+        }
+    }
+    styleSheet.insertRule(`${selector} { ${newRules} }`, styleSheet.cssRules.length);
 }
 
 function filterByBaseModel(selectedBaseModels) {
     if (!selectedBaseModels || selectedBaseModels.length === 0) {
         document.querySelectorAll('.civmodelcard').forEach(card => {
-            card.style.display = 'block';
+            card.style.opacity = '1';
         });
         return;
     }
-
+	
     if (!Array.isArray(selectedBaseModels)) {
         selectedBaseModels = [selectedBaseModels];
     }
-
     document.querySelectorAll('.civmodelcard').forEach(card => {
         const cardBaseModel = card.getAttribute('base-model');
         let shouldDisplay = false;
-
         for (let i = 0; i < selectedBaseModels.length; i++) {
             if (cardBaseModel === selectedBaseModels[i]) {
                 shouldDisplay = true;
                 break;
             }
-
             if (selectedBaseModels[i] === "SD 2.0" && (cardBaseModel === "SD 2.0" || cardBaseModel === "SD 2.0 768")) {
                 shouldDisplay = true;
                 break;
             }
-
             if (selectedBaseModels[i] === "SD 2.1" && ["SD 2.1", "SD 2.1 768", "SD 2.1 Unclip"].includes(cardBaseModel)) {
                 shouldDisplay = true;
                 break;
             }
         }
-
-        card.style.display = shouldDisplay ? 'block' : 'none';
+        card.style.opacity = shouldDisplay ? '1' : '0.1';
     });
 }
 
@@ -74,6 +86,7 @@ function updateCard(modelNameWithSuffix) {
             console.error('Unknown suffix', suffix);
             return;
     }
+
     const parentDiv = document.querySelector('.civmodellist');
     if (parentDiv) {
         const cards = parentDiv.querySelectorAll('.civmodelcard');
