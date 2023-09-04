@@ -107,3 +107,6 @@ v1.7
 
 v1.7.1
 * Dynamic changing of tile borders after installation & deletion now correctly detects old versions.
+* Tile size changing now changes css style instead of flooding with updates
+* Base Model filtering dims tiles instead of hiding
+* NSFW Blur increases with tile size
