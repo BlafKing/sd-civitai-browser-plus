@@ -51,13 +51,6 @@
 	color: var(--fbc-light-gray) !important;
 }
 
-.civnsfw img {
-	filter: blur(10px);
-}
-.civcardnsfw img {
-	filter: blur(4px);
-}
-
 #quicksettings > div{
 	max-width: None !important;
 	width: auto !important;
