@@ -33,6 +33,7 @@ previous_search_term = None
 previous_tile_count = None
 previous_inputs = None
 
+download_fail = False
 sortNewest = False
 contentChange = False
 inputs_changed = False
@@ -69,17 +70,18 @@ def start_download(model_name, model_filename):
             gr.HTML.update(value='<div style="min-height: 100px;"></div>') # Download Progress
     )
 
-def finish_download():
+def finish_download(model_filename):
     global cancel_status
+    print(f'Model Filename: "{model_filename}"')
     cancel_status = False
     return  (
-            gr.Button.update(interactive=False, visible=True), # Download Button
+            gr.Button.update(interactive=model_filename, visible=True), # Download Button
             gr.Button.update(interactive=False, visible=False), # Cancel Button
             gr.HTML.update(value='<div style="min-height: 0px;"></div>'), # Download Progress
             gr.Textbox.update(value=None) # Current Model
     )
     
-def download_cancel(content_type, model_name, list_versions):
+def download_cancel(content_type, model_name, list_versions, model_filename):
     global cancel_status
     cancel_status = True
     
@@ -92,13 +94,14 @@ def download_cancel(content_type, model_name, list_versions):
                 
     cancel_status = False
     return  (
-            gr.Button.update(interactive=False, visible=True), # Download Button
+            gr.Button.update(interactive=model_filename, visible=True), # Download Button
             gr.Button.update(interactive=False, visible=False), # Cancel Button
             gr.HTML.update(value='<div style="min-height: 0px;"></div>') # Download Progress
     )
 
 def download_file(url, file_path, preview_html, install_path, progress=gr.Progress()):
-    global isDownloading, total_size
+    global isDownloading, total_size, download_fail
+    download_fail = False
     max_retries = 5
     if os.path.exists(file_path):
         os.remove(file_path)
@@ -156,6 +159,7 @@ def download_file(url, file_path, preview_html, install_path, progress=gr.Progre
                     if max_retries == 0:
                         progress(0, desc="Unable to download file due to time-out, please try to download again.")
                         time.sleep(2)
+                        download_fail = True
                         return
                     time.sleep(5)
 
@@ -172,20 +176,23 @@ def download_file(url, file_path, preview_html, install_path, progress=gr.Progre
         else:
             progress(0, desc="Download failed, please try again.")
             print(f"Error: File download failed: {file_name_display}")
+            download_fail = True
             time.sleep(2)
             if os.path.exists(file_path):
                 os.remove(file_path)
 
 def download_file_thread(url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
-    global isDownloading, last_dwn
+    global isDownloading, last_dwn, download_fail
+    
+    gr_components = update_model_versions(model_name, content_type)
+    
+    name = model_name
     
     number = str(random.randint(10000, 99999))
     while number == last_dwn:
         number = str(random.randint(10000, 99999))
 
     last_dwn = number
-    
-    (model, _, _) = cardUpdate(model_name, content_type, list_versions, True)
     
     if isDownloading:
         isDownloading = False
@@ -205,16 +212,12 @@ def download_file_thread(url, file_name, preview_html, create_json, trained_tags
     if create_json and not cancel_status:
         save_json_file(file_name, install_path, trained_tags)
     
-    if not cancel_status:
-        modelName = model
-    else:
-        modelName = None
-    
     if os.path.exists(path_to_new_file):
         actual_size = os.path.getsize(path_to_new_file)
         if 'total_size' in globals():
             if actual_size != total_size:
                 print(f"{path_to_new_file} Is not the right size ({actual_size} | {total_size}) Removing it.")
+                download_fail = True
                 os.remove(path_to_new_file)
         else:
             print(f"Error occured during download, Removing: {path_to_new_file}")
@@ -223,6 +226,13 @@ def download_file_thread(url, file_name, preview_html, create_json, trained_tags
     if isDownloading:
         isDownloading = False
 
+    (model, _, _) = cardUpdate(gr_components, name, list_versions, True)
+    
+    if not cancel_status:
+        modelName = model
+    else:
+        modelName = None
+    
     return  (
             gr.HTML.update(), # Download Progress HTML
             gr.Textbox.update(value=modelName), # Current Model
@@ -262,14 +272,13 @@ def update_dl_url(trained_tags, model_name=None, model_version=None, model_filen
                 gr.Button.update(interactive=True if model_filename else False) # Download Button
         )
 
-def cardUpdate(model_name, content_type, list_versions, is_install):
-    gr_components = update_model_versions(model_name, content_type)
+def cardUpdate(gr_components, model_name, list_versions, is_install):
     version_choices = gr_components[0]['choices']
     
-    if is_install:
+    if is_install and not download_fail:
         version_value_clean = list_versions + " [Installed]"
         version_choices_clean = [version if version + " [Installed]" != version_value_clean else version_value_clean for version in version_choices]
-    
+        
     else:
         version_value_clean = list_versions.replace(" [Installed]", "")
         version_choices_clean = [version if version.replace(" [Installed]", "") != version_value_clean else version_value_clean for version in version_choices]
@@ -289,7 +298,9 @@ def cardUpdate(model_name, content_type, list_versions, is_install):
 def delete_file(content_type, model_filename, model_name, list_versions):
     global last_del
 
-    (model_name, ver_value, ver_choices) = cardUpdate(model_name, content_type, list_versions, False)
+    gr_components = update_model_versions(model_name, content_type)
+    
+    (model_name, ver_value, ver_choices) = cardUpdate(gr_components, model_name, list_versions, False)
     
     model_folder = os.path.join(contenttype_folder(content_type))
     path_file = None
@@ -350,17 +361,14 @@ def contenttype_folder(content_type):
         folder = cmd_opts.lora_dir
         
     elif content_type == "LoCon":
-        try:
-            parsed_version = version.parse(ver) 
-            if version.parse(ver) >= version.parse("1.5"):
-                folder = cmd_opts.lora_dir
-        except version.InvalidVersion or parsed_version < version.parse("1.5"):
-            if "lyco_dir" in cmd_opts:
-                folder = f"{cmd_opts.lyco_dir}"
-            elif "lyco_dir_backcompat" in cmd_opts:
-                folder = f"{cmd_opts.lyco_dir_backcompat}"
-            else:
-                folder = os.path.join(models_path,"LyCORIS")
+        if version.parse(ver) >= version.parse("1.5"):
+            folder = cmd_opts.lora_dir
+        elif "lyco_dir" in cmd_opts:
+            folder = f"{cmd_opts.lyco_dir}"
+        elif "lyco_dir_backcompat" in cmd_opts:
+            folder = f"{cmd_opts.lyco_dir_backcompat}"
+        else:
+            folder = os.path.join(models_path,"LyCORIS")
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:
@@ -428,7 +436,6 @@ def api_next_page(next_page_url=None):
 def model_list_html(json_data, model_dict, content_type):
     global contentChange 
     contentChange = False
-    allownsfw = json_data['allownsfw']
     HTML = '<div class="column civmodellist">'
     sorted_models = {}
     
@@ -453,8 +460,8 @@ def model_list_html(json_data, model_dict, content_type):
                 
                 if any(item['modelVersions']):
                     if len(item['modelVersions'][0]['images']) > 0:
-                        if item["modelVersions"][0]["images"][0]['nsfw'] != "None" and not allownsfw:
-                            nsfw = 'civcardnsfw'
+                        if item["modelVersions"][0]["images"][0]['nsfw'] not in ["None", "Soft"]:
+                            nsfw = "civcardnsfw"
                         imgtag = f'<img src={item["modelVersions"][0]["images"][0]["url"]}"></img>'
                     else:
                         imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
@@ -558,9 +565,7 @@ def update_next_page(show_nsfw, content_type, sort_type, period_type, use_search
             return gr.Dropdown.update(choices=[], value=None)
 
         for item in json_data['items']:
-            temp_nsfw = item['nsfw']
-            if (not temp_nsfw or show_nsfw):
-                model_dict[item['name']] = item['name']
+            model_dict[item['name']] = item['name']
         HTML = model_list_html(json_data, model_dict, content_type)
 
     return  (
@@ -620,9 +625,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
         (hasPrev, hasNext, pages) = pagecontrol(json_data)
         model_dict = {}
         for item in json_data['items']:
-            temp_nsfw = item['nsfw']
-            if (not temp_nsfw or show_nsfw):
-                model_dict[item['name']] = item['name']
+            model_dict[item['name']] = item['name']
         
         HTML = model_list_html(json_data, model_dict, content_type)
     
@@ -710,7 +713,6 @@ def update_model_info(model_name=None, model_version=None):
         model_desc = ""
         dl_dict = {}
         allow = {}
-        allownsfw = json_data['allownsfw']
         for item in json_data['items']:
             if item['name'] == model_name:
                 model_uploader = item['creator']['username']
@@ -740,7 +742,7 @@ def update_model_info(model_name=None, model_version=None):
                         img_html = '<div class="sampleimgs">'
                         for pic in model['images']:
                             nsfw = None
-                            if pic['nsfw'] != "None" and not allownsfw:
+                            if pic['nsfw'] not in ["None", "Soft"]:
                                 nsfw = 'class="civnsfw"'
                             img_html = img_html + f'<div {nsfw} style="display:flex;align-items:flex-start;"><img src={pic["url"]} style="width:20em;"></img>'
                             if pic['meta']:
@@ -1004,7 +1006,19 @@ def on_ui_tabs():
             inputs=[current_model],
             _js="(modelName) => updateCard(modelName)"
         )
+
+        list_html.change(
+            fn=None,
+            inputs=[show_nsfw],
+            _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)"
+        )
         
+        show_nsfw.change(
+            fn=None,
+            inputs=[show_nsfw],
+            _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)"
+        )
+
         list_html.change(
             fn=None,
             inputs=[base_filter],
@@ -1087,7 +1101,8 @@ def on_ui_tabs():
             inputs=[
                 content_type,
                 list_models,
-                list_versions
+                list_versions,
+                model_filename
                 ],
             outputs=[
                 download_model,
@@ -1098,7 +1113,7 @@ def on_ui_tabs():
         
         download_finish.change(
             fn=finish_download,
-            inputs=[],
+            inputs=[model_filename],
             outputs=[
                 download_model,
                 cancel_model,
