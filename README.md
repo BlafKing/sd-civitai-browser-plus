@@ -109,3 +109,11 @@ v1.7.1
 * Dynamic changing of tile borders after installation & deletion now correctly detects old versions.
 * Base Model filtering dims tiles instead of hiding
 * NSFW Blur increases with tile size
+
+---
+
+v1.7.2
+* Fixed a bug where Download button did not get re-enabled properly.
+* Fixed a bug where tile status did not get updated properly when download failed.
+* NSFW Toggle is now dynamic
+* NSFW Toggle no longer hides images tagged as "Soft"
