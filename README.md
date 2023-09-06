@@ -126,4 +126,5 @@ v1.8
 * NSFW Toggle is now dynamic
 * NSFW Toggle no longer hides images tagged as "Soft"
 * Rearranged/Resized UI elements
+* Version list now dynamically updates after download
 * Fixed bug where each model load ran twice
