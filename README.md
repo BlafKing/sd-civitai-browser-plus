@@ -117,5 +117,13 @@ v1.7.1
 v1.7.2
 * Fixed a bug where Download button did not get re-enabled properly.
 * Fixed a bug where tile status did not get updated properly when download failed.
+
+---
+
+v1.8
+* Added ability to download different file types per version.
+* Downloading models now uses file ID instead of names.
 * NSFW Toggle is now dynamic
 * NSFW Toggle no longer hides images tagged as "Soft"
+* Rearranged/Resized UI elements
+* Fixed bug where each model load ran twice
