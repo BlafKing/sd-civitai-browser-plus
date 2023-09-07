@@ -948,6 +948,33 @@ def save_json_file(file_name, install_path, trained_tags):
 
     return trained_tags
 
+def insert_sub(model_name, version_name, content_type):
+    sub_folders = ["None"]
+    try:
+        version = version_name.replace(" [Installed]", "")
+    except:
+        pass
+    
+    if model_name is not None and content_type is not None:
+        model_folder = os.path.join(contenttype_folder(content_type))
+        for root, dirs, _ in os.walk(model_folder):
+            for d in dirs:
+                sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+                if sub_folder:
+                    sub_folders.append(f'\\{sub_folder}')
+    
+    sub_folders.remove("None")
+    sub_folders = sorted(sub_folders)
+    sub_folders.insert(0, "None")
+    sub_folders.insert(1, (f'\\{model_name}'))
+    sub_folders.insert(2, (f'\\{model_name}\\{version}'))
+    
+    list = set()
+    sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
+    
+    return gr.Dropdown.update(choices=sub_folders)
+
+
 def update_global_slider_value(slider_value):
     global tile_count
     tile_count = slider_value
@@ -1028,10 +1055,10 @@ def on_ui_tabs():
             delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
         with gr.Row():
             preview_html = gr.HTML()
-            
+        with gr.Row():
             #Invisible triggers/variables
-            model_id = gr.Textbox(value=None, visible=False)
-            dl_url = gr.Textbox(value=None, visible=False)
+            model_id = gr.Textbox(label='Model ID:', value=None, visible=False)
+            dl_url = gr.Textbox(label='DL URL:', value=None, visible=False)
             event_text = gr.Textbox(elem_id="eventtext1", visible=False)
             download_start = gr.Textbox(value=None, visible=False)
             download_finish = gr.Textbox(value=None, visible=False)
@@ -1115,6 +1142,16 @@ def on_ui_tabs():
             fn=None,
             inputs=[size_slider],
             _js="(size) => updateCardSize(size, size * 1.5)"
+        )
+        
+        model_filename.change(
+            fn=insert_sub,
+            inputs=[
+                list_models,
+                list_versions,
+                content_type
+                ],
+            outputs=[sub_folder]
         )
         
         download_model.click(
