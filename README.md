@@ -132,4 +132,4 @@ v1.8
 ---
 
 v1.8.1
-* Sub Folder list now contains 2 default options containing the Model name and Model name + Version name
+* Sub Folder list now contains 2 default options: `/{Model name}` & `/{Model name}/{Version name}`
