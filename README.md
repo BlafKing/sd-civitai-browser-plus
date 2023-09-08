@@ -166,3 +166,8 @@ v1.8.1
 v1.9
 * Integrated Aria2 into the download_file function for faster downloading.
 * Added more info about current download: Speed, ETA, File Size and % completion
+
+---
+
+v1.9.1
+* Added back old download function if aria2 fails.
