@@ -35,6 +35,7 @@ previous_search_term = None
 previous_tile_count = None
 previous_inputs = None
 
+old_download = False
 download_fail = False
 sortNewest = False
 contentChange = False
@@ -134,8 +135,88 @@ def convert_size(size):
         size /= 1024
     return f"{size:.2f} GB"
 
+def download_file_old(url, file_path, preview_html, install_path, progress=gr.Progress()):
+    global isDownloading, total_size, download_fail
+    download_fail = False
+    max_retries = 5
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    downloaded_size = 0
+    tokens = re.split(re.escape('\\'), file_path)
+    file_name_display = tokens[-1]
+    
+    while True:
+        if cancel_status:
+            return
+        if os.path.exists(file_path):
+            downloaded_size = os.path.getsize(file_path)
+            headers = {"Range": f"bytes={downloaded_size}-"}
+        else:
+            headers = {}
+        with open(file_path, "ab") as f:
+            while isDownloading:
+                try:
+                    if cancel_status:
+                        return
+                    try:
+                        if cancel_status:
+                            return
+                        response = requests.get(url, headers=headers, stream=True, timeout=4)
+                        if response.status_code == 404:
+                            progress(0, desc="File returned a 404, file is not found.")
+                            time.sleep(3)
+                            download_fail = True
+                            return
+                        total_size = int(response.headers.get("Content-Length", 0))
+                    except:
+                        raise TimeOutFunction("Timed Out")
+                    
+                    if total_size == 0:
+                        total_size = downloaded_size
+
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            if cancel_status:
+                                return
+                            f.write(chunk)
+                            downloaded_size += len(chunk)
+                            progress(downloaded_size / total_size, desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)}")
+                            if isDownloading == False:
+                                response.close
+                                break
+                    downloaded_size = os.path.getsize(file_path)
+                    break
+                
+                except TimeOutFunction:
+                    progress(0, desc="CivitAI API did not respond, retrying...")
+                    max_retries -= 1
+                    if max_retries == 0:
+                        progress(0, desc="Unable to download file due to time-out, please try to download again.")
+                        time.sleep(2)
+                        download_fail = True
+                        return
+                    time.sleep(5)
+
+        if (isDownloading == False):
+            break
+        
+        isDownloading = False
+        downloaded_size = os.path.getsize(file_path)
+        if downloaded_size >= total_size:
+            if not cancel_status:
+                print(f"Model saved to: {file_path}")
+                save_preview_image(preview_html, file_path, install_path)
+            
+        else:
+            progress(0, desc="Download failed, please try again.")
+            print(f"Error: File download failed: {file_name_display}")
+            download_fail = True
+            time.sleep(2)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
 def download_file(url, file_path, install_path, progress=gr.Progress()):
-    global isDownloading, download_fail
+    global isDownloading, download_fail, old_download
     process = None
     download_start = False
     download_fail = False
@@ -191,21 +272,17 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
             stdout, stderr = process.communicate()
             
             if cancel_status:
-                    progress(None, desc=f"Download cancelled.")
+                    progress(0, desc="Download cancelled.")
                     time.sleep(2)
                     process.terminate()
                     return
 
             if process.returncode != 0:
+                progress(0, desc="Aria2 failed, switching to old download method")
                 print(f"aria2c failed with error: {stderr}")
-                max_retries -= 1
-                if max_retries == 0:
-                    progress(0, desc="An error occured while downloading the file, please try again.")
-                    time.sleep(2)
-                    download_fail = True
-                    return
-                time.sleep(5)
-                continue
+                print("switching to old download method")
+                old_download = True
+                return
             else:
                 print(f"Model saved to: {file_path}")
                 progress(1, desc=f"Model saved to: {file_path}")
@@ -249,7 +326,12 @@ def download_file_thread(url, file_name, preview_html, create_json, trained_tags
     thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
     thread.start()
     thread.join()
-       
+    
+    if old_download:
+        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, install_path, progress))
+        thread.start()
+        thread.join()
+    
     if not cancel_status:
         if create_json:
             save_json_file(file_name, install_path, trained_tags)
