@@ -34,7 +34,6 @@ main_folder = None
 previous_search_term = None
 previous_tile_count = None
 previous_inputs = None
-
 old_download = False
 download_fail = False
 sortNewest = False
