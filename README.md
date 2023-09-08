@@ -7,6 +7,33 @@ This modified add-on is based on [v1.1.0](https://github.com/SignalFlagZ/sd-civi
 
 **(If you'd like to be able to filter search results on Base Model version, please upvote [my feature request here!](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9))**
 
+# Extra installation steps for Linux
+
+<details><summary>On RHEL/CentOS/Fedora</a></summary>
+First, you need to download and enable the EPEL repository under RHEL/CentOS systems. (Note: Fedora users don’t need to add any repository, simply install aria2 using dnf command as shown).
+
+  ```
+  dnf install aria2
+  ```
+
+Now install Aria2 package from the enabled EPEL repository under your system using YUM command tool.
+
+```
+# yum install epel-release -y
+# yum install aria2 -y
+
+```
+
+</details>
+
+<details><summary>On Debian/Ubuntu/Linux Mint</a></summary>
+
+  ```
+sudo apt-get install aria2
+  ```
+
+</details>
+
 # Preview
 
 
