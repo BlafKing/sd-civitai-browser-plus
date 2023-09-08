@@ -4,6 +4,7 @@ import modules.scripts as scripts
 import gradio as gr
 from modules import script_callbacks
 import time
+import stat
 import subprocess
 import threading
 import urllib.request
@@ -15,10 +16,11 @@ import fnmatch
 import re
 from collections import defaultdict
 from packaging import version
-from requests.exceptions import ConnectionError
+import platform
 from modules.shared import opts, cmd_opts
 from modules.paths import models_path
 import shutil
+from pathlib import Path
 from html import escape 
 
 cancel_status = None
@@ -40,6 +42,16 @@ inputs_changed = False
 isDownloading = False
 pageChange = False
 tile_count = 15
+
+aria2path = Path(__file__).resolve().parents[1] / "aria2"
+os_type = platform.system()
+
+if os_type == 'Windows':
+    aria2 = os.path.join(aria2path, 'aria2c.exe')
+elif os_type == 'Linux':
+    aria2 = os.path.join(aria2path, 'aria2c')
+    mode = os.stat(aria2).st_mode
+    os.chmod(aria2, mode | stat.S_IEXEC)
 
 def git_tag():
     try:
@@ -122,85 +134,94 @@ def convert_size(size):
         size /= 1024
     return f"{size:.2f} GB"
 
-def download_file(url, file_path, preview_html, install_path, progress=gr.Progress()):
-    global isDownloading, total_size, download_fail
+def download_file(url, file_path, install_path, progress=gr.Progress()):
+    global isDownloading, download_fail
+    process = None
+    download_start = False
     download_fail = False
     max_retries = 5
     if os.path.exists(file_path):
         os.remove(file_path)
-    downloaded_size = 0
+
     tokens = re.split(re.escape('\\'), file_path)
     file_name_display = tokens[-1]
+
+    progress(0, desc="Download is starting...")
     
     while True:
         if cancel_status:
-            return
-        if os.path.exists(file_path):
-            downloaded_size = os.path.getsize(file_path)
-            headers = {"Range": f"bytes={downloaded_size}-"}
-        else:
-            headers = {}
-        with open(file_path, "ab") as f:
-            while isDownloading:
-                try:
-                    if cancel_status:
-                        return
-                    try:
-                        if cancel_status:
-                            return
-                        response = requests.get(url, headers=headers, stream=True, timeout=4)
-                        if response.status_code == 404:
-                            progress(0, desc="File returned a 404, file is not found.")
-                            time.sleep(3)
-                            download_fail = True
-                            return
-                        total_size = int(response.headers.get("Content-Length", 0))
-                    except:
-                        raise TimeOutFunction("Timed Out")
-                    
-                    if total_size == 0:
-                        total_size = downloaded_size
-
-                    for chunk in response.iter_content(chunk_size=1024):
-                        if chunk:
-                            if cancel_status:
-                                return
-                            f.write(chunk)
-                            downloaded_size += len(chunk)
-                            progress(downloaded_size / total_size, desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)}")
-                            if isDownloading == False:
-                                response.close
-                                break
-                    downloaded_size = os.path.getsize(file_path)
-                    break
-                
-                except TimeOutFunction:
-                    progress(0, desc="CivitAI API did not respond, retrying...")
-                    max_retries -= 1
-                    if max_retries == 0:
-                        progress(0, desc="Unable to download file due to time-out, please try to download again.")
-                        time.sleep(2)
-                        download_fail = True
-                        return
-                    time.sleep(5)
-
-        if (isDownloading == False):
-            break
-        
-        isDownloading = False
-        downloaded_size = os.path.getsize(file_path)
-        if downloaded_size >= total_size:
-            if not cancel_status:
-                print(f"Model saved to: {file_path}")
-                save_preview_image(preview_html, file_path, install_path)
-            
-        else:
-            progress(0, desc="Download failed, please try again.")
-            print(f"Error: File download failed: {file_name_display}")
-            download_fail = True
+            if process:
+                process.terminate()
+            progress(0, desc=f"Download cancelled.")
             time.sleep(2)
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            return
+
+        try:
+            if os_type == 'Windows':
+                cmd = f'"{aria2}" "{url}" -d "{install_path}" --show-console-readout=true -x 8'
+            elif os_type == 'Linux':
+                stdbuf_available = shutil.which("stdbuf") is not None
+                cmd = f'stdbuf -o0 "{aria2}" "{url}" -d "{install_path}" --show-console-readout=true -x 8' if stdbuf_available else f'"{aria2}" "{url}" -d "{install_path}" --show-console-readout=true -x 8'
+            
+            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True)
+            for line in iter(process.stdout.readline, ''):
+                if cancel_status:
+                    progress(0, desc=f"Download cancelled.")
+                    time.sleep(2)
+                    process.terminate()
+                    return
+                if 'DL:0B' in line:
+                    if download_start:
+                        progress(0, desc="Download has stalled. Please wait or cancel.")
+                        continue
+                    progress(0, desc="Download is starting...")
+                    continue
+
+                match = re.search(r'([\d.]+[KMGT]?iB)/([\d.]+[KMGT]?iB)\((\d+)%\) CN:\d+ DL:([\d.]+[KMGT]?iB) ETA:([\dm]+[s]?[\dm]*[s]?)', line)
+                if match:
+                    download_start = True
+                    downloaded_size_str = match.group(1)
+                    total_size_str = match.group(2)
+                    progress_percent = int(match.group(3))
+                    download_speed = match.group(4)
+                    eta = match.group(5)
+                    
+                    progress(progress_percent / 100, desc=f"Downloading: {file_name_display} - {downloaded_size_str}/{total_size_str} - Speed: {download_speed}/s - ETA: {eta}")
+
+            stdout, stderr = process.communicate()
+            
+            if cancel_status:
+                    progress(None, desc=f"Download cancelled.")
+                    time.sleep(2)
+                    process.terminate()
+                    return
+
+            if process.returncode != 0:
+                print(f"aria2c failed with error: {stderr}")
+                max_retries -= 1
+                if max_retries == 0:
+                    progress(0, desc="An error occured while downloading the file, please try again.")
+                    time.sleep(2)
+                    download_fail = True
+                    return
+                time.sleep(5)
+                continue
+            else:
+                print(f"Model saved to: {file_path}")
+                progress(1, desc=f"Model saved to: {file_path}")
+                time.sleep(2)
+                download_fail = False
+                break
+
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            max_retries -= 1
+            if max_retries == 0:
+                progress(0, desc="An error occured while downloading the file, please try again.")
+                time.sleep(2)
+                download_fail = True
+                return
+            time.sleep(5)
 
 def download_file_thread(url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
     global isDownloading, last_dwn, download_fail
@@ -225,31 +246,24 @@ def download_file_thread(url, file_name, preview_html, create_json, trained_tags
         
     path_to_new_file = os.path.join(install_path, file_name)
     
-    thread = threading.Thread(target=download_file, args=(url, path_to_new_file, preview_html, install_path, progress))
+    thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
     thread.start()
     thread.join()
-    
-    if create_json and not cancel_status:
-        save_json_file(file_name, install_path, trained_tags)
+       
+    if not cancel_status:
+        if create_json:
+            save_json_file(file_name, install_path, trained_tags)
+        save_preview_image(preview_html, path_to_new_file, install_path)
     
     base_name = os.path.splitext(file_name)[0]
     base_name_preview = base_name + '.preview'
     
     if os.path.exists(path_to_new_file):
         actual_size = os.path.getsize(path_to_new_file)
-        if 'total_size' in globals():
-            if actual_size != total_size or download_fail:
-                print(f"{path_to_new_file} Is not the right size ({actual_size} | {total_size}) Removing it.")
-                download_fail = True
-                for root, dirs, files in os.walk(install_path):
-                    for file in files:
-                        file_base_name = os.path.splitext(file)[0]
-                        if file_base_name == base_name or file_base_name == base_name_preview:
-                            path_file = os.path.join(root, file)
-                            os.remove(path_file)
-                            print(f"Removed: {path_file}")
-        else:
-            print(f"Error occurred during download, Removing: {path_to_new_file}")
+
+        if download_fail:
+            print(f'Error occured during download of "{path_to_new_file}".')
+            download_fail = True
             for root, dirs, files in os.walk(install_path):
                 for file in files:
                     file_base_name = os.path.splitext(file)[0]
@@ -257,7 +271,7 @@ def download_file_thread(url, file_name, preview_html, create_json, trained_tags
                         path_file = os.path.join(root, file)
                         os.remove(path_file)
                         print(f"Removed: {path_file}")
-    
+                        
     if isDownloading:
         isDownloading = False
 
@@ -1209,7 +1223,6 @@ def on_ui_tabs():
         
         cancel_model.click(
             fn=download_cancel,
-            cancels=[download],
             inputs=[
                 content_type,
                 list_models,

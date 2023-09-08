@@ -133,3 +133,9 @@ v1.8
 
 v1.8.1
 * Sub Folder list now contains 2 default options: `/{Model name}` & `/{Model name}/{Version name}`
+
+---
+
+v1.9
+* Integrated Aria2 into the download_file function for faster downloading.
+* Added more info about current download: Speed, ETA, File Size and % completion
