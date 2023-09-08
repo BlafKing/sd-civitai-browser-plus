@@ -321,12 +321,11 @@ def download_file_thread(url, file_name, preview_html, create_json, trained_tags
         os.makedirs(install_path)
         
     path_to_new_file = os.path.join(install_path, file_name)
-    
-    thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
-    thread.start()
-    thread.join()
-    
-    if old_download:
+    if not old_download:
+        thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
+        thread.start()
+        thread.join()
+    else:
         thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, install_path, progress))
         thread.start()
         thread.join()
