@@ -1029,7 +1029,7 @@ def on_ui_tabs():
             with gr.Column(scale=2,min_width=120):
                 use_search_term = gr.Radio(label="Search:", choices=["Model name", "User name", "Tag"],value="Model name")
             with gr.Column(scale=1,min_width=160 ):
-                size_slider = gr.Slider(minimum=4, maximum=20, default=8, step=0.25, label='Tile size:')
+                size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
             with gr.Column(scale=1,min_width=160 ):
                 tile_slider = gr.Slider(label="Tile count:", min=5, max=50, value=15, step=1, max_width=100)
         with gr.Row():
