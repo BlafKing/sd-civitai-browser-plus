@@ -49,9 +49,7 @@ os_type = platform.system()
 if os_type == 'Windows':
     aria2 = os.path.join(aria2path, 'aria2c.exe')
 elif os_type == 'Linux':
-    aria2 = os.path.join(aria2path, 'aria2c')
-    mode = os.stat(aria2).st_mode
-    os.chmod(aria2, mode | stat.S_IEXEC)
+    aria2 = os.path.join('/usr/bin', 'aria2c')
 
 def git_tag():
     try:
