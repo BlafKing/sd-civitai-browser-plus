@@ -238,10 +238,10 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
 
         try:
             if os_type == 'Windows':
-                cmd = f'"{aria2}" "{url}" -d "{install_path}" --show-console-readout=true -x 8'
+                cmd = f'"{aria2}" "{url}" -d "{install_path}" --async-dns=false --show-console-readout=true -x 8'
             elif os_type == 'Linux':
                 stdbuf_available = shutil.which("stdbuf") is not None
-                cmd = f'stdbuf -o0 "{aria2}" "{url}" -d "{install_path}" --show-console-readout=true -x 8' if stdbuf_available else f'"{aria2}" "{url}" -d "{install_path}" --show-console-readout=true -x 8'
+                cmd = f'stdbuf -o0 "{aria2}" "{url}" -d "{install_path}" --async-dns=false --show-console-readout=true -x 8' if stdbuf_available else f'"{aria2}" "{url}" -d "{install_path}" --async-dns=false --show-console-readout=true -x 8'
             
             process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=1, universal_newlines=True)
             for line in iter(process.stdout.readline, ''):
