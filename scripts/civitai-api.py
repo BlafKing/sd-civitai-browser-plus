@@ -476,14 +476,17 @@ def contenttype_folder(content_type):
         folder = cmd_opts.lora_dir
         
     elif content_type == "LoCon":
-        if version.parse(ver) >= version.parse("1.5"):
-            folder = cmd_opts.lora_dir
-        elif "lyco_dir" in cmd_opts:
-            folder = f"{cmd_opts.lyco_dir}"
-        elif "lyco_dir_backcompat" in cmd_opts:
-            folder = f"{cmd_opts.lyco_dir_backcompat}"
-        else:
-            folder = os.path.join(models_path,"LyCORIS")
+        try:
+            parsed_version = version.parse(ver) 
+            if version.parse(ver) >= version.parse("1.5"):
+                folder = cmd_opts.lora_dir
+        except version.InvalidVersion or parsed_version < version.parse("1.5"):
+            if "lyco_dir" in cmd_opts:
+                folder = f"{cmd_opts.lyco_dir}"
+            elif "lyco_dir_backcompat" in cmd_opts:
+                folder = f"{cmd_opts.lyco_dir_backcompat}"
+            else:
+                folder = os.path.join(models_path,"LyCORIS")
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:
