@@ -49,9 +49,7 @@ os_type = platform.system()
 if os_type == 'Windows':
     aria2 = os.path.join(aria2path, 'aria2c.exe')
 elif os_type == 'Linux':
-    aria2 = os.path.join(aria2path, 'aria2c')
-    mode = os.stat(aria2).st_mode
-    os.chmod(aria2, mode | stat.S_IEXEC)
+    aria2 = os.path.join('/usr/bin', 'aria2c')
 
 def git_tag():
     try:
@@ -478,14 +476,17 @@ def contenttype_folder(content_type):
         folder = cmd_opts.lora_dir
         
     elif content_type == "LoCon":
-        if version.parse(ver) >= version.parse("1.5"):
-            folder = cmd_opts.lora_dir
-        elif "lyco_dir" in cmd_opts:
-            folder = f"{cmd_opts.lyco_dir}"
-        elif "lyco_dir_backcompat" in cmd_opts:
-            folder = f"{cmd_opts.lyco_dir_backcompat}"
-        else:
-            folder = os.path.join(models_path,"LyCORIS")
+        try:
+            parsed_version = version.parse(ver) 
+            if version.parse(ver) >= version.parse("1.5"):
+                folder = cmd_opts.lora_dir
+        except version.InvalidVersion or parsed_version < version.parse("1.5"):
+            if "lyco_dir" in cmd_opts:
+                folder = f"{cmd_opts.lyco_dir}"
+            elif "lyco_dir_backcompat" in cmd_opts:
+                folder = f"{cmd_opts.lyco_dir_backcompat}"
+            else:
+                folder = os.path.join(models_path,"LyCORIS")
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:
