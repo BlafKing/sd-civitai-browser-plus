@@ -9,7 +9,7 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 # Aria2 installation steps for Linux
 
-This extension uses Aria2 as an optional add-on for increasing download speeds.
+This extension uses Aria2 as an optional add-on for increasing download speeds.  
 If you'd like to use Aria2 on Linux, follow these instructions:
 
 <details><summary>On RHEL/CentOS/Fedora</a></summary>
