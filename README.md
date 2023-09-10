@@ -1,13 +1,16 @@
 # CivitAI Browser+
-Add-on for [Automatic1111's Stable Difussion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)  
+Extension for [Automatic1111's Stable Difussion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)  
 
 This extension allows you to download models from CivitAi without leaving WebUI!  
 
-This modified add-on is based on [v1.1.0](https://github.com/SignalFlagZ/sd-civitai-browser/releases/tag/1.1.0) from [SignalFlagZ's Fork](https://github.com/SignalFlagZ/sd-civitai-browser)  
+This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-civitai-browser/releases/tag/1.1.0) from [SignalFlagZ's Fork](https://github.com/SignalFlagZ/sd-civitai-browser)  
 
 **(If you'd like to be able to filter search results on Base Model version, please upvote [my feature request here!](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9))**
 
-# Extra installation steps for Linux
+# Aria2 installation steps for Linux
+
+This extension uses Aria2 as an optional add-on for increasing download speeds.
+If you'd like to use Aria2 on Linux, follow these instructions:
 
 <details><summary>On RHEL/CentOS/Fedora</a></summary>
 First, you need to download and enable the EPEL repository under RHEL/CentOS systems. (Note: Fedora users don’t need to add any repository, simply install aria2 using dnf command as shown).

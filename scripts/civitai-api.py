@@ -34,7 +34,7 @@ main_folder = None
 previous_search_term = None
 previous_tile_count = None
 previous_inputs = None
-old_download = False
+
 download_fail = False
 sortNewest = False
 contentChange = False
@@ -48,8 +48,15 @@ os_type = platform.system()
 
 if os_type == 'Windows':
     aria2 = os.path.join(aria2path, 'aria2c.exe')
+    old_download = False
 elif os_type == 'Linux':
     aria2 = os.path.join('/usr/bin', 'aria2c')
+    if os.path.exists(aria2):
+        print("Aria2 installation found")
+        old_download = False
+    else:
+        print("Aria2 installation not found")
+        old_download = True
 
 def git_tag():
     try:
@@ -117,7 +124,7 @@ def download_cancel(content_type, model_name, list_versions, model_filename):
             break
         else:
             time.sleep(0.5)
-                
+            
     cancel_status = False
     return  (
             gr.Button.update(interactive=model_filename, visible=True), # Download Button
@@ -132,7 +139,7 @@ def convert_size(size):
         size /= 1024
     return f"{size:.2f} GB"
 
-def download_file_old(url, file_path, preview_html, install_path, progress=gr.Progress()):
+def download_file_old(url, file_path, progress=gr.Progress()):
     global isDownloading, total_size, download_fail
     download_fail = False
     max_retries = 5
@@ -202,8 +209,11 @@ def download_file_old(url, file_path, preview_html, install_path, progress=gr.Pr
         if downloaded_size >= total_size:
             if not cancel_status:
                 print(f"Model saved to: {file_path}")
-                save_preview_image(preview_html, file_path, install_path)
-            
+                progress(1, desc=f"Model saved to: {file_path}")
+                time.sleep(2)
+                download_fail = False
+                return
+                
         else:
             progress(0, desc="Download failed, please try again.")
             print(f"Error: File download failed: {file_name_display}")
@@ -280,12 +290,13 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
                 print("switching to old download method")
                 old_download = True
                 return
+            
             else:
                 print(f"Model saved to: {file_path}")
                 progress(1, desc=f"Model saved to: {file_path}")
                 time.sleep(2)
                 download_fail = False
-                break
+                return
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -323,8 +334,9 @@ def download_file_thread(url, file_name, preview_html, create_json, trained_tags
         thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
         thread.start()
         thread.join()
-    else:
-        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, install_path, progress))
+    
+    if old_download:
+        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, progress))
         thread.start()
         thread.join()
     
@@ -531,14 +543,14 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, page_coun
     
     period_type = period_type.replace(" ", "")
     query = {'types': content_type, 'sort': sort_type, 'period': period_type}
+    
     if use_search_term != "None" and search_term:
-        match use_search_term:
-            case "User name":
-                query |= {'username': search_term }
-            case "Tag":
-                query |= {'tag': search_term }
-            case _:
-                query |= {'query': search_term }
+        if use_search_term == "User name":
+            query.update({'username': search_term})
+        elif use_search_term == "Tag":
+            query.update({'tag': search_term})
+        else:
+            query.update({'query': search_term})
                 
     return request_civit_api(f"{api_url}", query )
 
