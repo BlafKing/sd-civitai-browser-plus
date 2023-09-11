@@ -58,6 +58,7 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 v1.9.2
 * Split up script into multiple files for improved oversight/readability.
+* Centered model icons
 ---
 
 v1.9.1
