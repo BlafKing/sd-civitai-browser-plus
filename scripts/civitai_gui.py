@@ -140,6 +140,15 @@ def on_ui_tabs():
             inputs=[toggle_date]
         )
         
+        def update_tile_count(slider_value):
+            gl.tile_count = slider_value
+        
+        tile_slider.release(
+            fn=update_tile_count,
+            inputs=[tile_slider],
+            outputs=[]
+        )
+        
         content_type.input(
             fn=changeInput,
             inputs=[]
