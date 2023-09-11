@@ -88,10 +88,10 @@ v1.2
 ---
 
 v1.3
-* Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.  
-  (If a LORA with saved tags is used it will automatically input all tags into the txt box in image creation.)
+* Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.
+  (If a LORA with saved tags is used it will automatically input all tags into the txt box in image creation)
 * Improved padding based on if Lobe theme is being used.
-* Added 'Save tags after download' toggle to automatically save .json tags
+* Added 'Save tags after download' toggle to automatically save .json tags.
 * Removed "Get model info" button, click any tile to reload model info instead.
 * Removed download link box. (felt unnecessary since there is a Download button)
 * Removed "No" from search options, leave the search term empty to not use Search instead.
@@ -109,7 +109,7 @@ v1.4
 * Download progress load bar is now on web page instead of CMD.
 * Better margin fixes with theme detection.
 * Delete option now also removes .json files.
-* Buttons are now disabled during download (except cancel button).
+* Buttons are now disabled during download. (except cancel button)
 * Added Cancel and Delete buttons.
 * Download button will now change according to circumstances:
   - Cancel button if there's a current download.
@@ -130,9 +130,9 @@ v1.5
 
 v1.6
 * LoCon models now get saved in the Lora folder if A1111's version is 1.5 or higher.
-* improved page_count detection.  
+* improved page_count detection.
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
-* Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.  
+* Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
 
 ---
@@ -148,8 +148,8 @@ v1.7
 
 v1.7.1
 * Dynamic changing of tile status after installation & deletion now correctly detects other versions.
-* Base Model filtering dims tiles instead of hiding
-* NSFW Blur increases with tile size
+* Base Model filtering dims tiles instead of hiding.
+* NSFW Blur increases with tile size.
 
 ---
 
@@ -162,11 +162,11 @@ v1.7.2
 v1.8
 * Added ability to download different file types per version.
 * Downloading models now uses file ID instead of names.
-* NSFW Toggle is now dynamic
-* NSFW Toggle no longer hides images tagged as "Soft"
-* Rearranged/Resized UI elements
-* Version list now dynamically updates after download
-* Fixed bug where each model load ran twice
+* NSFW Toggle is now dynamic.
+* NSFW Toggle no longer hides images tagged as "Soft".
+* Rearranged/Resized UI elements.
+* Version list now dynamically updates after download.
+* Fixed bug where each model load ran twice.
 
 ---
 
@@ -177,9 +177,14 @@ v1.8.1
 
 v1.9
 * Integrated Aria2 into the download_file function for faster downloading.
-* Added more info about current download: Speed, ETA, File Size and % completion
+* Added more info about current download: Speed, ETA, File Size and % completion.
 
 ---
 
 v1.9.1
 * Added back old download function if aria2 fails.
+
+---
+
+v1.9.2
+* Split up script into multiple files for improved oversight/readability.
