@@ -421,8 +421,7 @@ def on_ui_tabs():
                 use_search_term,
                 search_term,
                 show_nsfw,
-                pages,
-                tile_slider
+                pages
                 ],
             outputs=[
                 list_models,
