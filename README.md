@@ -7,9 +7,30 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 **(If you'd like to be able to filter search results on Base Model version, please upvote [my feature request here!](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9))**
 
+<details>
+<summary><h1>Known Issues</h1></summary>
+
+<details>
+<summary><h3>Unable to download / Frozen download</h3></summary>
+
+**The following Settings can be found under the 'Settings' Tab of Web-UI and then by selecting the 'Civit AI' tile.**  
+
+
+* If you're using any DNS manager program like PortMaster you can try turning on `Disable Async DNS for Aria2`:  
+
+![](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
+
+* If you're having issues with Aria2, you can revert to the old download method by disabling `Download models using Aria2`:  
+
+![](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/982b0ebb-0cac-4053-8060-285533e0e176)
+
+</details>
+
+</details>
+
+---
 
 # Preview
-
 
 https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8-907a-e9bddf13bc55
 
