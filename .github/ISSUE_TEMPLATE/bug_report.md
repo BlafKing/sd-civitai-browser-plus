@@ -24,4 +24,8 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Additional context**
-Add any other context about the problem here.
+* Extension version: Version of this extension
+* OS: OS (Windows/Linux Distro)
+* SD version: A1111 version
+* Python: Python version in SD-WebUI
+* Any Additional info
