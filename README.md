@@ -21,7 +21,7 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 ![](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
 
-* If you're still having issues with Aria2, you can revert to the old download method by disabling   
+* If you're having issues with Aria2, you can revert to the old download method by disabling   
 `Download models using Aria2`  
 
 ![](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/982b0ebb-0cac-4053-8060-285533e0e176)
