@@ -7,44 +7,6 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 **(If you'd like to be able to filter search results on Base Model version, please upvote [my feature request here!](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9))**
 
-# Aria2 installation steps for Linux
-
-This extension uses Aria2 as an optional add-on for increasing download speeds.  
-If you'd like to use Aria2 on Linux, follow these instructions:
-
-<details><summary>On RHEL/CentOS/Fedora</a></summary>
-First, you need to download and enable the EPEL repository under RHEL/CentOS systems. (Note: Fedora users don’t need to add any repository, simply install aria2 using dnf command as shown).
-
-  ```
-  $ sudo dnf install aria2
-  ```
-
-Now install Aria2 package from the enabled EPEL repository under your system using YUM command tool.
-
-```
-# yum install epel-release -y
-# yum install aria2 -y
-
-```
-
-</details>
-
-<details><summary>On Debian/Ubuntu/Linux Mint</a></summary>
-
-  ```
-$ sudo apt-get install aria2
-  ```
-
-</details>
-
-<details><summary>On Arch and Arch derivatives</a></summary>
-
-```
-$ sudo pacman -S aria2
-```
-
-</details>
-
 
 # Preview
 
@@ -56,9 +18,17 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog
 
+v1.9.3
+* Included Motrix Aria2 version.
+* Max connections per server set to 64 and split file set 64
+* Aria2 is now shipped with this extension for Linux as well. (no need to manually install anymore!)
+
+---
+
 v1.9.2
 * Split up script into multiple files for improved oversight/readability.
 * Centered model icons
+
 ---
 
 v1.9.1
@@ -112,9 +82,9 @@ v1.7
 
 v1.6
 * LoCon models now get saved in the Lora folder if A1111's version is 1.5 or higher.
-* improved page_count detection.
+* improved page_count detection.  
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
-* Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.
+* Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.  
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
 
 ---
@@ -149,7 +119,7 @@ v1.3.1
 ---
 
 v1.3
-* Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.
+* Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.  
   (If a LORA with saved tags is used it will automatically input all tags into the txt box in image creation)
 * Improved padding based on if Lobe theme is being used.
 * Added 'Save tags after download' toggle to automatically save .json tags.
