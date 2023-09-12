@@ -21,12 +21,11 @@ def delete_model(content_type, model_filename, model_name, list_versions):
     model_folder = os.path.join(_api.contenttype_folder(content_type))
     path_file = None
     base_name = os.path.splitext(model_filename)[0]
-    base_name_preview = base_name + '.preview'
     
     for root, dirs, files in os.walk(model_folder):
         for file in files:
             file_base_name = os.path.splitext(file)[0]
-            if file_base_name == base_name or file_base_name == base_name_preview:
+            if base_name in file_base_name:
                 path_file = os.path.join(root, file)
                 os.remove(path_file)
                 print(f"Removed: {path_file}")

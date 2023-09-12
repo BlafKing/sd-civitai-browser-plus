@@ -33,7 +33,12 @@ def rpc_running():
 def start_aria2_rpc(aria2c):
     if not rpc_running():
         try:
-            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" "'
+            cmd_options = '--enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" "'
+            os_cmd_mapping = {
+                'Windows': f'"{aria2c}" {cmd_options}  --async-dns=false',
+                'Linux': f'"{aria2c}" {cmd_options}'
+            }
+            cmd = os_cmd_mapping.get(os_type, 'Unsupported OS')
             subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             print("Aria2 RPC server started")
         except Exception as e:

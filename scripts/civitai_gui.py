@@ -253,24 +253,6 @@ def on_ui_tabs():
             ]
         )
         
-        delete_model.click(
-            fn=_file.delete_model,
-            inputs=[
-                content_type,
-                model_filename,
-                list_models,
-                list_versions
-                ],
-            outputs=[
-                download_model,
-                cancel_model,
-                delete_model,
-                delete_finish,
-                current_model,
-                list_versions
-            ]
-        )
-        
         cancel_model.click(
             fn=_download.download_cancel,
             inputs=[
@@ -299,6 +281,24 @@ def on_ui_tabs():
                 cancel_model,
                 delete_model,
                 download_progress,
+                list_versions
+            ]
+        )
+        
+        delete_model.click(
+            fn=_file.delete_model,
+            inputs=[
+                content_type,
+                model_filename,
+                list_models,
+                list_versions
+                ],
+            outputs=[
+                download_model,
+                cancel_model,
+                delete_model,
+                delete_finish,
+                current_model,
                 list_versions
             ]
         )
