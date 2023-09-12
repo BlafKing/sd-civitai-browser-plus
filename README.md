@@ -47,6 +47,7 @@ v1.9.4
 * Added settings tab
   - Option to disable downloading with Aria2, will use old method instead
   - Option to disable using Async DNS, can fix issues for some users who use DNS managing programs
+  - Option to show Aria2 logs in the CMD.
 ---
 v1.9.3
 * Included Motrix Aria2 version.

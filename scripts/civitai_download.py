@@ -35,8 +35,15 @@ def rpc_running():
 def start_aria2_rpc(aria2c):
     if not rpc_running():
         try:
+            try:
+                show_log = getattr(opts, "show_log")
+            except:
+                show_log = False
             cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" "'
-            subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if show_log:
+                subprocess.Popen(cmd, shell=True)
+            else:
+                subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             print("Aria2 RPC server started")
         except Exception as e:
             print(f"Failed to start Aria2 RPC server: {e}")
@@ -92,7 +99,6 @@ def download_finish(model_filename, version, model_name, content_type):
         Del = False
         Down = True
     
-    gl.cancel_status = False
     return  (
             gr.Button.update(interactive=model_filename, visible=Down), # Download Button
             gr.Button.update(interactive=False, visible=False), # Cancel Button
@@ -104,7 +110,7 @@ def download_finish(model_filename, version, model_name, content_type):
 
 def download_cancel(content_type, model_name, list_versions, model_filename):
     gl.cancel_status = True
-    
+    gl.download_fail = True
     while True:        
         if not gl.isDownloading:
             _file.delete_model(content_type, gl.current_download, model_name, list_versions)
@@ -112,7 +118,6 @@ def download_cancel(content_type, model_name, list_versions, model_filename):
         else:
             time.sleep(0.5)
             
-    gl.cancel_status = False
     return  (
             gr.Button.update(interactive=model_filename, visible=True), # Download Button
             gr.Button.update(interactive=False, visible=False), # Cancel Button
@@ -127,7 +132,10 @@ def convert_size(size):
     return f"{size:.2f} GB"
 
 def download_file(url, file_path, install_path, progress=gr.Progress()):
-    disable_dns = getattr(opts, "use_aria2")
+    try:
+        disable_dns = getattr(opts, "disable_dns")
+    except:
+        disable_dns = False
     max_retries = 5
     gl.download_fail = False
     aria2_rpc_url = "http://localhost:6800/jsonrpc"
@@ -301,9 +309,11 @@ def download_file_old(url, file_path, progress=gr.Progress()):
 
 def download_create_thread(url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
     gr_components = _api.update_model_versions(model_name, content_type)
-    
-    use_aria2 = getattr(opts, "use_aria2")
-    print(f"use aria2: {use_aria2}")
+    gl.cancel_status = False
+    try:
+        use_aria2 = getattr(opts, "use_aria2")
+    except:
+        use_aria2 = True
     name = model_name
     
     number = str(random.randint(10000, 99999))

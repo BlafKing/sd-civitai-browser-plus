@@ -122,11 +122,11 @@ def save_json(file_name, install_path, trained_tags):
     if not os.path.exists(install_path):
         os.makedirs(install_path)
 
-    file_name = (file_name.replace(".ckpt", ".json")
-                 .replace(".safetensors", ".json")
-                 .replace(".pt", ".json")
-                 .replace(".yaml", ".json")
-                 .replace(".zip", ".json"))
+    parts = file_name.split('.')
+    if len(parts) > 1:
+        file_name = '.'.join(parts[:-1]) + ".json"
+    else:
+        file_name += ".json"
     
     path_to_new_file = os.path.join(install_path, file_name)
 
@@ -147,7 +147,7 @@ def save_json(file_name, install_path, trained_tags):
 def card_update(gr_components, model_name, list_versions, is_install):
     version_choices = gr_components[0]['choices']
     
-    if is_install and not gl.download_fail:
+    if is_install and not gl.download_fail and not gl.cancel_status:
         version_value_clean = list_versions + " [Installed]"
         version_choices_clean = [version if version + " [Installed]" != version_value_clean else version_value_clean for version in version_choices]
         
