@@ -1,5 +1,5 @@
 import gradio as gr
-from modules import script_callbacks
+from modules import script_callbacks, shared
 import os
 import fnmatch
 import re
@@ -504,4 +504,11 @@ def on_ui_tabs():
 
     return (civitai_interface, "Civit AI", "civitai_interface"),
 
+def on_ui_settings():
+    section = ("civitai_browser_plus", "Civit AI")
+
+    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2 (Default: On)", section=section))
+    shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2 (Useful for users who use PortMaster or other software that changes the DNS) (Default: Off)", section=section))
+    
 script_callbacks.on_ui_tabs(on_ui_tabs)
+script_callbacks.on_ui_settings(on_ui_settings)

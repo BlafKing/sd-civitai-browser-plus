@@ -4,11 +4,13 @@ import time
 import subprocess
 import threading
 import os
+import re
 import random
 import platform
 import stat
 import json
 from pathlib import Path
+from modules.shared import opts
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
@@ -125,6 +127,7 @@ def convert_size(size):
     return f"{size:.2f} GB"
 
 def download_file(url, file_path, install_path, progress=gr.Progress()):
+    disable_dns = getattr(opts, "use_aria2")
     max_retries = 5
     gl.download_fail = False
     aria2_rpc_url = "http://localhost:6800/jsonrpc"
@@ -134,12 +137,21 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
 
     file_name_display = os.path.basename(file_path)
     
-    options = {
-        "dir": install_path,
-        "max-connection-per-server": "64",
-        "split": "64",
-        "min-split-size": "1M"
-    }
+    if disable_dns:
+        options = {
+            "dir": install_path,
+            "max-connection-per-server": "64",
+            "split": "64",
+            "min-split-size": "1M",
+            "async-dns": "false"
+        }
+    else:
+        options = {
+            "dir": install_path,
+            "max-connection-per-server": "64",
+            "split": "64",
+            "min-split-size": "1M",
+        }
     
     payload = json.dumps({
         "jsonrpc": "2.0",
@@ -205,9 +217,93 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
                 return
             time.sleep(5)
 
+def download_file_old(url, file_path, progress=gr.Progress()):
+    gl.download_fail = False
+    max_retries = 5
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    downloaded_size = 0
+    tokens = re.split(re.escape('\\'), file_path)
+    file_name_display = tokens[-1]
+    
+    while True:
+        if gl.cancel_status:
+            return
+        if os.path.exists(file_path):
+            downloaded_size = os.path.getsize(file_path)
+            headers = {"Range": f"bytes={downloaded_size}-"}
+        else:
+            headers = {}
+        with open(file_path, "ab") as f:
+            while gl.isDownloading:
+                try:
+                    if gl.cancel_status:
+                        return
+                    try:
+                        if gl.cancel_status:
+                            return
+                        response = requests.get(url, headers=headers, stream=True, timeout=4)
+                        if response.status_code == 404:
+                            progress(0, desc="File returned a 404, file is not found.")
+                            time.sleep(3)
+                            gl.download_fail = True
+                            return
+                        total_size = int(response.headers.get("Content-Length", 0))
+                    except:
+                        raise TimeOutFunction("Timed Out")
+                    
+                    if total_size == 0:
+                        total_size = downloaded_size
+
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            if gl.cancel_status:
+                                return
+                            f.write(chunk)
+                            downloaded_size += len(chunk)
+                            progress(downloaded_size / total_size, desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)}")
+                            if gl.isDownloading == False:
+                                response.close
+                                break
+                    downloaded_size = os.path.getsize(file_path)
+                    break
+                
+                except TimeOutFunction:
+                    progress(0, desc="CivitAI API did not respond, retrying...")
+                    max_retries -= 1
+                    if max_retries == 0:
+                        progress(0, desc="Unable to download file due to time-out, please try to download again.")
+                        time.sleep(2)
+                        gl.download_fail = True
+                        return
+                    time.sleep(5)
+
+        if (gl.isDownloading == False):
+            break
+        
+        gl.isDownloading = False
+        downloaded_size = os.path.getsize(file_path)
+        if downloaded_size >= total_size:
+            if not gl.cancel_status:
+                print(f"Model saved to: {file_path}")
+                progress(1, desc=f"Model saved to: {file_path}")
+                time.sleep(2)
+                gl.download_fail = False
+                return
+                
+        else:
+            progress(0, desc="Download failed, please try again.")
+            print(f"Error: File download failed: {file_name_display}")
+            gl.download_fail = True
+            time.sleep(2)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
 def download_create_thread(url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
     gr_components = _api.update_model_versions(model_name, content_type)
     
+    use_aria2 = getattr(opts, "use_aria2")
+    print(f"use aria2: {use_aria2}")
     name = model_name
     
     number = str(random.randint(10000, 99999))
@@ -226,9 +322,15 @@ def download_create_thread(url, file_name, preview_html, create_json, trained_ta
         
     path_to_new_file = os.path.join(install_path, file_name)
 
-    thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
-    thread.start()
-    thread.join()
+    
+    if use_aria2:
+        thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
+        thread.start()
+        thread.join()
+    else:
+        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, progress))
+        thread.start()
+        thread.join()
     
     if not gl.cancel_status:
         if create_json:
