@@ -22,29 +22,24 @@ v1.9.3
 * Included Motrix Aria2 version.
 * Max connections per server set to 64 and split file set 64
 * Aria2 is now shipped with this extension for Linux as well. (no need to manually install anymore!)
-
 ---
 
 v1.9.2
 * Split up script into multiple files for improved oversight/readability.
 * Centered model icons
-
 ---
 
 v1.9.1
 * Added back old download function if aria2 fails.
-
 ---
 
 v1.9
 * Integrated Aria2 into the download_file function for faster downloading.
 * Added more info about current download: Speed, ETA, File Size and % completion.
-
 ---
 
 v1.8.1
 * Sub Folder list now contains 2 default options: `/{Model name}` & `/{Model name}/{Version name}`
-
 ---
 
 v1.8
@@ -55,20 +50,17 @@ v1.8
 * Rearranged/Resized UI elements.
 * Version list now dynamically updates after download.
 * Fixed bug where each model load ran twice.
-
 ---
 
 v1.7.2
 * Fixed a bug where Download button did not get re-enabled properly.
 * Fixed a bug where tile status did not get updated properly when download failed.
-
 ---
 
 v1.7.1
 * Dynamic changing of tile status after installation & deletion now correctly detects other versions.
 * Base Model filtering dims tiles instead of hiding.
 * NSFW Blur increases with tile size.
-
 ---
 
 v1.7
@@ -77,7 +69,6 @@ v1.7
 * Removed 'Automatically delete old version' option since this relied on a reload after installation.
 * Added toggle to sort Tiles by date, this adds a header with the update date and groups models.
 * Dynamic changing of tile borders after installation & deletion (doesn't detect old versions yet).
-
 ---
 
 v1.6
@@ -86,7 +77,6 @@ v1.6
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
 * Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.  
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
-
 ---
 
 v1.5
@@ -97,7 +87,6 @@ v1.5
 * Automatically selects corresponding folder of any installed models.
 * Improved cancellation logic to prevent downloads from continuing.
 * Display a timed out message instead of an error icon.
-
 ---
 
 v1.4
@@ -109,13 +98,11 @@ v1.4
 * Download button will now change according to circumstances:
   - Cancel button if there's a current download.
   - Delete button if the selected version is installed.
-
 ---
 
 v1.3.1
 * Fixed new tag saving bugs/oversights.
 * Improved trained tags display to not include the model itself.
-
 ---
 
 v1.3
@@ -127,7 +114,6 @@ v1.3
 * Removed download link box. (felt unnecessary since there is a Download button)
 * Removed "No" from search options, leave the search term empty to not use Search instead.
 * Added border radius to cards.
-
 ---
 
 v1.2
@@ -140,14 +126,12 @@ v1.2
 * Fixed margin error on the latest tile.
 * Fixed error where some old model version(s) did not get removed.
 * Improved version checking to be case sensitive.
-
 ---
 
 v1.1
 * Added dropdown box which can filter by time period.
 * Changed 'Content type' from buttons to a dropdown box.
 * Made selecting a tile always trigger a load, also when the same tile is selected twice.
-
 ---
 
 v1.0
