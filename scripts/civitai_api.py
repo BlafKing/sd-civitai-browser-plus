@@ -9,7 +9,7 @@ import os
 import re
 from collections import defaultdict
 from packaging import version
-from modules.shared import cmd_opts
+from modules.shared import cmd_opts, opts
 from modules.paths import models_path
 from html import escape 
 import scripts.civitai_global as gl
