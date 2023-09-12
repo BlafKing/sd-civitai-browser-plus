@@ -33,7 +33,6 @@ def rpc_running():
 def start_aria2_rpc(aria2c):
     if not rpc_running():
         try:
-            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" "'
             cmd_options = '--enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" "'
             os_cmd_mapping = {
                 'Windows': f'"{aria2c}" {cmd_options} --async-dns=false',
