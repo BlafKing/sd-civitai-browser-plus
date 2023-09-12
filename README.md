@@ -13,18 +13,20 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 <details>
 <summary><h3>Unable to download / Frozen download</h3></summary>
 
-**The following Settings can be found under the 'Settings' Tab of Web-UI and then by selecting the 'Civit AI' tile.**  
+**If you're experiencing issues with broken or frozen downloads, there are two possible solutions you can try:**
 
+1. **Disable Async DNS for Aria2**:
+   If you're using any DNS manager program like PortMaster, try turning on the "Disable Async DNS for Aria2" option.
 
-* If you're using any DNS manager program like PortMaster you can try turning on  
-`Disable Async DNS for Aria2`  
+   ![Disable Async DNS for Aria2](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
 
-![](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
+2. **Revert to the old download method**:
+   Another solution could be to disable the "Download models using Aria2" feature.  
+This will switch back to the old download method, which may resolve the issue.
 
-* If you're having issues with Aria2, you can revert to the old download method by disabling   
-`Download models using Aria2`  
+   ![Revert to old download method](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/982b0ebb-0cac-4053-8060-285533e0e176)
 
-![](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/982b0ebb-0cac-4053-8060-285533e0e176)
+These settings can be found under the "Settings" tab in Web-UI and then under the "Civit AI" tile.
 
 </details>
 
