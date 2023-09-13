@@ -202,7 +202,7 @@ def gen_sha256(file_path):
     hash_value = h.hexdigest()
     return hash_value
 
-def save_json(file_path):
+def save_all_json(file_path):
     model_hash = gen_sha256(file_path)
 
     api_url = f"https://civitai.com/api/v1/model-versions/by-hash/{model_hash}"
@@ -292,7 +292,7 @@ def save_all_tags(items, tag_finish, progress=gr.Progress()):
                         gr.Textbox.update(value=number))
             file_name = os.path.basename(file_path)
             progress(files_done / total_files, desc=f"Processing file: {file_name}")
-            save_json(file_path)
+            save_all_json(file_path)
             files_done += 1
 
     progress(1, desc=f"All files are processed!")
