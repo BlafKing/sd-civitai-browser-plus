@@ -22,7 +22,7 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 <h3>Automatically assign tags to installed models 🏷️</h3>
 
-* Assign tags by scanning all intalled models for automatic use in image generation.
+* Assign tags by scanning all installed models for automatic use in image generation.
 
 <h3>High-speed downloads with Aria2 🚄</h3>
 
