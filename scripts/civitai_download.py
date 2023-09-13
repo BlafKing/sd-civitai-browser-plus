@@ -36,7 +36,7 @@ def start_aria2_rpc(aria2c):
     if not rpc_running():
         try:
             try:
-                show_log = getattr(opts, "show_log")
+                show_log = getattr(opts, "show_log", False)
             except:
                 show_log = False
             cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" "'
@@ -132,10 +132,9 @@ def convert_size(size):
     return f"{size:.2f} GB"
 
 def download_file(url, file_path, install_path, progress=gr.Progress()):
-    try:
-        disable_dns = getattr(opts, "disable_dns")
-    except:
-        disable_dns = False
+    disable_dns = getattr(opts, "disable_dns", False)
+    split_aria2 = getattr(opts, "split_aria2", 64)
+    
     max_retries = 5
     gl.download_fail = False
     aria2_rpc_url = "http://localhost:6800/jsonrpc"
@@ -146,20 +145,18 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
     file_name_display = os.path.basename(file_path)
     
     if disable_dns:
-        options = {
-            "dir": install_path,
-            "max-connection-per-server": "64",
-            "split": "64",
-            "min-split-size": "1M",
-            "async-dns": "false"
-        }
+        dns = "false"
     else:
-        options = {
-            "dir": install_path,
-            "max-connection-per-server": "64",
-            "split": "64",
-            "min-split-size": "1M",
-        }
+        dns = "true"
+    
+    options = {
+        "dir": install_path,
+        "max-connection-per-server": str(f"{split_aria2}"),
+        "split": str(f"{split_aria2}"),
+        "async-dns": dns
+    }
+    
+    print(f"Options: {options}")
     
     payload = json.dumps({
         "jsonrpc": "2.0",
@@ -175,7 +172,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
         print(f"Failed to start download: {e}")
         gl.download_fail = True
         return
-    
+        
     while True:
         if gl.cancel_status:
             payload = json.dumps({
@@ -205,7 +202,15 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
             download_speed = int(status_info['downloadSpeed'])
             
             progress_percent = (completed_length / total_length) * 100 if total_length else 0
-            progress(progress_percent / 100, desc=f"Downloading: {file_name_display} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s")
+            
+            remaining_size = total_length - completed_length
+            if download_speed > 0:
+                eta_seconds = remaining_size / download_speed
+                eta_formatted = time.strftime("%H:%M:%S", time.gmtime(eta_seconds))
+            else:
+                eta_formatted = "Calculating..."
+            
+            progress(progress_percent / 100, desc=f"Downloading: {file_name_display} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted}")
             
             if status_info['status'] == 'complete':
                 progress(1, desc=f"Model saved to: {file_path}")
@@ -233,9 +238,11 @@ def download_file_old(url, file_path, progress=gr.Progress()):
     downloaded_size = 0
     tokens = re.split(re.escape('\\'), file_path)
     file_name_display = tokens[-1]
-    
+    start_time = time.time()  # Record start time
     while True:
         if gl.cancel_status:
+            progress(0, desc=f"Download cancelled.")
+            time.sleep(2)
             return
         if os.path.exists(file_path):
             downloaded_size = os.path.getsize(file_path)
@@ -246,9 +253,13 @@ def download_file_old(url, file_path, progress=gr.Progress()):
             while gl.isDownloading:
                 try:
                     if gl.cancel_status:
+                        progress(0, desc=f"Download cancelled.")
+                        time.sleep(2)
                         return
                     try:
                         if gl.cancel_status:
+                            progress(0, desc=f"Download cancelled.")
+                            time.sleep(2)
                             return
                         response = requests.get(url, headers=headers, stream=True, timeout=4)
                         if response.status_code == 404:
@@ -259,23 +270,36 @@ def download_file_old(url, file_path, progress=gr.Progress()):
                         total_size = int(response.headers.get("Content-Length", 0))
                     except:
                         raise TimeOutFunction("Timed Out")
-                    
+
                     if total_size == 0:
                         total_size = downloaded_size
 
                     for chunk in response.iter_content(chunk_size=1024):
                         if chunk:
                             if gl.cancel_status:
+                                progress(0, desc=f"Download cancelled.")
+                                time.sleep(2)
                                 return
                             f.write(chunk)
                             downloaded_size += len(chunk)
-                            progress(downloaded_size / total_size, desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)}")
+                            elapsed_time = time.time() - start_time
+                            download_speed = downloaded_size / elapsed_time
+                            remaining_size = total_size - downloaded_size
+                            if download_speed > 0:
+                                eta_seconds = remaining_size / download_speed
+                                eta_formatted = time.strftime("%H:%M:%S", time.gmtime(eta_seconds))
+                            else:
+                                eta_formatted = "Calculating..."
+                            progress(
+                                downloaded_size / total_size,
+                                desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)} - Speed: {convert_size(int(download_speed))}/s - ETA: {eta_formatted}"
+                            )
                             if gl.isDownloading == False:
                                 response.close
                                 break
                     downloaded_size = os.path.getsize(file_path)
                     break
-                
+
                 except TimeOutFunction:
                     progress(0, desc="CivitAI API did not respond, retrying...")
                     max_retries -= 1
@@ -288,7 +312,7 @@ def download_file_old(url, file_path, progress=gr.Progress()):
 
         if (gl.isDownloading == False):
             break
-        
+
         gl.isDownloading = False
         downloaded_size = os.path.getsize(file_path)
         if downloaded_size >= total_size:
@@ -298,7 +322,7 @@ def download_file_old(url, file_path, progress=gr.Progress()):
                 time.sleep(2)
                 gl.download_fail = False
                 return
-                
+
         else:
             progress(0, desc="Download failed, please try again.")
             print(f"Error: File download failed: {file_name_display}")
@@ -311,7 +335,7 @@ def download_create_thread(url, file_name, preview_html, create_json, trained_ta
     gr_components = _api.update_model_versions(model_name, content_type)
     gl.cancel_status = False
     try:
-        use_aria2 = getattr(opts, "use_aria2")
+        use_aria2 = getattr(opts, "use_aria2", True)
     except:
         use_aria2 = True
     name = model_name
@@ -351,7 +375,8 @@ def download_create_thread(url, file_name, preview_html, create_json, trained_ta
     base_name_preview = base_name + '.preview'
 
     if gl.download_fail:
-        print(f'Error occured during download of "{path_to_new_file}".')
+        if not gl.cancel_status:
+            print(f'Error occured during download of "{path_to_new_file}".')
         gl.download_fail = True
         for root, dirs, files in os.walk(install_path):
             for file in files:

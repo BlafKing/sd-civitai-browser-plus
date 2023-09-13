@@ -507,9 +507,16 @@ def on_ui_tabs():
 def on_ui_settings():
     section = ("civitai_browser_plus", "Civit AI")
 
-    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=section))
-    shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2 (Useful for users who use PortMaster or other software that changes the DNS)", section=section))
-    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 Logs in CMD (Requires Web-UI Restart)", section=section))
+    if not (hasattr(shared.OptionInfo, "info") and callable(getattr(shared.OptionInfo, "info"))):
+        def info(self, info):
+            self.label += f" ({info})"
+            return self
+        shared.OptionInfo.info = info
+    
+    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=section).info("Disable to use the old download method"))
+    shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=section).info("Useful for users who use PortMaster or other software that controls the DNS"))
+    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 Logs in CMD", section=section).info("Requires Web-UI Restart"))
+    shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)

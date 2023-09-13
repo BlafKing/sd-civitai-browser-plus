@@ -44,14 +44,15 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 # Changelog
 
 v1.9.4
-* Added settings tab
-  - Option to disable downloading with Aria2, will use old method instead
-  - Option to disable using Async DNS, can fix issues for some users who use DNS managing programs
+* Added Civit AI settings tab
+  - Option to disable downloading with Aria2. (will use old download method instead)
+  - Option to disable using Async DNS. (can fix issues for some users who use DNS managing programs)
   - Option to show Aria2 logs in the CMD.
+  - Option to set the amount of connections when downloading a model with Aria2.
 ---
 v1.9.3
 * Included Motrix Aria2 version.
-* Max connections per server set to 64 and split file set 64
+* Max connections per server set to 64 and split file set 64.
 * Aria2 is now shipped with this extension for Linux as well. (no need to manually install anymore!)
 ---
 
