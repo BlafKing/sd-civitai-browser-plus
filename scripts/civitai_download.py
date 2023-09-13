@@ -63,17 +63,20 @@ start_aria2_rpc(aria2)
 class TimeOutFunction(Exception):
     pass
 
-def download_start(model_name, model_filename, version):
+def random_number(prev):
+    number = str(random.randint(10000, 99999))
+
+    while number == prev:
+        number = str(random.randint(10000, 99999))
+    
+    return number
+
+def download_start(download_start, model_name, model_filename, version):
     gl.last_version = version
     gl.current_download = model_filename
     gl.cancel_status = False
     gl.recent_model = model_name
-    number = str(random.randint(10000, 99999))
-
-    while number == gl.last_start:
-        number = str(random.randint(10000, 99999))
-    
-    gl.last_start = number 
+    number = random_number(download_start)
     return  (
             gr.Button.update(interactive=False, visible=False), # Download Button
             gr.Button.update(interactive=True, visible=True), # Cancel Button
@@ -208,7 +211,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
                 eta_seconds = remaining_size / download_speed
                 eta_formatted = time.strftime("%H:%M:%S", time.gmtime(eta_seconds))
             else:
-                eta_formatted = "Calculating..."
+                eta_formatted = "XX:XX:XX"
             
             progress(progress_percent / 100, desc=f"Downloading: {file_name_display} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted}")
             
@@ -289,7 +292,7 @@ def download_file_old(url, file_path, progress=gr.Progress()):
                                 eta_seconds = remaining_size / download_speed
                                 eta_formatted = time.strftime("%H:%M:%S", time.gmtime(eta_seconds))
                             else:
-                                eta_formatted = "Calculating..."
+                                eta_formatted = "XX:XX:XX"
                             progress(
                                 downloaded_size / total_size,
                                 desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)} - Speed: {convert_size(int(download_speed))}/s - ETA: {eta_formatted}"
@@ -331,7 +334,7 @@ def download_file_old(url, file_path, progress=gr.Progress()):
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-def download_create_thread(url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
+def download_create_thread(download_finish, url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
     gr_components = _api.update_model_versions(model_name, content_type)
     gl.cancel_status = False
     try:
@@ -340,11 +343,7 @@ def download_create_thread(url, file_name, preview_html, create_json, trained_ta
         use_aria2 = True
     name = model_name
     
-    number = str(random.randint(10000, 99999))
-    while number == gl.last_dwn:
-        number = str(random.randint(10000, 99999))
-
-    gl.last_dwn = number
+    number = random_number(download_finish)
     
     if gl.isDownloading:
         gl.isDownloading = False

@@ -85,3 +85,13 @@
 	flex-wrap: wrap;
 	justify-content: center;
 }
+
+#selected_tags {
+    text-align: center;
+}
+
+#selected_tags > div {
+    justify-content: center;
+	padding-top: 10px;
+	padding-bottom: 20px;
+}

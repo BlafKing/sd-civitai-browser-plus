@@ -43,7 +43,14 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog
 
-v1.9.4
+<h3>v1.10</h3>
+
+* Added new feature which can update Tags for all installed models!
+* Added tabs for Browsing and updating Tags.
+* Added Buttons to select which folders to update tags in.
+---
+<h3>v1.9.4</h3>
+
 * Added Civit AI settings tab
   - Option to disable downloading with Aria2. (will use old download method instead)
   - Option to disable using Async DNS. (can fix issues for some users who use DNS managing programs)
@@ -51,31 +58,37 @@ v1.9.4
   - Option to set the amount of connections when downloading a model with Aria2.  
     (The optimal connection count is different per user, try to find the lowest option which still gives you full bandwidth speed)
 ---
-v1.9.3
+<h3>v1.9.3</h3>
+
 * Included Motrix Aria2 version.
 * Max connections per server set to 64 and split file set 64.
 * Aria2 is now shipped with this extension for Linux as well. (no need to manually install anymore!)
 ---
 
-v1.9.2
+<h3>v1.9.2</h3>
+
 * Split up script into multiple files for improved oversight/readability.
 * Centered model icons
 ---
 
-v1.9.1
+<h3>v1.9.1</h3>
+
 * Added back old download function if aria2 fails.
 ---
 
-v1.9
+<h3>v1.9</h3>
+
 * Integrated Aria2 into the download_file function for faster downloading.
 * Added more info about current download: Speed, ETA, File Size and % completion.
 ---
 
-v1.8.1
+<h3>v1.8.1</h3>
+
 * Sub Folder list now contains 2 default options: `/{Model name}` & `/{Model name}/{Version name}`
 ---
 
-v1.8
+<h3>v1.8</h3>
+
 * Added ability to download different file types per version.
 * Downloading models now uses file ID instead of names.
 * NSFW Toggle is now dynamic.
@@ -85,18 +98,21 @@ v1.8
 * Fixed bug where each model load ran twice.
 ---
 
-v1.7.2
+<h3>v1.7.2</h3>
+
 * Fixed a bug where Download button did not get re-enabled properly.
 * Fixed a bug where tile status did not get updated properly when download failed.
 ---
 
-v1.7.1
+<h3>v1.7.1</h3>
+
 * Dynamic changing of tile status after installation & deletion now correctly detects other versions.
 * Base Model filtering dims tiles instead of hiding.
 * NSFW Blur increases with tile size.
 ---
 
-v1.7
+<h3>v1.7</h3>
+
 * Introduced seperate download progress bar, allows to keep browsing whilst downloading.
 * Removed force refresh after installing, cancelling and deleting.
 * Removed 'Automatically delete old version' option since this relied on a reload after installation.
@@ -104,7 +120,8 @@ v1.7
 * Dynamic changing of tile borders after installation & deletion (doesn't detect old versions yet).
 ---
 
-v1.6
+<h3>v1.6</h3>
+
 * LoCon models now get saved in the Lora folder if A1111's version is 1.5 or higher.
 * improved page_count detection.  
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
@@ -112,7 +129,8 @@ v1.6
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
 ---
 
-v1.5
+<h3>v1.5</h3>
+
 * Added slider to change tile size
 * Added Download Folder textbox which can be used to define a custom download path.
 * Added Sub Folder Dropdown to select any available subfolder(s) as download location.
@@ -122,7 +140,8 @@ v1.5
 * Display a timed out message instead of an error icon.
 ---
 
-v1.4
+<h3>v1.4</h3>
+
 * Download progress load bar is now on web page instead of CMD.
 * Better margin fixes with theme detection.
 * Delete option now also removes .json files.
@@ -133,12 +152,14 @@ v1.4
   - Delete button if the selected version is installed.
 ---
 
-v1.3.1
+<h3>v1.3.1</h3>
+
 * Fixed new tag saving bugs/oversights.
 * Improved trained tags display to not include the model itself.
 ---
 
-v1.3
+<h3>v1.3</h3>
+
 * Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.  
   (If a LORA with saved tags is used it will automatically input all tags into the txt box in image creation)
 * Improved padding based on if Lobe theme is being used.
@@ -149,7 +170,8 @@ v1.3
 * Added border radius to cards.
 ---
 
-v1.2
+<h3>v1.2</h3>
+
 * Made the 'Version' tab show the installed version by default when selecting a model.
 * Automatically saves preview image when downloading a model.
 * Added [installed] text suffix for any versions that are installed in the 'Version' tab.
@@ -161,13 +183,15 @@ v1.2
 * Improved version checking to be case sensitive.
 ---
 
-v1.1
+<h3>v1.1</h3>
+
 * Added dropdown box which can filter by time period.
 * Changed 'Content type' from buttons to a dropdown box.
 * Made selecting a tile always trigger a load, also when the same tile is selected twice.
 ---
 
-v1.0
+<h3>v1.0</h3>
+
 * Changed 'Get List' to 'Refresh', the button now reloads the current page unless any options have been changed.
 * Removed new folder option and removed the function that puts downloads in their own seperate folders.
 * Made the glow around frames always visible without hovering.

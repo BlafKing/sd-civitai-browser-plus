@@ -53,75 +53,85 @@ def on_ui_tabs():
     toggle3 = None if lobe_directory else "toggle3"
     
     with gr.Blocks() as civitai_interface:
-        with gr.Row():
-            with gr.Column(scale=2, min_width=200):
-                content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value="Checkpoint", type="value")
-            with gr.Column(scale=2, min_width=200):
-                period_type = gr.Dropdown(label='Time Period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
-            with gr.Column(scale=2, min_width=200):
-                sort_type = gr.Dropdown(label='Sort By:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value")
-            with gr.Column(scale=2, min_width=200):
-                base_filter = gr.Dropdown(label='Filter Base Model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 2.0","SD 2.1", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value")
-            with gr.Column(scale=1, min_width=200, elem_id=component_id):
-                create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1)
-                toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle2)
-                show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle3)
-        with gr.Row():
-            with gr.Column(scale=3,min_width=300):
-                search_term = gr.Textbox(label="Search Term:", interactive=True, lines=1)
-            with gr.Column(scale=2,min_width=120):
-                use_search_term = gr.Radio(label="Search:", choices=["Model name", "User name", "Tag"],value="Model name")
-            with gr.Column(scale=1,min_width=160 ):
-                size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
-            with gr.Column(scale=1,min_width=160 ):
-                tile_slider = gr.Slider(label="Tile count:", min=5, max=50, value=15, step=1, max_width=100)
-        with gr.Row():
-            with gr.Column(scale=5):
-                refresh = gr.Button(label="Refresh", value="Refresh")
-            with gr.Column(scale=3,min_width=80):
-                get_prev_page = gr.Button(value="Prev Page", interactive=False)
-            with gr.Column(scale=3,min_width=80):
-                get_next_page = gr.Button(value="Next Page", interactive=False)
-            with gr.Column(scale=1,min_width=50):
-                pages = gr.Textbox(label='Pages', show_label=False)
-        with gr.Row():
-            list_html = gr.HTML(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Please press \'Refresh\' to load selected content!</div>')
-        with gr.Row():
-            download_progress = gr.HTML(value='<div style="min-height: 0px;"></div>', elem_id="DownloadProgress")
-        with gr.Row():
-            list_models = gr.Dropdown(label="Model:", choices=[], interactive=False, elem_id="quicksettings1", value=None)
-            list_versions = gr.Dropdown(label="Version:", choices=[], interactive=False, elem_id="quicksettings", value=None)
-            file_list = gr.Dropdown(label="File:", choices=[], interactive=False, elem_id="file_list", value=None)
-        with gr.Row():
-            with gr.Column(scale=4):
-                install_path = gr.Textbox(label="Download Folder:", visible=True, interactive=False, max_lines=1)
-            with gr.Column(scale=2):
-                sub_folder = gr.Dropdown(label="Sub Folder:", choices=[], interactive=False, value=None)
-        with gr.Row():
-            with gr.Column(scale=13):
-                trained_tags = gr.Textbox(label='Trained Tags (if any):', value=None, interactive=False, lines=1)
-            with gr.Column(scale=1, min_width=120):
-                base_model = gr.Textbox(label='Base Model:', value='', interactive=False, lines=1)
-            with gr.Column(scale=5):
-                model_filename = gr.Textbox(label="Model Filename:", interactive=False, value=None)
-        with gr.Row():
-            save_tags = gr.Button(value="Save Tags", interactive=False)
-            save_images = gr.Button(value="Save Images", interactive=False)
-            download_model = gr.Button(value="Download Model", interactive=False)
-            cancel_model = gr.Button(value="Cancel Download", interactive=False, visible=False)
-            delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
-        with gr.Row():
-            preview_html = gr.HTML()
-        with gr.Row():
-            #Invisible triggers/variables
-            model_id = gr.Textbox(label='Model ID:', value=None, visible=False)
-            dl_url = gr.Textbox(label='DL URL:', value=None, visible=False)
-            event_text = gr.Textbox(elem_id="eventtext1", visible=False)
-            download_start = gr.Textbox(value=None, visible=False)
-            download_finish = gr.Textbox(value=None, visible=False)
-            delete_finish = gr.Textbox(value=None, visible=False)
-            current_model = gr.Textbox(value=None, visible=False)
-        
+        with gr.Tab("Browser"):
+            with gr.Row():
+                with gr.Column(scale=2, min_width=200):
+                    content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value="Checkpoint", type="value")
+                with gr.Column(scale=2, min_width=200):
+                    period_type = gr.Dropdown(label='Time Period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
+                with gr.Column(scale=2, min_width=200):
+                    sort_type = gr.Dropdown(label='Sort By:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value")
+                with gr.Column(scale=2, min_width=200):
+                    base_filter = gr.Dropdown(label='Filter Base Model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 2.0","SD 2.1", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value")
+                with gr.Column(scale=1, min_width=200, elem_id=component_id):
+                    create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1)
+                    toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle2)
+                    show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle3)
+            with gr.Row():
+                with gr.Column(scale=3,min_width=300):
+                    search_term = gr.Textbox(label="Search Term:", interactive=True, lines=1)
+                with gr.Column(scale=2,min_width=120):
+                    use_search_term = gr.Radio(label="Search:", choices=["Model name", "User name", "Tag"],value="Model name")
+                with gr.Column(scale=1,min_width=160 ):
+                    size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
+                with gr.Column(scale=1,min_width=160 ):
+                    tile_slider = gr.Slider(label="Tile count:", min=5, max=50, value=15, step=1, max_width=100)
+            with gr.Row():
+                with gr.Column(scale=5):
+                    refresh = gr.Button(label="Refresh", value="Refresh")
+                with gr.Column(scale=3,min_width=80):
+                    get_prev_page = gr.Button(value="Prev Page", interactive=False)
+                with gr.Column(scale=3,min_width=80):
+                    get_next_page = gr.Button(value="Next Page", interactive=False)
+                with gr.Column(scale=1,min_width=50):
+                    pages = gr.Textbox(label='Pages', show_label=False)
+            with gr.Row():
+                list_html = gr.HTML(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Please press \'Refresh\' to load selected content!</div>')
+            with gr.Row():
+                download_progress = gr.HTML(value='<div style="min-height: 0px;"></div>', elem_id="DownloadProgress")
+            with gr.Row():
+                list_models = gr.Dropdown(label="Model:", choices=[], interactive=False, elem_id="quicksettings1", value=None)
+                list_versions = gr.Dropdown(label="Version:", choices=[], interactive=False, elem_id="quicksettings", value=None)
+                file_list = gr.Dropdown(label="File:", choices=[], interactive=False, elem_id="file_list", value=None)
+            with gr.Row():
+                with gr.Column(scale=4):
+                    install_path = gr.Textbox(label="Download Folder:", visible=True, interactive=False, max_lines=1)
+                with gr.Column(scale=2):
+                    sub_folder = gr.Dropdown(label="Sub Folder:", choices=[], interactive=False, value=None)
+            with gr.Row():
+                with gr.Column(scale=13):
+                    trained_tags = gr.Textbox(label='Trained Tags (if any):', value=None, interactive=False, lines=1)
+                with gr.Column(scale=1, min_width=120):
+                    base_model = gr.Textbox(label='Base Model:', value='', interactive=False, lines=1)
+                with gr.Column(scale=5):
+                    model_filename = gr.Textbox(label="Model Filename:", interactive=False, value=None)
+            with gr.Row():
+                save_tags = gr.Button(value="Save Tags", interactive=False)
+                save_images = gr.Button(value="Save Images", interactive=False)
+                download_model = gr.Button(value="Download Model", interactive=False)
+                cancel_model = gr.Button(value="Cancel Download", interactive=False, visible=False)
+                delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
+            with gr.Row():
+                preview_html = gr.HTML()
+            with gr.Row():
+                #Invisible triggers/variables
+                model_id = gr.Textbox(label='Model ID:', value=None, visible=False)
+                dl_url = gr.Textbox(label='DL URL:', value=None, visible=False)
+                event_text = gr.Textbox(elem_id="eventtext1", visible=False)
+                download_start = gr.Textbox(value=None, visible=False)
+                download_finish = gr.Textbox(value=None, visible=False)
+                tag_start = gr.Textbox(value=None, visible=False)
+                tag_finish = gr.Textbox(value=None, visible=False)
+                delete_finish = gr.Textbox(value=None, visible=False)
+                current_model = gr.Textbox(value=None, visible=False)
+        with gr.Tab("Update All Tags"):
+            with gr.Row():
+                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Update tags for:", choices=["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"])
+            with gr.Row():
+                save_tags = gr.Button(value="Update Selected Tags", interactive=True, visible=True)
+                cancel_tags = gr.Button(value="Cancel Updating Tags", interactive=False, visible=False)
+            with gr.Row():
+                tag_progress = gr.HTML(value='<div style="min-height: 0px;"></div>', elem_id="DownloadProgress")
         def changeInput():
             gl.contentChange = True
             
@@ -158,6 +168,38 @@ def on_ui_tabs():
             fn=select_subfolder,
             inputs=[sub_folder],
             outputs=[install_path]
+        )
+                
+        save_tags.click(
+            fn=_file.save_tag_start,
+            inputs=[tag_start],
+            outputs=[
+                tag_start,
+                save_tags,
+                cancel_tags,
+                tag_progress
+            ]
+        )
+        
+        tag_start.change(
+            fn=_file.save_all_tags,
+            inputs=[selected_tags, tag_finish],
+            outputs=[
+                tag_progress,
+                tag_finish,
+            ]
+        )
+        
+        tag_finish.change(
+            fn=_file.save_tag_finish,
+            outputs=[
+                save_tags,
+                cancel_tags
+            ]
+        )
+        
+        cancel_tags.click(
+            fn=_file.cancel_tag
         )
         
         download_finish.change(
@@ -221,6 +263,7 @@ def on_ui_tabs():
         download_model.click(
             fn=_download.download_start,
             inputs=[
+                download_start,
                 list_models,
                 model_filename,
                 list_versions
@@ -236,6 +279,7 @@ def on_ui_tabs():
         download_start.change(
             fn=_download.download_create_thread,
             inputs=[
+                download_finish,
                 dl_url,
                 model_filename,
                 preview_html,
@@ -288,6 +332,7 @@ def on_ui_tabs():
         delete_model.click(
             fn=_file.delete_model,
             inputs=[
+                delete_finish,
                 content_type,
                 model_filename,
                 list_models,

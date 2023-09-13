@@ -4,16 +4,21 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import os
+import io
 import random
 import re
+import time
 import shutil
+import requests
+import hashlib
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
+import scripts.civitai_download as _download
 
 gl.init()
 
-def delete_model(content_type, model_filename, model_name, list_versions):
+def delete_model(delete_finish, content_type, model_filename, model_name, list_versions):
     gr_components = _api.update_model_versions(model_name, content_type)
     
     (model_name, ver_value, ver_choices) = _file.card_update(gr_components, model_name, list_versions, False)
@@ -30,12 +35,7 @@ def delete_model(content_type, model_filename, model_name, list_versions):
                 os.remove(path_file)
                 print(f"Removed: {path_file}")
 
-    number = str(random.randint(10000, 99999))
-
-    while number == gl.last_del:
-        number = str(random.randint(10000, 99999))
-    
-    gl.last_del = number 
+    number = _download.random_number(delete_finish)
     
     return (
             gr.Button.update(interactive=False, visible=True),  # Download Button
@@ -166,3 +166,163 @@ def card_update(gr_components, model_name, list_versions, is_install):
         model_name += ".None"
     
     return model_name, version_value_clean, version_choices_clean
+
+def list_files(folders):
+    model_files = []
+    bad_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.ico', '.svg', '.json', '.txt', '.aria2']
+
+    for folder in folders:
+        if folder and os.path.exists(folder):
+            for root, _, files in os.walk(folder):
+                for file in files:
+                    _, file_extension = os.path.splitext(file)
+                    if file_extension.lower() not in bad_extensions:
+                        model_files.append(os.path.join(root, file))
+
+    model_files = sorted(list(set(model_files)))
+    return model_files
+
+def gen_sha256(file_path):
+    
+    def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
+        while True:
+            chunk = file.read(size)
+            if not chunk:
+                break
+            yield chunk
+    
+    blocksize = 1 << 20
+    h = hashlib.sha256()
+    length = 0
+    with open(os.path.realpath(file_path), 'rb') as f:
+        for block in read_chunks(f, size=blocksize):
+            length += len(block)
+            h.update(block)
+
+    hash_value = h.hexdigest()
+    return hash_value
+
+def save_json(file_path):
+    model_hash = gen_sha256(file_path)
+
+    api_url = f"https://civitai.com/api/v1/model-versions/by-hash/{model_hash}"
+    
+    try:
+        response = requests.get(api_url, timeout=20)
+        
+        if response.status_code == 200:
+            data = response.json()
+
+            trained_words = data.get("trainedWords", "")
+
+            if not trained_words:
+                return
+
+            if isinstance(trained_words, list):
+                trained_tags = ",".join(trained_words)
+                trained_tags = re.sub(r'<[^>]*:[^>]*>', '', trained_tags)
+                trained_tags = re.sub(r', ?', ', ', trained_tags)
+                trained_tags = trained_tags.strip(', ')
+            else:
+                trained_tags = trained_words
+
+            json_file = os.path.splitext(file_path)[0] + '.json'
+            if os.path.exists(json_file):
+                with open(json_file, 'r') as f:
+                    try:
+                        existing_data = json.load(f)
+                    except json.JSONDecodeError:
+                        existing_data = {}
+
+                existing_data["activation text"] = trained_tags
+                with open(json_file, 'w') as f:
+                    json.dump(existing_data, f)
+            else:
+                content = {"activation text": trained_tags}
+                with open(json_file, 'w') as f:
+                    json.dump(content, f)
+
+            print(f"Tags saved as JSON in {json_file}")
+        else:
+            print(f"Failed to fetch tags for {file_path}")
+    
+    except requests.exceptions.Timeout:
+        print(f"Request timed out for {file_path}. Skipping...")
+    except Exception as e:
+        print(f"An error occurred for {file_path}: {str(e)}")
+        
+def save_all_tags(items, tag_finish, progress=gr.Progress()):
+    gl.save_tags = True
+    number = _download.random_number(tag_finish)
+    if not items:
+        progress(0, desc=f"No folder selected.")
+        time.sleep(2)
+        return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                gr.Textbox.update(value=number))
+    
+    folders_to_check = []
+    for item in items:
+        folder = _api.contenttype_folder(item)
+        if folder:
+            folders_to_check.append(folder)
+
+    total_files = 0
+    files_done = 0
+
+    for folder in folders_to_check:
+        files = list_files([folder])
+        total_files += len(files)
+
+    if total_files == 0:
+        progress(1, desc=f"No files in selected folder.")
+        time.sleep(2)
+        gl.save_tags = False
+        return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                        gr.Textbox.update(value=number))
+        
+    for folder in folders_to_check:
+        files = list_files([folder])
+        for file_path in files:
+            if gl.cancel_status:
+                progress(files_done / total_files, desc=f"Saving tags cancelled.")
+                time.sleep(2)
+                gl.save_tags = False
+                
+                return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                        gr.Textbox.update(value=number))
+            file_name = os.path.basename(file_path)
+            progress(files_done / total_files, desc=f"Processing file: {file_name}")
+            save_json(file_path)
+            files_done += 1
+
+    progress(1, desc=f"All files are processed!")
+    time.sleep(2)
+    gl.save_tags = False
+    return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+            gr.Textbox.update(value=number))
+
+def save_tag_start(tag_start):
+    number = _download.random_number(tag_start)
+    return (
+        gr.Textbox.update(value=number),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=True, visible=True),
+        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
+    )
+
+def save_tag_finish():
+    return (
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=False)
+    )
+
+def cancel_tag():
+    gl.cancel_status = True
+    
+    while True:
+        if not gl.save_tags:
+            gl.cancel_status = False
+            return
+        else:
+            time.sleep(0.5)
+            continue
