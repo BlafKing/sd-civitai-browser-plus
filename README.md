@@ -48,7 +48,8 @@ v1.9.4
   - Option to disable downloading with Aria2. (will use old download method instead)
   - Option to disable using Async DNS. (can fix issues for some users who use DNS managing programs)
   - Option to show Aria2 logs in the CMD.
-  - Option to set the amount of connections when downloading a model with Aria2.
+  - Option to set the amount of connections when downloading a model with Aria2.  
+    (The optimal connection count is different per user, try to find the lowest option which still gives you full bandwidth speed)
 ---
 v1.9.3
 * Included Motrix Aria2 version.
