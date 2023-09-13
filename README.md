@@ -32,6 +32,8 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 * Feel free to send me your feature requests, and I'll do my best to implement them!
 
+<h1></h1>
+
 <details>
 <summary><h1>Known Issues 🐛</h1></summary>
 
@@ -57,7 +59,7 @@ These settings can be found under the "Settings" tab in Web-UI and then under th
 
 </details>
 
----
+<h1></h1>
 
 # Preview 👀
 
