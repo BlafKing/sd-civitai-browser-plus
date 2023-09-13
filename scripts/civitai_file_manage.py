@@ -5,7 +5,6 @@ import urllib.parse
 import urllib.error
 import os
 import io
-import random
 import re
 import time
 import shutil
@@ -169,14 +168,15 @@ def card_update(gr_components, model_name, list_versions, is_install):
 
 def list_files(folders):
     model_files = []
-    bad_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.ico', '.svg', '.json', '.txt', '.aria2']
-
+    
+    extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
+    
     for folder in folders:
         if folder and os.path.exists(folder):
             for root, _, files in os.walk(folder):
                 for file in files:
                     _, file_extension = os.path.splitext(file)
-                    if file_extension.lower() not in bad_extensions:
+                    if file_extension.lower() in extensions:
                         model_files.append(os.path.join(root, file))
 
     model_files = sorted(list(set(model_files)))

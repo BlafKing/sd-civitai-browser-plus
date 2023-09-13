@@ -159,8 +159,6 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
         "async-dns": dns
     }
     
-    print(f"Options: {options}")
-    
     payload = json.dumps({
         "jsonrpc": "2.0",
         "id": "1",
@@ -354,7 +352,6 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
         os.makedirs(install_path)
         
     path_to_new_file = os.path.join(install_path, file_name)
-
     
     if use_aria2:
         thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
@@ -384,10 +381,10 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
                     path_file = os.path.join(root, file)
                     os.remove(path_file)
                     print(f"Removed: {path_file}")
-                        
+                    
     if gl.isDownloading:
         gl.isDownloading = False
-
+    
     (model, _, _) = _file.card_update(gr_components, name, list_versions, True)
     
     if not gl.cancel_status:
