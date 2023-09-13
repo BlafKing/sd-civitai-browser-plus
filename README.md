@@ -7,8 +7,33 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 **(If you'd like to be able to filter search results on Base Model version, please upvote [my feature request here!](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9))**
 
+<h1>Features 🚀</h1>
+<h3>Browse all models from CivitAI 🧩</h2>
+
+* Explore a wide range of models at your fingertips.
+
+<h3>Check for updates and installed models 🔄</h3>
+
+* Easily spot new updates and identify already installed models while browsing.
+
+<h3>Download any Model, any version, and any file 📥</h3>
+
+* Get the specific model version and file you need hassle-free.
+
+<h3>Automatically assign tags to installed models 🏷️</h3>
+
+* Effortlessly organize your models by scanning and assigning available tags for automatic use in image generation.
+
+<h3>High-speed downloads with Aria2 🚄</h3>
+
+* Maximize your bandwidth for lightning-fast downloads.
+
+<h3>Actively maintained with feature requests welcome 🛠️</h3>
+
+* Feel free to send me your feature requests, and I'll do my best to implement them!
+
 <details>
-<summary><h1>Known Issues</h1></summary>
+<summary><h1>Known Issues 🐛</h1></summary>
 
 <details>
 <summary><h3>Unable to download / Frozen download</h3></summary>
@@ -34,14 +59,14 @@ These settings can be found under the "Settings" tab in Web-UI and then under th
 
 ---
 
-# Preview
+# Preview 👀
 
 https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8-907a-e9bddf13bc55
 
 
 (Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
 
-# Changelog
+# Changelog 📋
 
 <h3>v1.10</h3>
 
