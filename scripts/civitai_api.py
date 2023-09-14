@@ -372,7 +372,7 @@ def update_model_versions(model_name, content_type):
             for d in dirs:
                 sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                 if sub_folder:
-                    sub_folders.append(f'\{sub_folder}')
+                    sub_folders.append(f'{os.sep}{sub_folder}')
         folder_location = model_folder
         if gl.json_data != None and gl.json_data != "timeout":
             for item in gl.json_data['items']:
