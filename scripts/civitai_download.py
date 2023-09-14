@@ -51,8 +51,6 @@ def start_aria2_rpc(aria2c):
 aria2path = Path(__file__).resolve().parents[1] / "aria2"
 os_type = platform.system()
 
-
-
 if os_type == 'Windows':
     aria2 = os.path.join(aria2path, 'win\\aria2c.exe')
 elif os_type == 'Linux':
@@ -61,8 +59,6 @@ elif os_type == 'Linux':
     os.chmod(aria2, st.st_mode | stat.S_IEXEC)
 elif os_type == 'Darwin':
     aria2 = os.path.join(aria2path, 'mac/aria2c')
-    
-print(f"path: {aria2}")
     
 start_aria2_rpc(aria2)
 

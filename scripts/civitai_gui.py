@@ -28,8 +28,8 @@ def insert_sub(model_name, version_name, content_type):
     sub_folders.remove("None")
     sub_folders = sorted(sub_folders)
     sub_folders.insert(0, "None")
-    sub_folders.insert(1, (f'\\{model_name}'))
-    sub_folders.insert(2, (f'\\{model_name}\\{version}'))
+    sub_folders.insert(1, os.path.join(os.sep, model_name))
+    sub_folders.insert(2, os.path.join(os.sep, model_name, version))
     
     list = set()
     sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
