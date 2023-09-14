@@ -23,7 +23,7 @@ def insert_sub(model_name, version_name, content_type):
             for d in dirs:
                 sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                 if sub_folder:
-                    sub_folders.append(f'\\{sub_folder}')
+                    sub_folders.append(f'{os.sep}{sub_folder}')
     
     sub_folders.remove("None")
     sub_folders = sorted(sub_folders)
