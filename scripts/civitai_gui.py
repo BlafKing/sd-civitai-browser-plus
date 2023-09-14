@@ -300,6 +300,7 @@ def on_ui_tabs():
         cancel_model.click(
             fn=_download.download_cancel,
             inputs=[
+                delete_finish,
                 content_type,
                 list_models,
                 list_versions,
