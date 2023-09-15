@@ -70,6 +70,13 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.10.1</h3>
+
+* Fixed pathing for Unix systems
+* Added extra check to make sure only the selected model gets deleted when pressing delete.
+* Models get moved to trash instead of fully deleted.
+* Added extra Aria2 RPC startup check for Windows Linux sub-systems
+---
 <h3>v1.10</h3>
 
 * Added new feature which can update Tags for all installed models!
