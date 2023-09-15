@@ -14,7 +14,7 @@ from modules.shared import opts
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
-
+start = False
 gl.init()
 
 def rpc_running():
@@ -44,7 +44,6 @@ def start_aria2_rpc(aria2c):
                 subprocess.Popen(cmd, shell=True)
             else:
                 subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            print("Aria2 RPC server started")
         except Exception as e:
             print(f"Failed to start Aria2 RPC server: {e}")
 
@@ -52,15 +51,21 @@ aria2path = Path(__file__).resolve().parents[1] / "aria2"
 os_type = platform.system()
 
 if os_type == 'Windows':
-    aria2 = os.path.join(aria2path, 'win\\aria2c.exe')
+    aria2 = os.path.join(aria2path, 'win', 'aria2c.exe')
 elif os_type == 'Linux':
-    aria2 = os.path.join(aria2path, 'lin/aria2c')
+    aria2 = os.path.join(aria2path, 'lin', 'aria2c')
     st = os.stat(aria2)
     os.chmod(aria2, st.st_mode | stat.S_IEXEC)
 elif os_type == 'Darwin':
-    aria2 = os.path.join(aria2path, 'mac/aria2c')
-    
+    aria2 = os.path.join(aria2path, 'mac', 'aria2c')
+
 start_aria2_rpc(aria2)
+
+if not rpc_running():
+    aria2 = os.path.join(aria2path, 'lin', 'aria2c')
+    st = os.stat(aria2)
+    os.chmod(aria2, st.st_mode | stat.S_IEXEC)
+    start_aria2_rpc(aria2)
 
 class TimeOutFunction(Exception):
     pass

@@ -14,10 +14,15 @@ import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 import scripts.civitai_download as _download
+try:
+    from send2trash import send2trash
+except:
+    print("Civit AI: Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
 def delete_model(delete_finish, content_type, model_filename, model_name, list_versions):
+    max_delete = 3
     gr_components = _api.update_model_versions(model_name, content_type)
     
     (model_name, ver_value, ver_choices) = _file.card_update(gr_components, model_name, list_versions, False)
@@ -25,15 +30,20 @@ def delete_model(delete_finish, content_type, model_filename, model_name, list_v
     model_folder = os.path.join(_api.contenttype_folder(content_type))
     path_file = None
     base_name = os.path.splitext(model_filename)[0]
-    
+
     for root, dirs, files in os.walk(model_folder):
         for file in files:
             file_base_name = os.path.splitext(file)[0]
-            if base_name in file_base_name:
+            if base_name == file_base_name or f"{base_name}.preview" == file_base_name:
                 path_file = os.path.join(root, file)
-                os.remove(path_file)
-                print(f"Removed: {path_file}")
-
+                if os.path.isfile(path_file):
+                    try:
+                        send2trash(path_file)
+                        print(f"Model moved to trash: {path_file}")
+                    except:
+                        os.remove(path_file)
+                        print(f"Model deleted: {path_file}")
+            
     number = _download.random_number(delete_finish)
     
     return (
