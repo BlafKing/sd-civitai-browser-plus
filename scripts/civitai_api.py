@@ -26,19 +26,20 @@ def git_tag():
 
 ver = git_tag()
 
-def update_dl_url(trained_tags, model_id, model_name=None, model_version=None):    
+def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=None):    
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
-        
-    dl_url = None
-    for item in gl.json_data['items']:
-        if item['name'] == model_name:
-            for model in item['modelVersions']:
-                if model['name'] == model_version:
-                    for file in model['files']:
-                        if int(file['id']) == int(model_id):
-                            dl_url = file['downloadUrl']
-                            gl.json_info = model
+    
+    if model_id:
+        dl_url = None
+        for item in gl.json_data['items']:
+            if item['name'] == model_name:
+                for model in item['modelVersions']:
+                    if model['name'] == model_version:
+                        for file in model['files']:
+                            if int(file['id']) == int(model_id):
+                                dl_url = file['downloadUrl']
+                                gl.json_info = model
                                 
         return  (
                 gr.Textbox.update(value=dl_url), # Download URL
