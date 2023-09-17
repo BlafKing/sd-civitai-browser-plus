@@ -1,5 +1,5 @@
 def init():
-    global last_version, current_download, cancel_status, recent_model, json_data, json_info, main_folder, previous_search_term, previous_tile_count, previous_inputs, download_fail, sortNewest, contentChange, inputs_changed, isDownloading, pageChange, tile_count, old_download, save_tags
+    global last_version, current_download, cancel_status, recent_model, json_data, json_info, main_folder, previous_search_term, previous_tile_count, previous_inputs, download_fail, sortNewest, contentChange, inputs_changed, isDownloading, pageChange, tile_count, old_download, save_tags, ver_json
     cancel_status = None
     recent_model = None
     json_data = None
@@ -10,6 +10,7 @@ def init():
     previous_inputs = None
     last_version = None
     current_download = None
+    ver_json = None
     
     save_tags = False
     download_fail = False

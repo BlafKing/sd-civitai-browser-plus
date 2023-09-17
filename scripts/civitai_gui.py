@@ -15,7 +15,7 @@ def insert_sub(model_name, version_name, content_type):
     try:
         version = version_name.replace(" [Installed]", "")
     except:
-        pass
+        version = version_name
     
     if model_name is not None and content_type is not None:
         model_folder = os.path.join(_api.contenttype_folder(content_type))
@@ -43,8 +43,6 @@ def on_ui_tabs():
     for root, dirs, files in os.walk(base_path):
         for dir_name in fnmatch.filter(dirs, '*lobe*'):
             lobe_directory = os.path.join(root, dir_name)
-            break
-        if lobe_directory:
             break
 
     component_id = "lobe_toggles" if lobe_directory else "toggles"
@@ -78,7 +76,7 @@ def on_ui_tabs():
                     tile_slider = gr.Slider(label="Tile count:", min=5, max=50, value=15, step=1, max_width=100)
             with gr.Row():
                 with gr.Column(scale=5):
-                    refresh = gr.Button(label="Refresh", value="Refresh")
+                    refresh = gr.Button(label="Refresh", value="Refresh", elem_id="refreshBtn")
                 with gr.Column(scale=3,min_width=80):
                     get_prev_page = gr.Button(value="Prev Page", interactive=False)
                 with gr.Column(scale=3,min_width=80):
@@ -113,25 +111,34 @@ def on_ui_tabs():
                 delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
             with gr.Row():
                 preview_html = gr.HTML()
+        with gr.Tab("Update Models"):
             with gr.Row():
-                #Invisible triggers/variables
-                model_id = gr.Textbox(label='Model ID:', value=None, visible=False)
-                dl_url = gr.Textbox(label='DL URL:', value=None, visible=False)
-                event_text = gr.Textbox(elem_id="eventtext1", visible=False)
-                download_start = gr.Textbox(value=None, visible=False)
-                download_finish = gr.Textbox(value=None, visible=False)
-                tag_start = gr.Textbox(value=None, visible=False)
-                tag_finish = gr.Textbox(value=None, visible=False)
-                delete_finish = gr.Textbox(value=None, visible=False)
-                current_model = gr.Textbox(value=None, visible=False)
-        with gr.Tab("Update All Tags"):
+                selected_tags = gr.Radio(elem_id="selected_tags", label="Scan for:", choices=["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"])
             with gr.Row():
-                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Update tags for:", choices=["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"])
+                save_all_tags = gr.Button(value="Update assigned tags", interactive=True, visible=True)
+                cancel_all_tags = gr.Button(value="Cancel updating tags", interactive=False, visible=False)
             with gr.Row():
-                save_tags = gr.Button(value="Update Selected Tags", interactive=True, visible=True)
-                cancel_tags = gr.Button(value="Cancel Updating Tags", interactive=False, visible=False)
+                tag_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
             with gr.Row():
-                tag_progress = gr.HTML(value='<div style="min-height: 0px;"></div>', elem_id="DownloadProgress")
+                ver_search = gr.Button(value="Scan for available updates", interactive=True, visible=True)
+                cancel_ver_search = gr.Button(value="Cancel updates scan", interactive=False, visible=False)
+                load_to_browser = gr.Button(value="Load outdated models to browser", interactive=False, visible=False)
+            with gr.Row():
+                version_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
+                
+        #Invisible triggers/variables
+        model_id = gr.Textbox(value=None, visible=False)
+        dl_url = gr.Textbox(value=None, visible=False)
+        event_text = gr.Textbox(elem_id="eventtext1", visible=False)
+        download_start = gr.Textbox(value=None, visible=False)
+        download_finish = gr.Textbox(value=None, visible=False)
+        tag_start = gr.Textbox(value=None, visible=False)
+        tag_finish = gr.Textbox(value=None, visible=False)
+        ver_start = gr.Textbox(value=None, visible=False)
+        ver_finish = gr.Textbox(value=None, visible=False)
+        delete_finish = gr.Textbox(value=None, visible=False)
+        current_model = gr.Textbox(value=None, visible=False)
+        
         def changeInput():
             gl.contentChange = True
             
@@ -169,20 +176,79 @@ def on_ui_tabs():
             inputs=[sub_folder],
             outputs=[install_path]
         )
-                
-        save_tags.click(
+        
+        ver_search.click(
+            fn=_file.start_ver_search,
+            inputs=[ver_start],
+            outputs=[
+                ver_start,
+                ver_search,
+                cancel_ver_search,
+                version_progress
+                ]
+        )
+        
+        ver_start.change(
+            fn=_file.new_ver_search,
+            inputs=[
+                selected_tags,
+                ver_finish
+                ],
+            outputs=[
+                version_progress,
+                ver_finish
+                ]
+        )
+        
+        ver_finish.change(
+            fn=_file.finish_ver_search,
+            outputs=[
+                ver_search,
+                cancel_ver_search,
+                load_to_browser
+            ]
+        )
+        
+        load_to_browser.click(
+            fn=_file.load_to_browser,
+            outputs=[
+                ver_search,
+                cancel_ver_search,
+                load_to_browser,
+                list_models,
+                list_versions,
+                list_html,
+                get_prev_page,
+                get_next_page,
+                pages,
+                save_tags,
+                save_images,
+                download_model,
+                install_path,
+                sub_folder,
+                file_list,
+                content_type,
+                version_progress
+            ]
+        )
+        
+        cancel_ver_search.click(
+            fn=_file.cancel_scan
+        )
+        
+        save_all_tags.click(
             fn=_file.save_tag_start,
             inputs=[tag_start],
             outputs=[
                 tag_start,
-                save_tags,
-                cancel_tags,
+                save_all_tags,
+                cancel_all_tags,
                 tag_progress
             ]
         )
         
         tag_start.change(
-            fn=_file.save_all_tags,
+            fn=_file.save_tags_for_files,
             inputs=[selected_tags, tag_finish],
             outputs=[
                 tag_progress,
@@ -193,13 +259,13 @@ def on_ui_tabs():
         tag_finish.change(
             fn=_file.save_tag_finish,
             outputs=[
-                save_tags,
-                cancel_tags
+                save_all_tags,
+                cancel_all_tags
             ]
         )
         
-        cancel_tags.click(
-            fn=_file.cancel_tag
+        cancel_all_tags.click(
+            fn=_file.cancel_scan
         )
         
         download_finish.change(
@@ -412,7 +478,7 @@ def on_ui_tabs():
             ]
         )
         
-        file_list.change(
+        file_list.input(
             fn=_api.update_file_info,
             inputs=[
                 list_models,
@@ -429,9 +495,9 @@ def on_ui_tabs():
             fn=_api.update_dl_url,
             inputs=[
                 trained_tags,
+                model_id,
                 list_models,
-                list_versions,
-                model_id
+                list_versions
                 ],
             outputs=[
                 dl_url,
@@ -524,8 +590,8 @@ def on_ui_tabs():
             (ret_versions, install_path, sub_folder) = _api.update_model_versions(model_name, content_type)
             (html, tags, _, DwnButton, _, filelist) = _api.update_model_info(model_name,ret_versions['value'])
             (filename, id) = _api.update_file_info(model_name, ret_versions['value'], filelist['value'])
-            (dl_url, _, _, _) = _api.update_dl_url(tags, model_name, ret_versions['value'], id['value'])
-            return  gr.Dropdown.update(value=model_name),ret_versions ,html,dl_url['value'],tags,filename,install_path['value'],sub_folder, DwnButton, filelist, id
+            (dl_url, _, _, _) = _api.update_dl_url(tags, id['value'], model_name, ret_versions['value'])
+            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url['value'],tags,filename,install_path['value'],sub_folder, DwnButton, filelist, id
         
         event_text.change(
             fn=update_models_dropdown,

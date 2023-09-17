@@ -14,7 +14,8 @@ from modules.shared import opts
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
-start = False
+import scripts.civitai_download as _download
+
 gl.init()
 
 def rpc_running():
@@ -35,15 +36,14 @@ def rpc_running():
 def start_aria2_rpc(aria2c):
     if not rpc_running():
         try:
-            try:
-                show_log = getattr(opts, "show_log", False)
-            except:
-                show_log = False
-            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" "'
-            if show_log:
-                subprocess.Popen(cmd, shell=True)
-            else:
-                subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            show_log = getattr(opts, "show_log", False)
+            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" " --file-allocation=none'
+            subprocess_args = {'shell': True}
+            if not show_log:
+                subprocess_args.update({'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL})
+                
+            subprocess.Popen(cmd, **subprocess_args)
+            print("Aria2 RPC started")
         except Exception as e:
             print(f"Failed to start Aria2 RPC server: {e}")
 
@@ -60,12 +60,6 @@ elif os_type == 'Darwin':
     aria2 = os.path.join(aria2path, 'mac', 'aria2c')
 
 start_aria2_rpc(aria2)
-
-if not rpc_running():
-    aria2 = os.path.join(aria2path, 'lin', 'aria2c')
-    st = os.stat(aria2)
-    os.chmod(aria2, st.st_mode | stat.S_IEXEC)
-    start_aria2_rpc(aria2)
 
 class TimeOutFunction(Exception):
     pass
@@ -141,7 +135,7 @@ def convert_size(size):
         size /= 1024
     return f"{size:.2f} GB"
 
-def download_file(url, file_path, install_path, progress=gr.Progress()):
+def download_file(url, file_path, install_path, model_name, model_version, progress=gr.Progress()):
     disable_dns = getattr(opts, "disable_dns", False)
     split_aria2 = getattr(opts, "split_aria2", 64)
     
@@ -222,6 +216,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
             
             if status_info['status'] == 'complete':
                 progress(1, desc=f"Model saved to: {file_path}")
+                sha256_to_json(model_name, model_version, file_path)
                 time.sleep(2)
                 gl.download_fail = False
                 return
@@ -238,7 +233,35 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
                 return
             time.sleep(5)
 
-def download_file_old(url, file_path, progress=gr.Progress()):
+def sha256_to_json(model_name, model_version, install_path):
+    for item in gl.json_data['items']:
+            if item['name'] == model_name:
+                modelId = item['id']
+                for model in item['modelVersions']:
+                    if model['name'] == model_version:
+                        for file in model['files']:
+                            hashes = file.get('hashes', {})
+                            sha256 = hashes.get('SHA256', 'None')
+    
+    json_file = os.path.splitext(install_path)[0] + ".json"
+    if os.path.exists(json_file):
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+
+        if 'modelId' not in data:
+            data['modelId'] = modelId
+        
+        if 'sha256' not in data:
+            data['sha256'] = sha256
+            
+        with open(json_file, 'w') as f:
+            json.dump(data, f, indent=4)
+    else:
+        data = {'sha256': sha256, 'modelId': modelId}
+        with open(json_file, 'w') as f:
+            json.dump(data, f, indent=4)
+
+def download_file_old(url, file_path, model_name, model_version, progress=gr.Progress()):
     gl.download_fail = False
     max_retries = 5
     if os.path.exists(file_path):
@@ -246,7 +269,7 @@ def download_file_old(url, file_path, progress=gr.Progress()):
     downloaded_size = 0
     tokens = re.split(re.escape('\\'), file_path)
     file_name_display = tokens[-1]
-    start_time = time.time()  # Record start time
+    start_time = time.time()
     while True:
         if gl.cancel_status:
             progress(0, desc=f"Download cancelled.")
@@ -327,6 +350,7 @@ def download_file_old(url, file_path, progress=gr.Progress()):
             if not gl.cancel_status:
                 print(f"Model saved to: {file_path}")
                 progress(1, desc=f"Model saved to: {file_path}")
+                sha256_to_json(model_name, model_version, file_path)
                 time.sleep(2)
                 gl.download_fail = False
                 return
@@ -361,11 +385,11 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
     path_to_new_file = os.path.join(install_path, file_name)
     
     if use_aria2:
-        thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
+        thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, model_name, list_versions, progress))
         thread.start()
         thread.join()
     else:
-        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, progress))
+        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, model_name, list_versions, progress))
         thread.start()
         thread.join()
     

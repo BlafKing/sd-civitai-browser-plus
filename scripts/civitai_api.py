@@ -14,6 +14,7 @@ from modules.paths import models_path
 from html import escape 
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
+import time
 
 gl.init()
 
@@ -25,36 +26,38 @@ def git_tag():
 
 ver = git_tag()
 
-def update_dl_url(trained_tags, model_name=None, model_version=None, model_id=None):
-    if model_version:
+def update_dl_url(trained_tags, model_id, model_name=None, model_version=None):    
+    if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
-    
-    if model_id:
-        dl_url = None
-        for item in gl.json_data['items']:
-            if item['name'] == model_name:
-                for model in item['modelVersions']:
-                    if model['name'] == model_version:
-                        for file in model['files']:
-                            if int(file['id']) == int(model_id):
-                                dl_url = file['downloadUrl']
-                                gl.json_info = model
+        
+    dl_url = None
+    for item in gl.json_data['items']:
+        if item['name'] == model_name:
+            for model in item['modelVersions']:
+                if model['name'] == model_version:
+                    for file in model['files']:
+                        if int(file['id']) == int(model_id):
+                            dl_url = file['downloadUrl']
+                            gl.json_info = model
                                 
         return  (
                 gr.Textbox.update(value=dl_url), # Download URL
                 gr.Button.update(interactive=True if trained_tags else False), # Save Tags Button
-                gr.Button.update(interactive=True if model_id else False), # Save Images Button
-                gr.Button.update(interactive=True if model_id else False) # Download Button
+                gr.Button.update(interactive=True if model_version else False), # Save Images Button
+                gr.Button.update(interactive=True if model_version else False) # Download Button
         )
     else:
         return  (
                 gr.Textbox.update(value=None), # Download URL
                 gr.Button.update(interactive=True if trained_tags else False), # Save Tags Button
-                gr.Button.update(interactive=True if model_id else False), # Save Images Button
-                gr.Button.update(interactive=True if model_id else False) # Download Button
+                gr.Button.update(interactive=True if model_version else False), # Save Images Button
+                gr.Button.update(interactive=True if model_version else False) # Download Button
         )
 
 def contenttype_folder(content_type):
+    if content_type == "modelFolder":
+        folder = os.path.join(models_path)
+    
     if content_type == "Checkpoint":
         if cmd_opts.ckpt_dir:
             folder = cmd_opts.ckpt_dir
@@ -162,13 +165,15 @@ def model_list_html(json_data, model_dict, content_type):
                 nsfw = ""
                 installstatus = ""
                 baseModel = ""
-                latest_version_installed = False
-                model_folder = os.path.join(contenttype_folder(content_type))
                 
                 if 'baseModel' in item['modelVersions'][0]:
                     baseModel = item['modelVersions'][0]['baseModel']
+                else:
+                    baseModel = "Not Found"
                 if 'updatedAt' in item['modelVersions'][0]:
                     date = item['modelVersions'][0]['updatedAt'].split('T')[0]
+                else:
+                    date = "Not Found"
                 
                 if gl.sortNewest:
                     if date not in sorted_models:
@@ -182,27 +187,20 @@ def model_list_html(json_data, model_dict, content_type):
                     else:
                         imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
                     
+                    model_folder = os.path.join(contenttype_folder(content_type))
                     existing_files = []
                     for root, dirs, files in os.walk(model_folder):
                         for file in files:
                             existing_files.append(file)
                     
                     for version in reversed(item['modelVersions']):
-                        file_found = False
                         for file in version.get('files', []):
                             file_name = file['name']
                             if file_name in existing_files:
-                                file_found = True
                                 if version == item['modelVersions'][0]:
-                                    latest_version_installed = True
-                                    break
-                                elif not latest_version_installed:
+                                    installstatus = "civmodelcardinstalled"
+                                else:
                                     installstatus = "civmodelcardoutdated"
-                        
-                        if file_found and latest_version_installed:
-                            installstatus = "civmodelcardinstalled"
-                            break
-                
                 model_card = f'<figure class="civmodelcard {nsfw} {installstatus}" base-model="{baseModel}" date="{date}" onclick="select_model(\'{model_name}\')">' \
                             + imgtag \
                             + f'<figcaption>{item["name"]}</figcaption></figure>'
@@ -305,45 +303,57 @@ def pagecontrol(json_data):
         hasNext = True
     if 'prevPage' in json_data['metadata']:
         hasPrev = True
-    return hasPrev,hasNext,pages_ctrl
+    return hasPrev, hasNext, pages_ctrl
 
-def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, page_count, timeOut=None, isNext=None):
-    if gl.pageChange == False:
-    
-        current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, gl.tile_count)
+def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, page_count, from_ver=False, timeOut=None, isNext=None):
+    if not from_ver:
+        gl.ver_json = None
+        if not gl.pageChange:
         
-        if gl.previous_inputs and current_inputs != gl.previous_inputs:
-            gl.inputs_changed = True
-        else:
-            gl.inputs_changed = False
+            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, gl.tile_count)
+            
+            if gl.previous_inputs and current_inputs != gl.previous_inputs:
+                gl.inputs_changed = True
+            else:
+                gl.inputs_changed = False
+            
+            gl.previous_inputs = current_inputs
         
-        gl.previous_inputs = current_inputs
+        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, page_count, search_term, timeOut, isNext)
+        if gl.json_data == "timeout":
+            HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
+            page_value = page_count.split('/')[0]
+            hasPrev = page_value not in [0, 1]
+            hasNext = page_value == 1 or hasPrev
+            model_dict = {}
+            pages=page_count
+        
+        if gl.json_data is None:
+            return
+        
+        if gl.pageChange:
+            gl.pageChange = False
+        
+        if gl.json_data != None and gl.json_data != "timeout":
+            gl.json_data['allownsfw'] = show_nsfw
+            (hasPrev, hasNext, pages) = pagecontrol(gl.json_data)
+            model_dict = {}
+            for item in gl.json_data['items']:
+                model_dict[item['name']] = item['name']
+            
+            HTML = model_list_html(gl.json_data, model_dict, content_type)
+        
+        gl.contentChange = False
     
-    gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, page_count, search_term, timeOut, isNext)
-    if gl.json_data == "timeout":
-        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
-        page_value = page_count.split('/')[0]
-        hasPrev = page_value not in [0, 1]
-        hasNext = page_value == 1 or hasPrev
+    else:
+        hasPrev = False
+        hasNext = False
+        pages = ""
         model_dict = {}
-        pages=page_count
-    
-    if gl.json_data is None:
-        return
-    
-    if gl.pageChange:
-        gl.pageChange = False
-    
-    if gl.json_data != None and gl.json_data != "timeout":
-        gl.json_data['allownsfw'] = show_nsfw
-        (hasPrev, hasNext, pages) = pagecontrol(gl.json_data)
-        model_dict = {}
-        for item in gl.json_data['items']:
+        for item in gl.ver_json['items']:
             model_dict[item['name']] = item['name']
-        
-        HTML = model_list_html(gl.json_data, model_dict, content_type)
-    
-    gl.contentChange = False
+        HTML = model_list_html(gl.ver_json, model_dict, content_type)
+        gl.json_data = gl.ver_json
     
     return  (
             gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value="", interactive=True), # Model List
@@ -507,19 +517,13 @@ def update_file_info(model_name, model_version, file_metadata):
                 for model in item['modelVersions']:
                     if model['name'] == model_version:
                         for file in model['files']:
-                            metadata = file.get('metadata', {})
-                            file_size = metadata.get('size', 'Unknown')
-                            file_format = metadata.get('format', 'Unknown')
-                            file_fp = metadata.get('fp', 'Unknown')
                             file_id = file.get('id', 'Unknown')
-                            sizeKB = file.get('sizeKB', 0) * 1024
-                            filesize = _download.convert_size(sizeKB)
-                            
-                            if f"{file_size} {file_format} {file_fp} ({filesize})" == file_metadata:
-                                return  (
-                                        gr.Textbox.update(value=file['name']),  # Update model_filename Textbox
-                                        gr.Textbox.update(value=file_id)  # Update ID Textbox
-                                )
+
+                            return  (
+                                    gr.Textbox.update(value=file['name']),  # Update model_filename Textbox
+                                    gr.Textbox.update(value=file_id)  # Update ID Textbox
+                            )
+    
     return  (
             gr.Textbox.update(value=None),  # Update model_filename Textbox
             gr.Textbox.update(value=None)  # Update ID Textbox

@@ -22,19 +22,18 @@ except:
 gl.init()
 
 def delete_model(delete_finish, content_type, model_filename, model_name, list_versions):
-    max_delete = 3
     gr_components = _api.update_model_versions(model_name, content_type)
     
     (model_name, ver_value, ver_choices) = _file.card_update(gr_components, model_name, list_versions, False)
     
     model_folder = os.path.join(_api.contenttype_folder(content_type))
     path_file = None
-    base_name = os.path.splitext(model_filename)[0]
+    file_to_delete = os.path.splitext(model_filename)[0]
 
     for root, dirs, files in os.walk(model_folder):
         for file in files:
-            file_base_name = os.path.splitext(file)[0]
-            if base_name == file_base_name or f"{base_name}.preview" == file_base_name:
+            current_file = os.path.splitext(file)[0]
+            if file_to_delete == current_file or f"{file_to_delete}.preview" == current_file:
                 path_file = os.path.join(root, file)
                 if os.path.isfile(path_file):
                     try:
@@ -176,24 +175,32 @@ def card_update(gr_components, model_name, list_versions, is_install):
     
     return model_name, version_value_clean, version_choices_clean
 
-def list_files(folders):
+def list_files(folder):
     model_files = []
     
     extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
     
-    for folder in folders:
-        if folder and os.path.exists(folder):
-            for root, _, files in os.walk(folder):
-                for file in files:
-                    _, file_extension = os.path.splitext(file)
-                    if file_extension.lower() in extensions:
-                        model_files.append(os.path.join(root, file))
+    if folder and os.path.exists(folder):
+        for root, _, files in os.walk(folder):
+            for file in files:
+                _, file_extension = os.path.splitext(file)
+                if file_extension.lower() in extensions:
+                    model_files.append(os.path.join(root, file))
 
     model_files = sorted(list(set(model_files)))
     return model_files
 
 def gen_sha256(file_path):
+    json_file = os.path.splitext(file_path)[0] + ".json"
     
+    if os.path.exists(json_file):
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+    
+        if 'sha256' in data:
+            hash_value = data['sha256']
+            return hash_value
+        
     def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         while True:
             chunk = file.read(size)
@@ -210,15 +217,30 @@ def gen_sha256(file_path):
             h.update(block)
 
     hash_value = h.hexdigest()
+    
+    if os.path.exists(json_file):
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+ 
+        if 'sha256' not in data:
+            data['sha256'] = hash_value
+            
+        with open(json_file, 'w') as f:
+            json.dump(data, f, indent=4)
+    else:
+        data = {'sha256': hash_value}
+        with open(json_file, 'w') as f:
+            json.dump(data, f, indent=4)
+    
     return hash_value
 
-def save_all_json(file_path):
+def save_all_tags(file_path):
     model_hash = gen_sha256(file_path)
 
     api_url = f"https://civitai.com/api/v1/model-versions/by-hash/{model_hash}"
     
     try:
-        response = requests.get(api_url, timeout=20)
+        response = requests.get(api_url, timeout=40)
         
         if response.status_code == 200:
             data = response.json()
@@ -252,7 +274,7 @@ def save_all_json(file_path):
                 with open(json_file, 'w') as f:
                     json.dump(content, f)
 
-            print(f"Tags saved as JSON in {json_file}")
+            print(f"Tags saved in {json_file}")
         else:
             print(f"Failed to fetch tags for {file_path}")
     
@@ -261,27 +283,23 @@ def save_all_json(file_path):
     except Exception as e:
         print(f"An error occurred for {file_path}: {str(e)}")
         
-def save_all_tags(items, tag_finish, progress=gr.Progress()):
+def save_tags_for_files(folder, tag_finish, progress=gr.Progress()):
     gl.save_tags = True
     number = _download.random_number(tag_finish)
-    if not items:
+    if not folder:
         progress(0, desc=f"No folder selected.")
         time.sleep(2)
         return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                 gr.Textbox.update(value=number))
     
-    folders_to_check = []
-    for item in items:
-        folder = _api.contenttype_folder(item)
-        if folder:
-            folders_to_check.append(folder)
+
+    folder = _api.contenttype_folder(folder)
 
     total_files = 0
     files_done = 0
 
-    for folder in folders_to_check:
-        files = list_files([folder])
-        total_files += len(files)
+    files = list_files(folder)
+    total_files += len(files)
 
     if total_files == 0:
         progress(1, desc=f"No files in selected folder.")
@@ -290,20 +308,19 @@ def save_all_tags(items, tag_finish, progress=gr.Progress()):
         return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                         gr.Textbox.update(value=number))
         
-    for folder in folders_to_check:
-        files = list_files([folder])
-        for file_path in files:
-            if gl.cancel_status:
-                progress(files_done / total_files, desc=f"Saving tags cancelled.")
-                time.sleep(2)
-                gl.save_tags = False
-                
-                return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
-                        gr.Textbox.update(value=number))
-            file_name = os.path.basename(file_path)
-            progress(files_done / total_files, desc=f"Processing file: {file_name}")
-            save_all_json(file_path)
-            files_done += 1
+    for file_path in files:
+        if gl.cancel_status:
+            progress(files_done / total_files, desc=f"Saving tags cancelled.")
+            time.sleep(2)
+            gl.save_tags = False
+            
+            return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                    gr.Textbox.update(value=number))
+            
+        file_name = os.path.basename(file_path)
+        progress(files_done / total_files, desc=f"Processing file: {file_name}")
+        save_all_tags(file_path)
+        files_done += 1
 
     progress(1, desc=f"All files are processed!")
     time.sleep(2)
@@ -326,11 +343,193 @@ def save_tag_finish():
         gr.Button.update(interactive=False, visible=False)
     )
 
-def cancel_tag():
+ver_check = False
+no_update = False
+
+def get_models(file_path):
+    modelId = None
+    json_file = os.path.splitext(file_path)[0] + ".json"
+    
+    if os.path.exists(json_file):
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+            
+            if 'modelId' in data:
+                modelId = data['modelId']
+    
+    if not modelId:
+        model_hash = gen_sha256(file_path)
+        by_hash = f"https://civitai.com/api/v1/model-versions/by-hash/{model_hash}"
+    
+    try:
+        if not modelId:
+            response = requests.get(by_hash, timeout=40)
+            if response.status_code == 200:
+                data = response.json()
+                modelId = data.get("modelId", "")
+                if os.path.exists(json_file):
+                    with open(json_file, 'r') as f:
+                        data = json.load(f)
+
+                    if 'modelId' not in data:
+                        data['modelId'] = modelId
+                        
+                    with open(json_file, 'w') as f:
+                        json.dump(data, f, indent=4)
+                else:
+                    data = {'modelId': modelId}
+                    with open(json_file, 'w') as f:
+                        json.dump(data, f, indent=4)
+        
+        byModelId = f"https://civitai.com/api/v1/models/{modelId}"
+            
+        response = requests.get(byModelId, timeout=40)
+        try:
+            if response.status_code == 200:
+                data = response.json()
+                return data
+        except requests.exceptions.Timeout:
+            print(f"Request timed out for {file_path}. Skipping...")
+        except Exception as e:
+            print(f"An error occurred for {file_path}: {str(e)}")
+    except requests.exceptions.Timeout:
+        print(f"Request timed out for {file_path}. Skipping...")
+    except Exception as e:
+        print(f"An error occurred for {file_path}: {str(e)}")
+        
+def version_match(file_path, model_data):
+    file = os.path.basename(file_path)
+    file_name = os.path.splitext(file)[0]
+    
+    if "modelVersions" in model_data:
+        model_versions = model_data.get("modelVersions", [])
+        if model_versions:
+            for model_version in model_versions:
+                files = model_version.get("files", [])
+                if files:
+                    for file_entry in files:
+                        name = file_entry.get("name", "")
+                        entry_name = os.path.splitext(name)[0]
+                        if entry_name == file_name:
+                            if model_versions.index(model_version) == 0:
+                                return True
+                            else:
+                                return False
+    return None
+
+def new_ver_search(folder, ver_finish, progress=gr.Progress()):
+    number = _download.random_number(ver_finish)
+    global no_update, ver_check, type_folder
+    type_folder = folder
+    ver_check = True
+    no_update = False
+    
+    if not folder:
+        progress(0, desc=f"No folder selected.")
+        no_update = True
+        ver_check = False
+        time.sleep(2)
+        return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                gr.Textbox.update(value=number))
+    
+    folder = _api.contenttype_folder(folder)
+    
+    total_files = 0
+    files_done = 0
+
+    files = list_files(folder)
+    total_files += len(files)
+    
+    if total_files == 0:
+        progress(1, desc=f"No files in selected folder.")
+        no_update = True
+        ver_check = False
+        time.sleep(2)
+        return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                        gr.Textbox.update(value=number))
+    
+    updated_models = []
+    outdated_models = []
+    
+    for file_path in files:
+        if gl.cancel_status:
+            progress(files_done / total_files, desc=f"Saving tags cancelled.")
+            no_update = True
+            ver_check = False
+            time.sleep(2)
+            return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                    gr.Textbox.update(value=number))
+        file_name = os.path.basename(file_path)
+        progress(files_done / total_files, desc=f"Processing file: {file_name}")
+        model_data = get_models(file_path)
+        if model_data:
+            match = version_match(file_path, model_data)
+            if match == None:
+                print(f'"{file_name}" Is not found')
+            if match == True:
+                updated_models.append(model_data)
+                print(f'"{file_name}" Is currently the latest version')
+            if match == False:
+                outdated_models.append(model_data)
+                print(f'"{file_name}" Has an available update!')
+        files_done += 1
+    
+    outdated_models = [model for model in outdated_models if model not in updated_models]
+    seen_ids = set()
+    outdated_models = [model for model in outdated_models if model.get("id") not in seen_ids and not seen_ids.add(model.get("id"))]
+
+    
+    if len(outdated_models) == 0:
+        no_update = True
+        ver_check = False
+        return  (
+                gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">All selected models have no available updates!</div>'),
+                gr.Textbox.update(value=number)
+            )
+    
+    items_dict = {'items': outdated_models}
+    combined_json = json.dumps(items_dict)
+    gl.ver_json = json.loads(combined_json)
+    ver_check = False
+    return  (
+            gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Outdated models have been found!<br>Please press the button above to load the models into the browser tab</div>'),
+            gr.Textbox.update(value=number)
+        )
+
+def start_ver_search(ver_start):
+    number = _download.random_number(ver_start)
+    return (
+        gr.Textbox.update(value=number),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=True, visible=True),
+        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
+    )
+
+def finish_ver_search():
+    return (
+        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True),
+    )
+
+def load_to_browser():
+    
+    (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl) = _api.update_model_list(type_folder, None, None, None, None, None, None, True)
+    
+    return (
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=False, visible=False),
+        lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,
+        gr.Dropdown.update(value=type_folder),
+        gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Outdated models loaded into the browser!</div>')
+    )
+    
+def cancel_scan():
     gl.cancel_status = True
     
     while True:
-        if not gl.save_tags:
+        if not ver_check and not gl.save_tags:
             gl.cancel_status = False
             return
         else:

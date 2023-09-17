@@ -15,6 +15,7 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 <h3>Check for updates and installed models 🔄</h3>
 
 * Easily spot new updates and identify already installed models while browsing.
+* Ability to scan all installed models for available updates.
 
 <h3>Download any Model, any version, and any file 📥</h3>
 
@@ -69,6 +70,12 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 (Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
 
 # Changelog 📋
+
+<h3>v1.11</h3>
+
+* Added new feature which can scan all installed models for available updates.
+* Fixed a bug which occurs if the Base Model isn't found.
+---
 
 <h3>v1.10.1</h3>
 
