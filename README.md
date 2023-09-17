@@ -75,6 +75,8 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 * Added new feature which can scan all installed models for available updates.
 * Fixed a bug which occurs if the Base Model isn't found.
+* Model ID and sha256 now gets saved to matching .json after scanning or downloading a model
+* Update Model functions now use Model IDs or sha256 from .json if available for faster scanning.
 ---
 
 <h3>v1.10.1</h3>
