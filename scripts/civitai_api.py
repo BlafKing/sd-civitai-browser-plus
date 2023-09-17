@@ -165,16 +165,18 @@ def model_list_html(json_data, model_dict, content_type):
                 nsfw = ""
                 installstatus = ""
                 baseModel = ""
-                
-                if 'baseModel' in item['modelVersions'][0]:
-                    baseModel = item['modelVersions'][0]['baseModel']
-                else:
+                try:
+                    if 'baseModel' in item['modelVersions'][0]:
+                        baseModel = item['modelVersions'][0]['baseModel']
+                except:
                     baseModel = "Not Found"
-                if 'updatedAt' in item['modelVersions'][0]:
-                    date = item['modelVersions'][0]['updatedAt'].split('T')[0]
-                else:
-                    date = "Not Found"
                 
+                try:
+                    if 'updatedAt' in item['modelVersions'][0]:
+                        date = item['modelVersions'][0]['updatedAt'].split('T')[0]
+                except:
+                    baseModel = "Not Found"
+                    
                 if gl.sortNewest:
                     if date not in sorted_models:
                         sorted_models[date] = []
