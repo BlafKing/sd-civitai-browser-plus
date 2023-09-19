@@ -26,19 +26,20 @@ def git_tag():
 
 ver = git_tag()
 
-def update_dl_url(trained_tags, model_id, model_name=None, model_version=None):    
+def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=None):    
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
-        
-    dl_url = None
-    for item in gl.json_data['items']:
-        if item['name'] == model_name:
-            for model in item['modelVersions']:
-                if model['name'] == model_version:
-                    for file in model['files']:
-                        if int(file['id']) == int(model_id):
-                            dl_url = file['downloadUrl']
-                            gl.json_info = model
+    
+    if model_id:
+        dl_url = None
+        for item in gl.json_data['items']:
+            if item['name'] == model_name:
+                for model in item['modelVersions']:
+                    if model['name'] == model_version:
+                        for file in model['files']:
+                            if int(file['id']) == int(model_id):
+                                dl_url = file['downloadUrl']
+                                gl.json_info = model
                                 
         return  (
                 gr.Textbox.update(value=dl_url), # Download URL
@@ -442,6 +443,11 @@ def update_model_info(model_name=None, model_version=None):
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 model_uploader = item['creator']['username']
+                uploader_avatar = item['creator']['image']
+                if uploader_avatar is None:
+                     uploader_avatar = ''
+                else:
+                    uploader_avatar = f'<div class="avatar"><img src={uploader_avatar}></div>'
                 tags = item['tags']
                 if item['description']:
                     model_desc = item['description']
@@ -475,21 +481,87 @@ def update_model_info(model_name=None, model_version=None):
                             file_list.append(unique_file_name)
                             
                         model_url = model['downloadUrl']
-                        img_html = '<div class="sampleimgs">'
-                        for pic in model['images']:
-                            nsfw = None
+                        model_main_url = f"https://civitai.com/models/{item['id']}"
+                        img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
+                        first_image = True
+                        for index, pic in enumerate(model['images']):
+                            if first_image:
+                                # Set a data attribute on the first image to designate it as preview
+                                preview_attr = f'data-preview-img={pic["url"]}'
+                                first_image = False
+                            else: 
+                                preview_attr = ''
+                            nsfw = 'class="model-block"'
+                            
                             if pic['nsfw'] not in ["None", "Soft"]:
-                                nsfw = 'class="civnsfw"'
-                            img_html = img_html + f'<div {nsfw} style="display:flex;align-items:flex-start;"><img src={pic["url"]} style="width:20em;"></img>'
+                                nsfw = 'class="civnsfw model-block"'
+
+                            # Remove the forced width from img URL
+                            image_url = re.sub(r'/width=\d+', '', pic["url"])
+
+                            img_html = img_html + f'''
+                            <div {nsfw} style="display:flex;align-items:flex-start;">
+                                <input type="radio" name="zoomRadio" id="zoomRadio{index}" class="zoom-radio">
+                                <label for="zoomRadio{index}" class="zoom-img-container">
+                                    <img {preview_attr} data-sampleimg="true" src={image_url}>
+                                </label>
+                                <label for="resetZoom" class="zoom-overlay"></label>
+                            '''
                             if pic['meta']:
-                                img_html = img_html + '<div style="text-align:left;line-height: 1.5em;">'
-                                for key, value in pic['meta'].items():
-                                    img_html = img_html + f'{escape(str(key))}: {escape(str(value))}</br>'
-                                img_html = img_html + '</div>'
+                                img_html = img_html + '<div style="margin:1em 0em 1em 1em;text-align:left;line-height: 1.5em;"><dl>'
+                                # Define the preferred order of keys
+                                preferred_order = ["prompt", "negativePrompt", "seed", "Size", "Model", "clipSkip", "sampler", "steps", "cfgScale"]
+                                # Loop through the keys in the preferred order and add them to the HTML
+                                for key in preferred_order:
+                                    if key in pic['meta']:
+                                        value = pic['meta'][key]
+                                        img_html += f'<dt>{escape(str(key))}</dt><dd>{escape(str(value))}</dd>'
+                                
+                                # Check if there are remaining keys in pic['meta']
+                                remaining_keys = [key for key in pic['meta'] if key not in preferred_order]
+                                
+                                # Add the rest
+                                if remaining_keys:
+                                    img_html += f"""
+                                    <div class="tabs">
+                                        <div class="tab">
+                                            <input type="checkbox" class="accordionCheckbox" id="chck{index}">
+                                            <label class="tab-label" for="chck{index}">More details...</label>
+                                            <div class="tab-content">
+                                    """
+                                    for key, value in pic['meta'].items():
+                                        if key not in preferred_order:
+                                            img_html += f'<dt>{escape(str(key))}</dt><dd>{escape(str(value))}</dd>'
+                                    img_html = img_html + '</div></div></div>'
+                                
+                                img_html += '</dl></div>'
+                            
                             img_html = img_html + '</div>'
                         img_html = img_html + '</div>'
-                        output_html = f"<p><b>Model</b>: {escape(str(model_name))}<br><b>Version</b>: {escape(str(model_version))}<br><b>Uploaded by</b>: {escape(str(model_uploader))}<br><b>Base Model</b>: {escape(str(output_basemodel))}</br><b>Tags</b>: {escape(str(tags))}<br><b>Trained Tags</b>: {escape(str(output_training))}<br>{escape(str(allow))}<br><a href={model_url}><b>Download Here</b></a></p><br><br>{model_desc}<br><div align=center>{img_html}</div>"
-                
+                        output_html = f'''
+                        <div class="model-block">
+                            <h2><a href={model_main_url} target="_blank">{escape(str(model_name))}</a></h2>
+                            <h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>
+                            <dl>
+                                <dt>Version</dt>
+                                <dd>{escape(str(model_version))}</dd>
+                                <dt>Base Model</dt>
+                                <dd>{escape(str(output_basemodel))}</dd>
+                                <dt>CivitAI Tags</dt>
+                                <dd>{escape(str(tags))}</dd>
+                                <dt>License</dt>
+                                <dd>{escape(str(allow))}</dd>
+                                <dt>Download Link</dt>
+                                <dd><a href={model_url} target="_blank">{model_url}</a></dd>
+                            </dl>
+                            <div class="model-description">
+                                <h2>Description</h2>
+                                {model_desc}
+                            </div>
+                        </div>
+                        <div align=center>{img_html}</div>
+                        '''
+                                        
                 default_file = file_list[0] if file_list else None
                         
         return  (
