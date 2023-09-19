@@ -95,7 +95,9 @@ function filterByBaseModel(selectedBaseModels) {
 }
 
 function updateCard(modelNameWithSuffix) {
-    const [modelName, suffix] = modelNameWithSuffix.split('.');
+    const lastDotIndex = modelNameWithSuffix.lastIndexOf('.');
+    const modelName = modelNameWithSuffix.slice(0, lastDotIndex);
+    const suffix = modelNameWithSuffix.slice(lastDotIndex + 1);
     let additionalClassName = '';
     switch(suffix) {
         case 'None':

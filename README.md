@@ -71,6 +71,13 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.11.1</h3>
+
+* Added error detection during Aria2 downloads.
+* Avoid starting Aria2 RPC multiple times with better port check.
+* Bug fix for dynamic tile status updates after deleting/downloading.
+---
+
 <h3>v1.11</h3>
 
 * Added new feature which can scan all installed models for available updates.

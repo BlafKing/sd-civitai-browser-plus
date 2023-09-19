@@ -7,6 +7,7 @@ import os
 import re
 import random
 import platform
+import socket
 import stat
 import json
 from pathlib import Path
@@ -20,17 +21,16 @@ gl.init()
 
 def rpc_running():
     try:
-        payload = json.dumps({
-            "jsonrpc": "2.0",
-            "id": "1",
-            "method": "aria2.getVersion",
-            "params": []
-        })
-        response = requests.post("http://localhost:6800/jsonrpc", data=payload, timeout=2)
-        if response.status_code == 200:
-            return True
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        sock.connect(("localhost", 6800))
+
+        return True
     except Exception as e:
         pass
+    finally:
+        sock.close()
+
     return False
 
 def start_aria2_rpc(aria2c):
@@ -146,7 +146,7 @@ def download_file(url, file_path, install_path, model_name, model_version, progr
     if os.path.exists(file_path):
         os.remove(file_path)
 
-    file_name_display = os.path.basename(file_path)
+    file_name = os.path.basename(file_path)
     
     if disable_dns:
         dns = "false"
@@ -212,7 +212,7 @@ def download_file(url, file_path, install_path, model_name, model_version, progr
             else:
                 eta_formatted = "XX:XX:XX"
             
-            progress(progress_percent / 100, desc=f"Downloading: {file_name_display} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted}")
+            progress(progress_percent / 100, desc=f"Downloading: {file_name} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted}")
             
             if status_info['status'] == 'complete':
                 progress(1, desc=f"Model saved to: {file_path}")
@@ -221,6 +221,12 @@ def download_file(url, file_path, install_path, model_name, model_version, progr
                 gl.download_fail = False
                 return
             
+            if status_info['status'] == 'error':
+                progress(0, desc=f"Encountered an error during download of: \"{file_name}\" Please try again.")
+                gl.download_fail = True
+                time.sleep(2)
+                return
+                
             time.sleep(0.25)
 
         except Exception as e:
