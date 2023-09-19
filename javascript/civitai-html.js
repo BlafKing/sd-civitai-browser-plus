@@ -1,4 +1,4 @@
-                                                                                                "use strict";
+"use strict";
 
 function select_model(model_name) {
 	let model_dropdown = gradioApp().querySelector('#eventtext1 textarea');
