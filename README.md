@@ -70,7 +70,28 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 (Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
 
 # Changelog 📋
+<h3>v1.11.2</h3>
 
+* Redesign of model page by [ManOrMonster](https://github.com/ManOrMonster)
+* <details><summary>Model page changes (https://github.com/BlafKing/sd-civitai-browser-plus/pull/33)</summary>
+   
+   - Redesigned the look of the model page.
+   - Added link to model page on CivitAI. Click on model name to open.
+   - Added link to uploader/creator page on CivitAI. Click creator name to open.
+   - Added CivitAI avatar display.
+   - Separate description section.
+   - First sample image is marked with data attribute and downloaded as preview image instead of grabbing first in model HTML. This guarantees that the first sample image (not avatar or image in description) is used when downloading the model.
+   - Sample images are marked with data attribute so that only they are downloaded when using "Save Images" (no description images or avatar).
+   - Removed trained tags from info since they are displayed above.
+   - Each sample image has its own section.
+   - Sample images zoom in when clicked, zoom out when clicking anywhere.
+   - Forced width is removed from sample image URLs so that nice big images can be viewed.
+   - Metadata is arranged so that the most commonly used data is at the top, no more searching for prompts.
+   - Extra metadata is in accordion labeled "More details...". This is especially useful to hide insanely large ComfyUI JSON.
+
+</details>
+
+---
 <h3>v1.11.1</h3>
 
 * Added error detection during Aria2 downloads.
