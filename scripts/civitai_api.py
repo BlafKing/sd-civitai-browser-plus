@@ -485,9 +485,12 @@ def update_model_info(model_name=None, model_version=None):
                         img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
                         first_image = True
                         for index, pic in enumerate(model['images']):
-                            if first_image:
+                             # Change small width value (usually auto set to 450) in img URL to "full"
+                            image_url = re.sub(r'/width=\d+', '/width=full', pic["url"])
+                            
+                            if first_image:                                
                                 # Set a data attribute on the first image to designate it as preview
-                                preview_attr = f'data-preview-img={pic["url"]}'
+                                preview_attr = f'data-preview-img={image_url}'
                                 first_image = False
                             else: 
                                 preview_attr = ''
@@ -495,9 +498,6 @@ def update_model_info(model_name=None, model_version=None):
                             
                             if pic['nsfw'] not in ["None", "Soft"]:
                                 nsfw = 'class="civnsfw model-block"'
-
-                            # Remove the forced width from img URL
-                            image_url = re.sub(r'/width=\d+', '', pic["url"])
 
                             img_html = img_html + f'''
                             <div {nsfw} style="display:flex;align-items:flex-start;">
