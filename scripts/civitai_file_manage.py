@@ -57,7 +57,8 @@ def delete_model(delete_finish, content_type, model_filename, model_name, list_v
 def save_preview(preview_html, file_name, install_path):
     if not os.path.exists(install_path):
         os.makedirs(install_path)
-    img_urls = re.findall(r'src=[\'"]?([^\'" >]+)', preview_html)
+    img_urls = re.findall(r'data-preview-img=[\'"]?([^\'" >]+)', preview_html)
+
     
     if not img_urls:
         return
@@ -82,7 +83,7 @@ def save_preview(preview_html, file_name, install_path):
 def save_images(preview_html, model_filename, content_type, install_path):
     if not os.path.exists(install_path):
         os.makedirs(install_path)
-    img_urls = re.findall(r'src=[\'"]?([^\'" >]+)', preview_html)
+    img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
     
     name = os.path.splitext(model_filename)[0]
 
