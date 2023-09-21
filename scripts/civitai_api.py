@@ -78,7 +78,7 @@ def contenttype_folder(content_type):
         folder = cmd_opts.lora_dir
         
     elif content_type == "LoCon":
-        if gl.save_tags:
+        if gl.scan_files:
             folder = os.path.join(models_path,"LyCORIS")
             return folder
         try:
@@ -134,17 +134,28 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, page_coun
         api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={next_page}"
     
     period_type = period_type.replace(" ", "")
-    query = {'types': content_type, 'sort': sort_type, 'period': period_type}
+    query = {'sort': sort_type, 'period': period_type}
     
+    types_query_str = ""
+    if content_type:
+        types_query_str = "".join([f"&types={type}" for type in content_type])
+    
+    query_str = urllib.parse.urlencode(query, quote_via=urllib.parse.quote)
+    
+    if types_query_str:
+        query_str += types_query_str
+
     if use_search_term != "None" and search_term:
         if use_search_term == "User name":
-            query.update({'username': search_term})
+            query_str += f"&username={urllib.parse.quote(search_term)}"
         elif use_search_term == "Tag":
-            query.update({'tag': search_term})
+            query_str += f"&tag={urllib.parse.quote(search_term)}"
         else:
-            query.update({'query': search_term})
-                
-    return request_civit_api(f"{api_url}", query )
+            query_str += f"&query={urllib.parse.quote(search_term)}"
+    
+    full_url = f"{api_url}&{query_str}"
+
+    return request_civit_api(full_url)
 
 def api_next_page(next_page_url=None):
     if next_page_url is None:
@@ -154,15 +165,23 @@ def api_next_page(next_page_url=None):
         next_page_url = re.sub(r'limit=\d+', f'limit={gl.tile_count}', next_page_url)
     return request_civit_api(next_page_url)
 
-def model_list_html(json_data, model_dict, content_type):
+def model_list_html(json_data, model_dict):
     gl.contentChange = False
     HTML = '<div class="column civmodellist">'
     sorted_models = {}
-    
+        
     for item in json_data['items']:
         for k, model in model_dict.items():
             if model_dict[k].lower() == item['name'].lower():
                 model_name = escape(item["name"].replace("'", "\\'"), quote=True)
+                
+                if model_name:
+                    selected_content_type = item['type']
+                        
+                if not selected_content_type:
+                    print("Model name not found in json_data. (model_list_html)")
+                    return
+                
                 nsfw = ""
                 installstatus = ""
                 baseModel = ""
@@ -189,17 +208,32 @@ def model_list_html(json_data, model_dict, content_type):
                         imgtag = f'<img src={item["modelVersions"][0]["images"][0]["url"]}"></img>'
                     else:
                         imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
-                    
-                    model_folder = os.path.join(contenttype_folder(content_type))
+
+                    model_folder = os.path.join(contenttype_folder(selected_content_type))
                     existing_files = []
+                    existing_files_sha256 = []
+                    
                     for root, dirs, files in os.walk(model_folder):
                         for file in files:
                             existing_files.append(file)
+                            if file.endswith('.json'):
+                                json_path = os.path.join(root, file)
+                                with open(json_path, 'r') as f:
+                                    json_data = json.load(f)
+                                    sha256 = json_data.get('sha256')
+                                    if sha256:
+                                        existing_files_sha256.append(sha256.upper())
+                    
+                    installstatus = None
                     
                     for version in reversed(item['modelVersions']):
                         for file in version.get('files', []):
                             file_name = file['name']
-                            if file_name in existing_files:
+                            file_sha256 = file.get('hashes', {}).get('SHA256', "").upper()
+                            
+                            name_match = file_name in existing_files
+                            sha256_match = file_sha256 in existing_files_sha256
+                            if name_match or sha256_match:
                                 if version == item['modelVersions'][0]:
                                     installstatus = "civmodelcardinstalled"
                                 else:
@@ -224,21 +258,21 @@ def model_list_html(json_data, model_dict, content_type):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(show_nsfw, content_type, sort_type, period_type, use_search_term, search_term, page_count):
-    return update_next_page(show_nsfw, content_type, sort_type, period_type, use_search_term, search_term, page_count, isNext=False)
+def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name):
+    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name, isNext=False)
 
-def update_next_page(show_nsfw, content_type, sort_type, period_type, use_search_term, search_term, page_count, isNext=True):
+def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name, isNext=True):
     
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, page_count, timeOut, isNext)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name, timeOut, isNext)
         timeOut = False
         
         return return_values
         
     gl.pageChange = True
     
-    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, gl.tile_count)
+    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count)
     
     if gl.previous_inputs and current_inputs != gl.previous_inputs:
         gl.inputs_changed = True
@@ -249,7 +283,7 @@ def update_next_page(show_nsfw, content_type, sort_type, period_type, use_search
     gl.previous_inputs = current_inputs
 
     if gl.inputs_changed or gl.contentChange:
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, page_count)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name)
         return return_values
     
     if isNext:
@@ -272,7 +306,6 @@ def update_next_page(show_nsfw, content_type, sort_type, period_type, use_search
         pages=page_count
         
     if gl.json_data != None and gl.json_data != "timeout":
-        gl.json_data['allownsfw'] = show_nsfw
         (hasPrev, hasNext, pages) = pagecontrol(gl.json_data)
         model_dict = {}
         try:
@@ -282,7 +315,7 @@ def update_next_page(show_nsfw, content_type, sort_type, period_type, use_search
 
         for item in gl.json_data['items']:
             model_dict[item['name']] = item['name']
-        HTML = model_list_html(gl.json_data, model_dict, content_type)
+        HTML = model_list_html(gl.json_data, model_dict)
 
     return  (
             gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=""), # Model List
@@ -308,12 +341,12 @@ def pagecontrol(json_data):
         hasPrev = True
     return hasPrev, hasNext, pages_ctrl
 
-def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, page_count, from_ver=False, timeOut=None, isNext=None):
-    if not from_ver:
+def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+    if not from_ver and not from_installed:
         gl.ver_json = None
         if not gl.pageChange:
         
-            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, show_nsfw, gl.tile_count)
+            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count)
             
             if gl.previous_inputs and current_inputs != gl.previous_inputs:
                 gl.inputs_changed = True
@@ -338,24 +371,32 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             gl.pageChange = False
         
         if gl.json_data != None and gl.json_data != "timeout":
-            gl.json_data['allownsfw'] = show_nsfw
             (hasPrev, hasNext, pages) = pagecontrol(gl.json_data)
             model_dict = {}
             for item in gl.json_data['items']:
                 model_dict[item['name']] = item['name']
             
-            HTML = model_list_html(gl.json_data, model_dict, content_type)
+            HTML = model_list_html(gl.json_data, model_dict)
         
         gl.contentChange = False
     
-    else:
+    if from_ver:
         hasPrev = False
         hasNext = False
         pages = ""
         model_dict = {}
         for item in gl.ver_json['items']:
             model_dict[item['name']] = item['name']
-        HTML = model_list_html(gl.ver_json, model_dict, content_type)
+        HTML = model_list_html(gl.ver_json, model_dict)
+        gl.json_data = gl.ver_json
+    
+    if from_installed:
+        (hasPrev, hasNext, pages) = pagecontrol(gl.ver_json)
+        model_dict = {}
+        for item in gl.ver_json['items']:
+            model_dict[item['name']] = item['name']
+        
+        HTML = model_list_html(gl.ver_json, model_dict)
         gl.json_data = gl.ver_json
     
     return  (
@@ -373,34 +414,58 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             gr.Dropdown.update(choices=[], value="", interactive=False) # File List
     )
 
-def update_model_versions(model_name, content_type):
-    if model_name is not None and content_type is not None:
+def update_model_versions(model_name):
+    if model_name is not None:
+        selected_content_type = None
+        for item in gl.json_data['items']:
+            if item['name'] == model_name:
+                selected_content_type = item['type']
+                break
+        
+        if selected_content_type is None:
+            print("Model name not found in json_data. (update_model_versions)")
+            return
+
         versions_dict = defaultdict(list)
         installed_versions = []
         folder_location = "None"
         sub_folders = ["None"]
-        model_folder = os.path.join(contenttype_folder(content_type))
+
+        model_folder = os.path.join(contenttype_folder(selected_content_type))
         gl.main_folder = model_folder
+        existing_files_sha256 = []
+        for root, dirs, files in os.walk(model_folder):
+            for file in files:
+                if file.endswith('.json'):
+                    json_path = os.path.join(root, file)
+                    with open(json_path, 'r') as f:
+                        json_data = json.load(f)
+                        sha256 = json_data.get('sha256')
+                        if sha256:
+                            existing_files_sha256.append(sha256.upper())
+
         for root, dirs, _ in os.walk(model_folder):
             for d in dirs:
                 sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                 if sub_folder:
                     sub_folders.append(f'{os.sep}{sub_folder}')
+        
         folder_location = model_folder
-        if gl.json_data != None and gl.json_data != "timeout":
-            for item in gl.json_data['items']:
-                if item['name'] == model_name:
-                    for version in item['modelVersions']:
-                        versions_dict[version['name']].append(item["name"])
-                        for root, dirs, files in os.walk(model_folder):
-                            for file in files:
-                                for version_file in version['files']:
-                                    if version_file['name'] == file:
-                                        installed_versions.append(version['name'])
-                                        if root != model_folder:
-                                            folder_location = root
-                                        break
-                                    
+
+        for item in gl.json_data['items']:
+            if item['name'] == model_name:
+                for version in item['modelVersions']:
+                    versions_dict[version['name']].append(item["name"])
+                    for root, dirs, files in os.walk(model_folder):
+                        for file in files:
+                            for version_file in version['files']:
+                                file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
+                                if version_file['name'] == file or file_sha256 in existing_files_sha256:
+                                    installed_versions.append(version['name'])
+                                    if root != model_folder:
+                                        folder_location = root
+                                    break
+
         default_subfolder = folder_location.replace(model_folder, '')
         default_subfolder = default_subfolder if default_subfolder else "None"
         version_names = list(versions_dict.keys())
@@ -603,15 +668,13 @@ def update_file_info(model_name, model_version, file_metadata):
             gr.Textbox.update(value=None)  # Update ID Textbox
     )
 
-def request_civit_api(api_url=None, payload=None):
-    if payload is not None:
-        payload = urllib.parse.urlencode(payload, quote_via=urllib.parse.quote)
+def request_civit_api(api_url=None):
     try:
-        response = requests.get(api_url, params=payload, timeout=(10,30))
+        response = requests.get(api_url, timeout=(10,30))
         response.raise_for_status()
     except:
         return "timeout"
     else:
-        response.encoding  = "utf-8"
+        response.encoding = "utf-8"
         data = json.loads(response.text)
     return data

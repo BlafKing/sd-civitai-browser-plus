@@ -70,6 +70,15 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 (Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
 
 # Changelog 📋
+
+<h3>v1.12</h3>
+
+* Added ability to load all selected installed models into browser in Update Models tab.
+* Installed/outdated models check is now also done using SHA256 instead of only file name.
+* Added ability to select multiple content Types when searching and scanning.
+* Greatly improved speed of model installed/update scanning if model ID is in associated .json
+
+---
 <h3>v1.11.2</h3>
 
 * Redesign of model page by [ManOrMonster](https://github.com/ManOrMonster)

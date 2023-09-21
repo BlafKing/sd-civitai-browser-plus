@@ -10,15 +10,20 @@ import scripts.civitai_api as _api
 
 gl.init()
 
-def insert_sub(model_name, version_name, content_type):
+def insert_sub(model_name, version_name):
     sub_folders = ["None"]
     try:
         version = version_name.replace(" [Installed]", "")
     except:
         version = version_name
     
-    if model_name is not None and content_type is not None:
-        model_folder = os.path.join(_api.contenttype_folder(content_type))
+    if model_name is not None:
+        selected_content_type = None
+        for item in gl.json_data['items']:
+            if item['name'] == model_name:
+                selected_content_type = item['type']
+        
+        model_folder = os.path.join(_api.contenttype_folder(selected_content_type))
         for root, dirs, _ in os.walk(model_folder):
             for d in dirs:
                 sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
@@ -54,7 +59,7 @@ def on_ui_tabs():
         with gr.Tab("Browser"):
             with gr.Row():
                 with gr.Column(scale=2, min_width=200):
-                    content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value="Checkpoint", type="value")
+                    content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value=None, type="value", multiselect=True)
                 with gr.Column(scale=2, min_width=200):
                     period_type = gr.Dropdown(label='Time Period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
                 with gr.Column(scale=2, min_width=200):
@@ -73,7 +78,7 @@ def on_ui_tabs():
                 with gr.Column(scale=1,min_width=160 ):
                     size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
                 with gr.Column(scale=1,min_width=160 ):
-                    tile_slider = gr.Slider(label="Tile count:", min=5, max=50, value=15, step=1, max_width=100)
+                    tile_slider = gr.Slider(label="Tile count:", minimum=1, maximum=100, value=15, step=1, max_width=100)
             with gr.Row():
                 with gr.Column(scale=5):
                     refresh = gr.Button(label="Refresh", value="Refresh", elem_id="refreshBtn")
@@ -113,7 +118,7 @@ def on_ui_tabs():
                 preview_html = gr.HTML()
         with gr.Tab("Update Models"):
             with gr.Row():
-                selected_tags = gr.Radio(elem_id="selected_tags", label="Scan for:", choices=["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"])
+                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"])
             with gr.Row():
                 save_all_tags = gr.Button(value="Update assigned tags", interactive=True, visible=True)
                 cancel_all_tags = gr.Button(value="Cancel updating tags", interactive=False, visible=False)
@@ -125,6 +130,12 @@ def on_ui_tabs():
                 load_to_browser = gr.Button(value="Load outdated models to browser", interactive=False, visible=False)
             with gr.Row():
                 version_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
+            with gr.Row():
+                load_installed = gr.Button(value="Load all installed models", interactive=True, visible=True)
+                cancel_installed = gr.Button(value="Cancel loading models", interactive=False, visible=False)
+                load_to_browser_installed = gr.Button(value="Load installed models to browser", interactive=False, visible=False)
+            with gr.Row():
+                installed_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
                 
         #Invisible triggers/variables
         model_id = gr.Textbox(value=None, visible=False)
@@ -136,6 +147,8 @@ def on_ui_tabs():
         tag_finish = gr.Textbox(value=None, visible=False)
         ver_start = gr.Textbox(value=None, visible=False)
         ver_finish = gr.Textbox(value=None, visible=False)
+        installed_start = gr.Textbox(value=None, visible=None)
+        installed_finish = gr.Textbox(value=None, visible=None)
         delete_finish = gr.Textbox(value=None, visible=False)
         current_model = gr.Textbox(value=None, visible=False)
         
@@ -189,10 +202,12 @@ def on_ui_tabs():
         )
         
         ver_start.change(
-            fn=_file.new_ver_search,
+            fn=_file.file_scan,
             inputs=[
                 selected_tags,
-                ver_finish
+                ver_finish,
+                tag_finish,
+                installed_finish
                 ],
             outputs=[
                 version_progress,
@@ -227,13 +242,68 @@ def on_ui_tabs():
                 install_path,
                 sub_folder,
                 file_list,
-                content_type,
                 version_progress
             ]
         )
         
         cancel_ver_search.click(
             fn=_file.cancel_scan
+        )
+        
+        load_installed.click(
+            fn=_file.start_installed_models,
+            inputs=[installed_start],
+            outputs=[
+                installed_start,
+                load_installed,
+                cancel_installed,
+                installed_progress
+            ]
+        )
+        
+        installed_start.change(
+            fn=_file.file_scan,
+            inputs=[
+                selected_tags,
+                ver_finish,
+                tag_finish,
+                installed_finish
+                ],
+            outputs=[
+                installed_progress,
+                installed_finish
+            ]
+        )
+        
+        installed_finish.change(
+            fn=_file.finish_installed_models,
+            outputs=[
+                load_installed,
+                cancel_installed,
+                load_to_browser_installed
+            ]
+        )
+        
+        load_to_browser_installed.click(
+            fn=_file.load_to_browser,
+            outputs=[
+                load_installed,
+                cancel_installed,
+                load_to_browser_installed,
+                list_models,
+                list_versions,
+                list_html,
+                get_prev_page,
+                get_next_page,
+                pages,
+                save_tags,
+                save_images,
+                download_model,
+                install_path,
+                sub_folder,
+                file_list,
+                installed_progress
+            ]
         )
         
         save_all_tags.click(
@@ -248,11 +318,16 @@ def on_ui_tabs():
         )
         
         tag_start.change(
-            fn=_file.save_tags_for_files,
-            inputs=[selected_tags, tag_finish],
+            fn=_file.file_scan,
+            inputs=[
+                selected_tags,
+                ver_finish,
+                tag_finish,
+                installed_finish
+                ],
             outputs=[
                 tag_progress,
-                tag_finish,
+                tag_finish
             ]
         )
         
@@ -320,8 +395,7 @@ def on_ui_tabs():
             fn=insert_sub,
             inputs=[
                 list_models,
-                list_versions,
-                content_type
+                list_versions
                 ],
             outputs=[sub_folder]
         )
@@ -353,7 +427,6 @@ def on_ui_tabs():
                 trained_tags,
                 install_path,
                 list_models,
-                content_type,
                 list_versions
                 ],
             outputs=[
@@ -367,7 +440,6 @@ def on_ui_tabs():
             fn=_download.download_cancel,
             inputs=[
                 delete_finish,
-                content_type,
                 list_models,
                 list_versions,
                 model_filename
@@ -384,8 +456,7 @@ def on_ui_tabs():
             inputs=[
                 model_filename,
                 list_versions,
-                list_models,
-                content_type
+                list_models
                 ],
             outputs=[
                 download_model,
@@ -400,7 +471,6 @@ def on_ui_tabs():
             fn=_file.delete_model,
             inputs=[
                 delete_finish,
-                content_type,
                 model_filename,
                 list_models,
                 list_versions
@@ -430,7 +500,7 @@ def on_ui_tabs():
             inputs=[
                 preview_html,
                 model_filename,
-                content_type,
+                list_models,
                 install_path
                 ],
             outputs=[]
@@ -439,8 +509,7 @@ def on_ui_tabs():
         list_models.select(
             fn=_api.update_model_versions,
             inputs=[
-                list_models,
-                content_type
+                list_models
             ],
             outputs=[
                 list_versions,
@@ -510,7 +579,6 @@ def on_ui_tabs():
         get_next_page.click(
             fn=_api.update_next_page,
             inputs=[
-                show_nsfw,
                 content_type,
                 sort_type,
                 period_type,
@@ -541,7 +609,6 @@ def on_ui_tabs():
                 period_type,
                 use_search_term,
                 search_term,
-                show_nsfw,
                 pages
                 ],
             outputs=[
@@ -563,7 +630,6 @@ def on_ui_tabs():
         get_prev_page.click(
             fn=_api.update_prev_page,
             inputs=[
-                show_nsfw,
                 content_type,
                 sort_type,
                 period_type,
@@ -584,10 +650,9 @@ def on_ui_tabs():
             ]
         )
         
-        
-        def update_models_dropdown(model_name, content_type):
+        def update_models_dropdown(model_name):
             model_name = re.sub(r'\.\d{3}$', '', model_name)
-            (ret_versions, install_path, sub_folder) = _api.update_model_versions(model_name, content_type)
+            (ret_versions, install_path, sub_folder) = _api.update_model_versions(model_name)
             (html, tags, _, DwnButton, _, filelist) = _api.update_model_info(model_name,ret_versions['value'])
             (filename, id) = _api.update_file_info(model_name, ret_versions['value'], filelist['value'])
             (dl_url, _, _, _) = _api.update_dl_url(tags, id['value'], model_name, ret_versions['value'])
@@ -596,8 +661,7 @@ def on_ui_tabs():
         event_text.change(
             fn=update_models_dropdown,
             inputs=[
-                event_text,
-                content_type,
+                event_text
                 ],
             outputs=[
                 list_models,

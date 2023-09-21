@@ -85,8 +85,8 @@ def download_start(download_start, model_name, model_filename, version):
             gr.HTML.update(value='<div style="min-height: 100px;"></div>') # Download Progress
     )
 
-def download_finish(model_filename, version, model_name, content_type):
-    gr_components = _api.update_model_versions(model_name, content_type)
+def download_finish(model_filename, version, model_name):
+    gr_components = _api.update_model_versions(model_name)
     version_choices = gr_components[0]['choices']
     
     prev_version = gl.last_version + " [Installed]"
@@ -112,12 +112,12 @@ def download_finish(model_filename, version, model_name, content_type):
             
     )
 
-def download_cancel(delete_finish, content_type, model_name, list_versions, model_filename):
+def download_cancel(delete_finish, model_name, list_versions, model_filename):
     gl.cancel_status = True
     gl.download_fail = True
     while True:        
         if not gl.isDownloading:
-            _file.delete_model(delete_finish, content_type, gl.current_download, model_name, list_versions)
+            _file.delete_model(delete_finish, gl.current_download, model_name, list_versions)
             break
         else:
             time.sleep(0.5)
@@ -369,8 +369,8 @@ def download_file_old(url, file_path, model_name, model_version, progress=gr.Pro
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-def download_create_thread(download_finish, url, file_name, preview_html, create_json, trained_tags, install_path, model_name, content_type, list_versions, progress=gr.Progress()):
-    gr_components = _api.update_model_versions(model_name, content_type)
+def download_create_thread(download_finish, url, file_name, preview_html, create_json, trained_tags, install_path, model_name, list_versions, progress=gr.Progress()):
+    gr_components = _api.update_model_versions(model_name)
     gl.cancel_status = False
     try:
         use_aria2 = getattr(opts, "use_aria2", True)
