@@ -6,8 +6,7 @@ This extension allows you to download models from CivitAi without leaving WebUI!
 This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-civitai-browser/releases/tag/1.1.0) from [SignalFlagZ's Fork](https://github.com/SignalFlagZ/sd-civitai-browser)  
 
 
-**NOTE: Search results are currently not impacted by the selected Base Model since the CivitAI API does not yet support this feature.**  
-**If you'd like to have this feature, please upvote my feature request [here](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9) and [here](https://github.com/orgs/civitai/discussions/733)**
+**NOTE: Search results are currently not impacted by the selected Base Model since the CivitAI API does not yet support this feature. If you'd like to have this feature, please upvote my feature request [here](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9) and [here](https://github.com/orgs/civitai/discussions/733)**
 
 <h1>Features 🚀</h1>
 <h3>Browse all models from CivitAI 🧩</h2>
