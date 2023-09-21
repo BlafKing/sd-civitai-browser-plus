@@ -559,8 +559,8 @@ def update_model_info(model_name=None, model_version=None):
                         img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
                         first_image = True
                         for index, pic in enumerate(model['images']):
-                             # Change small width value (usually auto set to 450) in img URL to "full"
-                            image_url = re.sub(r'/width=\d+', '/width=full', pic["url"])
+                            # Change width value in URL to original image width
+                            image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
                             
                             if first_image:                                
                                 # Set a data attribute on the first image to designate it as preview
