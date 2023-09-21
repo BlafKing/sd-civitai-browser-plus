@@ -259,14 +259,14 @@ def model_list_html(json_data, model_dict):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name):
-    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name, isNext=False)
+def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, page_count):
+    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, isNext=False)
 
-def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name, isNext=True):
+def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, isNext=True):
     
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name, timeOut, isNext)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, timeOut, isNext)
         timeOut = False
         
         return return_values
@@ -284,7 +284,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     gl.previous_inputs = current_inputs
 
     if gl.inputs_changed or gl.contentChange:
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, model_name)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count)
         return return_values
     
     if isNext:
@@ -697,7 +697,8 @@ def request_civit_api(api_url=None):
     try:
         response = requests.get(api_url, timeout=(10,30))
         response.raise_for_status()
-    except:
+    except Exception as e:
+        print(f"Error: {e}")
         return "timeout"
     else:
         response.encoding = "utf-8"

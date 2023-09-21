@@ -76,6 +76,8 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 * File deletion now uses both SHA256 and file name to detect correct file.
 * Fixed a bug where the default file was incorrect when selecting a model.
+* Fixed a bug where Next Page caused an error when changing content type.
+* Added settings option to toggle automatically inserting 2 default sub folders.
 
 ---
 <h3>v1.12</h3>

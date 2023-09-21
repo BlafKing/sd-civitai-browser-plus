@@ -3,6 +3,7 @@ from modules import script_callbacks, shared
 import os
 import fnmatch
 import re
+from modules.shared import opts
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
@@ -11,6 +12,7 @@ import scripts.civitai_api as _api
 gl.init()
 
 def insert_sub(model_name, version_name):
+    insert_sub = getattr(opts, "insert_sub", True)
     try:
         sub_folders = ["None"]
         try:
@@ -34,8 +36,9 @@ def insert_sub(model_name, version_name):
         sub_folders.remove("None")
         sub_folders = sorted(sub_folders)
         sub_folders.insert(0, "None")
-        sub_folders.insert(1, os.path.join(os.sep, model_name))
-        sub_folders.insert(2, os.path.join(os.sep, model_name, version))
+        if insert_sub:
+            sub_folders.insert(1, os.path.join(os.sep, model_name))
+            sub_folders.insert(2, os.path.join(os.sep, model_name, version))
         
         list = set()
         sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -183,7 +186,7 @@ def on_ui_tabs():
             outputs=[]
         )
         
-        content_type.input(
+        content_type.change(
             fn=changeInput,
             inputs=[]
         )
@@ -690,6 +693,7 @@ def on_ui_settings():
     shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=section).info("Useful for users who use PortMaster or other software that controls the DNS"))
     shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 Logs in CMD", section=section).info("Requires Web-UI Restart"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
-    
+    shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
+
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)
