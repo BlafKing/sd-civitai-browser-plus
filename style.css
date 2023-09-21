@@ -187,7 +187,6 @@
     overflow-clip-margin: content-box;
     overflow: clip;
     border-style: none;
-    vertical-align: middle;
 }
 
 #civitai_preview_html dt {
