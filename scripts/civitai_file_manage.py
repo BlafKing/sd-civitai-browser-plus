@@ -26,7 +26,7 @@ from_ver = False
 from_tag = False
 from_installed = False
 
-def delete_model(delete_finish, model_filename, model_name, list_versions):
+def delete_model(delete_finish, model_filename, model_name, list_versions, sha256=None):
     gr_components = _api.update_model_versions(model_name)
     model_name_search = model_name
     
@@ -43,22 +43,46 @@ def delete_model(delete_finish, model_filename, model_name, list_versions):
             return
     
     model_folder = os.path.join(_api.contenttype_folder(selected_content_type))
-    path_file = None
-    file_to_delete = os.path.splitext(model_filename)[0]
 
-    for root, dirs, files in os.walk(model_folder):
-        for file in files:
-            current_file = os.path.splitext(file)[0]
-            if file_to_delete == current_file or f"{file_to_delete}.preview" == current_file:
-                path_file = os.path.join(root, file)
-                if os.path.isfile(path_file):
-                    try:
-                        send2trash(path_file)
-                        print(f"Model moved to trash: {path_file}")
-                    except:
-                        os.remove(path_file)
-                        print(f"Model deleted: {path_file}")
-            
+    # Delete based on provided SHA-256 hash
+    if sha256:
+        sha256_upper = sha256.upper()  # Convert to upper case for case-insensitive matching
+        for item in gl.json_data['items']:
+            if item['name'] == model_name_search:
+                for model_version in item.get('modelVersions', []):
+                    for file_entry in model_version.get('files', []):
+                        file_sha256 = file_entry.get('hashes', {}).get('SHA256', "").upper()  # Convert to upper case for case-insensitive matching
+                        if file_sha256 == sha256_upper:
+                            path_file = os.path.join(model_folder, file_entry.get('name', ''))
+                            base_name, _ = os.path.splitext(file_entry.get('name', ''))
+                            if os.path.isfile(path_file):
+                                try:
+                                    send2trash(path_file)
+                                    print(f"Model moved to trash based on SHA-256: {path_file}")
+                                except:
+                                    os.remove(path_file)
+                                    print(f"Model deleted based on SHA-256: {path_file}")
+                                # Delete associated files
+                                delete_associated_files(model_folder, base_name)
+
+    # Fallback to delete based on filename if not deleted based on SHA-256
+    file_to_delete = os.path.splitext(model_filename)[0]
+    if not path_file:
+        for root, dirs, files in os.walk(model_folder):
+            for file in files:
+                current_file = os.path.splitext(file)[0]
+                if file_to_delete == current_file:
+                    path_file = os.path.join(root, file)
+                    if os.path.isfile(path_file):
+                        try:
+                            send2trash(path_file)
+                            print(f"Model moved to trash based on filename: {path_file}")
+                        except:
+                            os.remove(path_file)
+                            print(f"Model deleted based on filename: {path_file}")
+                        # Delete associated files
+                        delete_associated_files(root, current_file)
+
     number = _download.random_number(delete_finish)
     
     return (
@@ -69,6 +93,19 @@ def delete_model(delete_finish, model_filename, model_name, list_versions):
             gr.Textbox.update(value=model_name),  # Current Model 
             gr.Dropdown.update(value=ver_value, choices=ver_choices)  # Version List
     )
+
+def delete_associated_files(directory, base_name):
+    """Delete all files in the given directory with the same base name or base name followed by .preview"""
+    for file in os.listdir(directory):
+        current_base_name, ext = os.path.splitext(file)
+        if current_base_name == base_name or current_base_name == f"{base_name}.preview":
+            path_to_delete = os.path.join(directory, file)
+            try:
+                send2trash(path_to_delete)
+                print(f"Associated file moved to trash: {path_to_delete}")
+            except:
+                os.remove(path_to_delete)
+                print(f"Associated file deleted: {path_to_delete}")
 
 def save_preview(preview_html, file_name, install_path):
     if not os.path.exists(install_path):

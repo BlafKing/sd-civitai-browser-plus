@@ -112,12 +112,12 @@ def download_finish(model_filename, version, model_name):
             
     )
 
-def download_cancel(delete_finish, model_name, list_versions, model_filename):
+def download_cancel(delete_finish, model_name, list_versions, model_filename, sha256):
     gl.cancel_status = True
     gl.download_fail = True
     while True:        
         if not gl.isDownloading:
-            _file.delete_model(delete_finish, gl.current_download, model_name, list_versions)
+            _file.delete_model(delete_finish, gl.current_download, model_name, list_versions, sha256)
             break
         else:
             time.sleep(0.5)

@@ -56,6 +56,7 @@ def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=No
         )
 
 def contenttype_folder(content_type):
+    folder = None
     if content_type == "modelFolder":
         folder = os.path.join(models_path)
     
@@ -505,6 +506,9 @@ def update_model_info(model_name=None, model_version=None):
         dl_dict = {}
         allow = {}
         file_list = []
+        model_filename = None
+        file_id_value = None
+        sha256_value = None
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 model_uploader = item['creator']['username']
@@ -535,7 +539,12 @@ def update_model_info(model_name=None, model_version=None):
                             output_basemodel = model['baseModel']
                         for file in model['files']:
                             dl_dict[file['name']] = file['downloadUrl']
-                
+                            
+                            if not model_filename:
+                                model_filename = file['name']
+                                file_id_value = file.get('id', 'Unknown')
+                                sha256_value = file['hashes'].get('SHA256', 'Unknown')
+                            
                             size = file['metadata'].get('size', 'Unknown')
                             format = file['metadata'].get('format', 'Unknown')
                             fp = file['metadata'].get('fp', 'Unknown')
@@ -635,7 +644,10 @@ def update_model_info(model_name=None, model_version=None):
                 gr.Textbox.update(value=output_basemodel), # Base Model Number
                 gr.Button.update(visible=BtnDown, interactive=BtnDown), # Download Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
-                gr.Dropdown.update(choices=file_list, value=default_file, interactive=True) # File List
+                gr.Dropdown.update(choices=file_list, value=default_file, interactive=True), # File List
+                gr.Textbox.update(value=model_filename),  # Model File Name
+                gr.Textbox.update(value=file_id_value),  # Model ID
+                gr.Textbox.update(value=sha256_value)  # SHA256
         )
     else:
         return  (
@@ -644,7 +656,10 @@ def update_model_info(model_name=None, model_version=None):
                 gr.Textbox.update(value=''), # Base Model Number
                 gr.Button.update(visible=BtnDown), # Download Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
-                gr.Dropdown.update(choices=None, value=None, interactive=False) # File List
+                gr.Dropdown.update(choices=None, value=None, interactive=False), # File List
+                gr.Textbox.update(value=None),  # Model File Name
+                gr.Textbox.update(value=None),  # Model ID
+                gr.Textbox.update(value=None)  # SHA256
         )
 
 def update_file_info(model_name, model_version, file_metadata):
@@ -657,15 +672,25 @@ def update_file_info(model_name, model_version, file_metadata):
                     if model['name'] == model_version:
                         for file in model['files']:
                             file_id = file.get('id', 'Unknown')
+                            sha256 = file['hashes'].get('SHA256', 'Unknown')
+                            metadata = file.get('metadata', {})
+                            file_size = metadata.get('size', 'Unknown')
+                            file_format = metadata.get('format', 'Unknown')
+                            file_fp = metadata.get('fp', 'Unknown')
+                            sizeKB = file.get('sizeKB', 0) * 1024
+                            filesize = _download.convert_size(sizeKB)
 
-                            return  (
-                                    gr.Textbox.update(value=file['name']),  # Update model_filename Textbox
-                                    gr.Textbox.update(value=file_id)  # Update ID Textbox
-                            )
+                            if f"{file_size} {file_format} {file_fp} ({filesize})" == file_metadata:
+                                return  (
+                                        gr.Textbox.update(value=file['name']),  # Update model_filename Textbox
+                                        gr.Textbox.update(value=file_id),  # Update ID Textbox
+                                        gr.Textbox.update(value=sha256)
+                                )
     
     return  (
             gr.Textbox.update(value=None),  # Update model_filename Textbox
-            gr.Textbox.update(value=None)  # Update ID Textbox
+            gr.Textbox.update(value=None),  # Update ID Textbox
+            gr.Textbox.update(value=None)
     )
 
 def request_civit_api(api_url=None):

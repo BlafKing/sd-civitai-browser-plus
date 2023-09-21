@@ -71,6 +71,12 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.12.1</h3>
+
+* File deletion now uses both SHA256 and file name to detect correct file.
+* Fixed a bug where the default file was incorrect when selecting a model.
+
+---
 <h3>v1.12</h3>
 
 * Added ability to load all selected installed models into browser in Update Models tab.

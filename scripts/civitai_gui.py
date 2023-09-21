@@ -11,35 +11,38 @@ import scripts.civitai_api as _api
 gl.init()
 
 def insert_sub(model_name, version_name):
-    sub_folders = ["None"]
     try:
-        version = version_name.replace(" [Installed]", "")
-    except:
-        version = version_name
-    
-    if model_name is not None:
-        selected_content_type = None
-        for item in gl.json_data['items']:
-            if item['name'] == model_name:
-                selected_content_type = item['type']
+        sub_folders = ["None"]
+        try:
+            version = version_name.replace(" [Installed]", "")
+        except:
+            version = version_name
         
-        model_folder = os.path.join(_api.contenttype_folder(selected_content_type))
-        for root, dirs, _ in os.walk(model_folder):
-            for d in dirs:
-                sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
-                if sub_folder:
-                    sub_folders.append(f'{os.sep}{sub_folder}')
-    
-    sub_folders.remove("None")
-    sub_folders = sorted(sub_folders)
-    sub_folders.insert(0, "None")
-    sub_folders.insert(1, os.path.join(os.sep, model_name))
-    sub_folders.insert(2, os.path.join(os.sep, model_name, version))
-    
-    list = set()
-    sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
-    
-    return gr.Dropdown.update(choices=sub_folders)
+        if model_name is not None:
+            selected_content_type = None
+            for item in gl.json_data['items']:
+                if item['name'] == model_name:
+                    selected_content_type = item['type']
+            
+            model_folder = os.path.join(_api.contenttype_folder(selected_content_type))
+            for root, dirs, _ in os.walk(model_folder):
+                for d in dirs:
+                    sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+                    if sub_folder:
+                        sub_folders.append(f'{os.sep}{sub_folder}')
+        
+        sub_folders.remove("None")
+        sub_folders = sorted(sub_folders)
+        sub_folders.insert(0, "None")
+        sub_folders.insert(1, os.path.join(os.sep, model_name))
+        sub_folders.insert(2, os.path.join(os.sep, model_name, version))
+        
+        list = set()
+        sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
+        
+        return gr.Dropdown.update(choices=sub_folders)
+    except:
+        return gr.Dropdown.update(choices=None)
 
 def on_ui_tabs():    
     base_path = "extensions"
@@ -151,7 +154,8 @@ def on_ui_tabs():
         installed_finish = gr.Textbox(value=None, visible=None)
         delete_finish = gr.Textbox(value=None, visible=False)
         current_model = gr.Textbox(value=None, visible=False)
-        
+        current_sha256 = gr.Textbox(value=None, visible=False)
+                                                                                    
         def changeInput():
             gl.contentChange = True
             
@@ -442,7 +446,8 @@ def on_ui_tabs():
                 delete_finish,
                 list_models,
                 list_versions,
-                model_filename
+                model_filename,
+                current_sha256
                 ],
             outputs=[
                 download_model,
@@ -473,7 +478,8 @@ def on_ui_tabs():
                 delete_finish,
                 model_filename,
                 list_models,
-                list_versions
+                list_versions,
+                current_sha256
                 ],
             outputs=[
                 download_model,
@@ -530,20 +536,10 @@ def on_ui_tabs():
                 base_model,
                 download_model,
                 delete_model,
-                file_list
-            ]
-        )
-        
-        list_versions.input(
-            fn=_api.update_file_info,
-            inputs=[
-                list_models,
-                list_versions,
-                file_list
-            ],
-            outputs=[
+                file_list,
                 model_filename,
-                model_id
+                model_id,
+                current_sha256
             ]
         )
         
@@ -556,7 +552,8 @@ def on_ui_tabs():
             ],
             outputs=[
                 model_filename,
-                model_id
+                model_id,
+                current_sha256
             ]
         )
         
@@ -653,10 +650,9 @@ def on_ui_tabs():
         def update_models_dropdown(model_name):
             model_name = re.sub(r'\.\d{3}$', '', model_name)
             (ret_versions, install_path, sub_folder) = _api.update_model_versions(model_name)
-            (html, tags, _, DwnButton, _, filelist) = _api.update_model_info(model_name,ret_versions['value'])
-            (filename, id) = _api.update_file_info(model_name, ret_versions['value'], filelist['value'])
+            (html, tags, _, DwnButton, _, filelist, filename, id, current_sha256) = _api.update_model_info(model_name,ret_versions['value'])
             (dl_url, _, _, _) = _api.update_dl_url(tags, id['value'], model_name, ret_versions['value'])
-            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url['value'],tags,filename,install_path['value'],sub_folder, DwnButton, filelist, id
+            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url['value'],tags,filename,install_path['value'],sub_folder, DwnButton, filelist, id, current_sha256
         
         event_text.change(
             fn=update_models_dropdown,
@@ -674,7 +670,8 @@ def on_ui_tabs():
                 sub_folder,
                 download_model,
                 file_list,
-                model_id
+                model_id,
+                current_sha256
             ]
         )
 
