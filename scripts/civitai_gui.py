@@ -118,7 +118,7 @@ def on_ui_tabs():
                 cancel_model = gr.Button(value="Cancel Download", interactive=False, visible=False)
                 delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
             with gr.Row():
-                preview_html = gr.HTML()
+                preview_html = gr.HTML(elem_id="civitai_preview_html")
         with gr.Tab("Update Models"):
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"])

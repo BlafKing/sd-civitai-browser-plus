@@ -96,19 +96,14 @@
 	padding-bottom: 20px;
 }
 
-.model-block {
+#civitai_preview_html .model-block {
 	box-shadow: 0px 0px 1px 3px #3339ff30;
     border-radius: 10px;
     padding: 1px 20px 10px;
     margin-bottom: 20px;
 }
 
-.model-block h2 {
-	/*For some reason h2 has a huge margin*/
-	margin-bottom: -10px;
-}
-
-.sampleimgs .model-block img {
+#civitai_preview_html .sampleimgs .model-block img {
 	padding-top: 1em;
 	max-width: 20em;
 	cursor: zoom-in;
@@ -116,12 +111,12 @@
 }
 
 /* Preview Image zoom */
-.zoom-radio {
+#civitai_preview_html .zoom-radio {
     display: none!important;
 }
 
 /* Style for when the image is clicked (radio button checked) */
-.zoom-radio:checked + label > img {
+#civitai_preview_html .zoom-radio:checked + label > img {
     max-width: 95vw;
     max-height: 95vh;
     padding-top: 0px;
@@ -135,7 +130,7 @@
 }
 
 /* Overlay for resetting zoomed state */
-.zoom-overlay {
+#civitai_preview_html .zoom-overlay {
     display: none;
     position: fixed;
     top: 0;
@@ -147,28 +142,28 @@
     cursor: zoom-out;
 }
 
-.zoom-radio:checked + label + .zoom-overlay {
+#civitai_preview_html .zoom-radio:checked + label + .zoom-overlay {
     display: block;
     pointer-events: all; /* Capture click events when displayed */
 }
 
-.zoom-img-container {
+#civitai_preview_html .zoom-img-container {
     min-width: 20em;
 }
 
-.model-uploader {
+#civitai_preview_html .model-uploader {
  	border-bottom: 1px solid;
     padding-bottom: 10px;
  }
 
- .model-description {
+#civitai_preview_html .model-description {
  	border-top: 1px solid;
     padding-bottom: 10px;
     margin-bottom: 10px;
  }
 
 /*Avatar CSS mostly copied from CivitAI, but 48px instead of 32px*/
-.avatar {
+#civitai_preview_html .avatar {
 	user-select: none;
     overflow: hidden;
     width: 48px;
@@ -184,7 +179,7 @@
     vertical-align: middle;
 }
 
-.avatar img {
+#civitai_preview_html .avatar img {
 	object-fit: cover;
     width: 100%;
     height: 100%;
@@ -195,36 +190,36 @@
     vertical-align: middle;
 }
 
-dt {
+#civitai_preview_html dt {
 	font-size: medium;
     color: #80a6c8!important;
 }
 
-dd {
+#civitai_preview_html dd {
 	padding: 0px 0px 10px 10px;
 }
 
 /*CSS accordion for toggling extra metadata*/
 /*-----------------------------------------*/
-.accordionCheckbox {
+#civitai_preview_html .accordionCheckbox {
   position: absolute;
   opacity: 0;
   z-index: -1;
 }
 
-.tabs {
+#civitai_preview_html .tabs {
   border-radius: 10px;
   overflow: hidden;
 }
 
-.tab {
+#civitai_preview_html .tab {
   width: 100%;
   color: white;
   overflow: hidden;
   margin-left: -15px;
 }
 
-.tab-label {
+#civitai_preview_html .tab-label {
   display: flex;
   padding: 1em;
   font-weight: bold;
@@ -233,7 +228,7 @@ dd {
 }
 
 /* Icon */
-.tab-label::before {
+#civitai_preview_html .tab-label::before {
   content: "❯";
   width: 1em;
   height: 1em;
@@ -241,17 +236,17 @@ dd {
   transition: all 0.3s;
 }
 
-.accordionCheckbox:checked + .tab-label::before {
+#civitai_preview_html .accordionCheckbox:checked + .tab-label::before {
   transform: rotate(90deg);
 }
 
-.tab-content {
+#civitai_preview_html .tab-content {
   max-height: 0;
   padding: 0 1em;
   transition: all 0.3s;
 }
 
-.tab-close {
+#civitai_preview_html .tab-close {
   display: flex;
   justify-content: flex-end;
   padding: 1em;
@@ -259,7 +254,7 @@ dd {
   cursor: pointer;
 }
 
-.accordionCheckbox:checked ~ .tab-content {
+#civitai_preview_html .accordionCheckbox:checked ~ .tab-content {
   max-height: 100vh;
   padding: 1em;
 }
