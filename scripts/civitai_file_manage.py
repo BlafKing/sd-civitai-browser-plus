@@ -28,13 +28,13 @@ from_installed = False
 
 def delete_model(delete_finish, model_filename, model_name, list_versions):
     gr_components = _api.update_model_versions(model_name)
+    model_name_search = model_name
     
     (model_name, ver_value, ver_choices) = _file.card_update(gr_components, model_name, list_versions, False)
-    
-    if model_name is not None:
+    if model_name_search is not None:
         selected_content_type = None
         for item in gl.json_data['items']:
-            if item['name'] == model_name:
+            if item['name'] == model_name_search:
                 selected_content_type = item['type']
                 break
         
