@@ -206,10 +206,16 @@ def model_list_html(json_data, model_dict):
                             if file.endswith('.json'):
                                 json_path = os.path.join(root, file)
                                 with open(json_path, 'r') as f:
-                                    json_data = json.load(f)
-                                    sha256 = json_data.get('sha256')
-                                    if sha256:
-                                        existing_files_sha256.append(sha256.upper())
+                                    try:
+                                        json_data = json.load(f)
+                                        if isinstance(json_data, dict):
+                                            sha256 = json_data.get('sha256')
+                                            if sha256:
+                                                existing_files_sha256.append(sha256.upper())
+                                        else:
+                                            print(f"Invalid JSON data in {json_path}. Expected a dictionary.")
+                                    except json.JSONDecodeError as e:
+                                        print(f"Error decoding JSON in {json_path}: {str(e)}")
                     
                     installstatus = None
                     
