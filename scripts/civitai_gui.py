@@ -661,7 +661,7 @@ def on_ui_tabs():
             (ret_versions, install_path, sub_folder) = _api.update_model_versions(model_name)
             (html, tags, _, DwnButton, _, filelist, filename, id, current_sha256) = _api.update_model_info(model_name,ret_versions['value'])
             (dl_url, _, _, _) = _api.update_dl_url(tags, id['value'], model_name, ret_versions['value'])
-            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url['value'],tags,filename,install_path['value'],sub_folder, DwnButton, filelist, id, current_sha256
+            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url,tags,filename,install_path,sub_folder, DwnButton, filelist, id, current_sha256
         
         event_text.change(
             fn=update_models_dropdown,

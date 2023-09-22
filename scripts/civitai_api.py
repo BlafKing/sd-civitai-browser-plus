@@ -67,19 +67,18 @@ def contenttype_folder(content_type):
     elif content_type == "AestheticGradient":
         folder = "extensions/stable-diffusion-webui-aesthetic-gradients/aesthetic_embeddings"
         
-    elif content_type == "LORA" or "LORA/LoCon":
+    elif content_type == "LORA":
         folder = cmd_opts.lora_dir
         
     elif content_type == "LoCon":
-        if use_LORA:
-            folder = cmd_opts.lora_dir
-            return folder
         if "lyco_dir" in cmd_opts:
             folder = f"{cmd_opts.lyco_dir}"
         elif "lyco_dir_backcompat" in cmd_opts:
             folder = f"{cmd_opts.lyco_dir_backcompat}"
         else:
-            folder = os.path.join(models_path,"LyCORIS")          
+            folder = os.path.join(models_path,"LyCORIS")    
+        if use_LORA:
+            folder = cmd_opts.lora_dir      
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:
