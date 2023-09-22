@@ -18,14 +18,6 @@ import time
 
 gl.init()
 
-def git_tag():
-    try:
-        return subprocess.check_output([os.environ.get('GIT', "git"), "describe", "--tags"], shell=False, encoding='utf8').strip()
-    except:
-        return "None"
-
-ver = git_tag()
-
 def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=None):    
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
@@ -56,7 +48,7 @@ def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=No
         )
 
 def contenttype_folder(content_type):
-    folder = None
+    use_LORA = getattr(opts, "use_LORA", False)
     if content_type == "modelFolder":
         folder = os.path.join(models_path)
     
@@ -75,24 +67,19 @@ def contenttype_folder(content_type):
     elif content_type == "AestheticGradient":
         folder = "extensions/stable-diffusion-webui-aesthetic-gradients/aesthetic_embeddings"
         
-    elif content_type == "LORA":
+    elif content_type == "LORA" or "LORA/LoCon":
         folder = cmd_opts.lora_dir
         
     elif content_type == "LoCon":
-        if gl.scan_files:
-            folder = os.path.join(models_path,"LyCORIS")
+        if use_LORA:
+            folder = cmd_opts.lora_dir
             return folder
-        try:
-            parsed_version = version.parse(ver) 
-            if version.parse(ver) >= version.parse("1.5"):
-                folder = cmd_opts.lora_dir
-        except version.InvalidVersion or parsed_version < version.parse("1.5"):
-            if "lyco_dir" in cmd_opts:
-                folder = f"{cmd_opts.lyco_dir}"
-            elif "lyco_dir_backcompat" in cmd_opts:
-                folder = f"{cmd_opts.lyco_dir_backcompat}"
-            else:
-                folder = os.path.join(models_path,"LyCORIS")          
+        if "lyco_dir" in cmd_opts:
+            folder = f"{cmd_opts.lyco_dir}"
+        elif "lyco_dir_backcompat" in cmd_opts:
+            folder = f"{cmd_opts.lyco_dir_backcompat}"
+        else:
+            folder = os.path.join(models_path,"LyCORIS")          
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:

@@ -623,9 +623,9 @@ def start_installed_models(installed_start):
     
 def finish_installed_models():
     return (
+        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=True, visible=True)
+        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True),
     )
 
 def cancel_scan():

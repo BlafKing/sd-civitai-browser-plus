@@ -48,6 +48,7 @@ def insert_sub(model_name, version_name):
         return gr.Dropdown.update(choices=None)
 
 def on_ui_tabs():    
+    use_LORA = getattr(opts, "use_LORA", False)
     base_path = "extensions"
     lobe_directory = None
 
@@ -60,6 +61,11 @@ def on_ui_tabs():
     toggle1 = None if lobe_directory else "toggle1"
     toggle2 = None if lobe_directory else "toggle2"
     toggle3 = None if lobe_directory else "toggle3"
+    
+    if use_LORA:
+        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "VAE", "Controlnet", "Poses"] 
+    else:
+        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"]
     
     with gr.Blocks() as civitai_interface:
         with gr.Tab("Browser"):
@@ -124,7 +130,7 @@ def on_ui_tabs():
                 preview_html = gr.HTML(elem_id="civitai_preview_html")
         with gr.Tab("Update Models"):
             with gr.Row():
-                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"])
+                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=tag_choices)
             with gr.Row():
                 save_all_tags = gr.Button(value="Update assigned tags", interactive=True, visible=True)
                 cancel_all_tags = gr.Button(value="Cancel updating tags", interactive=False, visible=False)
@@ -694,6 +700,7 @@ def on_ui_settings():
     shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 Logs in CMD", section=section).info("Requires Web-UI Restart"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
     shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
+    shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Use LORA directory for LoCon's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, so they can be placed in the LORA folder."))
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)
