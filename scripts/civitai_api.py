@@ -433,9 +433,14 @@ def update_model_versions(model_name):
                     json_path = os.path.join(root, file)
                     with open(json_path, 'r') as f:
                         json_data = json.load(f)
-                        sha256 = json_data.get('sha256')
-                        if sha256:
-                            existing_files_sha256.append(sha256.upper())
+                        if isinstance(json_data, dict):
+                            sha256 = json_data.get('sha256')
+                            if sha256:
+                                existing_files_sha256.append(sha256.upper())
+                        else:
+                            # Handle the case where json_data is not a dictionary
+                            # This could be an error or something else based on your data
+                            print(f"Skipping non-dictionary JSON data in {json_path}")
 
         for root, dirs, _ in os.walk(model_folder):
             for d in dirs:
