@@ -77,7 +77,7 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 * Feature: Able to download multiple files from each version.
 * Bug fix: Models did not get deleted properly when in nested folders.
 * Bug fix: Wrong sha256 was being saved after downloading.
-* Bug fix: Wrong default folder was used when isntalled model got selected.
+* Bug fix: Wrong default folder was used when installed model got selected.
 
 ---
 <h3>v1.12.1</h3>
