@@ -434,19 +434,37 @@ def update_model_versions(model_name):
                     sub_folders.append(f'{os.sep}{sub_folder}')
         
         folder_location = model_folder
-
+        found = False
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 for version in item['modelVersions']:
                     versions_dict[version['name']].append(item["name"])
-                    for root, dirs, files in os.walk(model_folder):
-                        for file in files:
-                            for version_file in version['files']:
-                                if version_file['name'] == file:
-                                    installed_versions.append(version['name'])
-                                    if root != model_folder:
+                    for version_file in version['files']:
+                        file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
+                        version_filename = version_file['name']
+                        for root, _, files in os.walk(model_folder):
+                            for file in files:
+                                if not found:
+                                    if file.endswith('.json'):
+                                        try:
+                                            json_path = os.path.join(root, file)
+                                            with open(json_path, 'r') as f:
+                                                json_data = json.load(f)
+                                                if isinstance(json_data, dict):
+                                                    sha256 = json_data.get('sha256', "").upper()
+                                                    if sha256 == file_sha256:
+                                                        installed_versions.append(version['name'])
+                                                        found = True
+                                        except:
+                                            print(f"failed to read: \"{file}\"")
+                                    
+                                    if version_filename == file:
+                                        installed_versions.append(version['name'])
+                                        found = True
+
+                                    if found:
                                         folder_location = root
-                                    break
+                                        break
 
         default_subfolder = folder_location.replace(model_folder, '')
         default_subfolder = default_subfolder if default_subfolder else "None"
