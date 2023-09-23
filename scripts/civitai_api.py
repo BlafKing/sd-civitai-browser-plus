@@ -426,21 +426,6 @@ def update_model_versions(model_name):
 
         model_folder = os.path.join(contenttype_folder(selected_content_type))
         gl.main_folder = model_folder
-        existing_files_sha256 = []
-        for root, dirs, files in os.walk(model_folder):
-            for file in files:
-                if file.endswith('.json'):
-                    json_path = os.path.join(root, file)
-                    with open(json_path, 'r') as f:
-                        json_data = json.load(f)
-                        if isinstance(json_data, dict):
-                            sha256 = json_data.get('sha256')
-                            if sha256:
-                                existing_files_sha256.append(sha256.upper())
-                        else:
-                            # Handle the case where json_data is not a dictionary
-                            # This could be an error or something else based on your data
-                            print(f"Skipping non-dictionary JSON data in {json_path}")
 
         for root, dirs, _ in os.walk(model_folder):
             for d in dirs:
@@ -449,20 +434,34 @@ def update_model_versions(model_name):
                     sub_folders.append(f'{os.sep}{sub_folder}')
         
         folder_location = model_folder
-
+        found = False
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 for version in item['modelVersions']:
-                    versions_dict[version['name']].append(item["name"])
-                    for root, dirs, files in os.walk(model_folder):
-                        for file in files:
-                            for version_file in version['files']:
-                                file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
-                                if version_file['name'] == file or file_sha256 in existing_files_sha256:
-                                    installed_versions.append(version['name'])
-                                    if root != model_folder:
+                    for version_file in version['files']:
+                        file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
+                        version_filename = version_file['name']
+                        for root, _, files in os.walk(model_folder):
+                            for file in files:
+                                if not found:
+                                    if file.endswith('.json'):
+                                        try:
+                                            json_path = os.path.join(root, file)
+                                            with open(json_path, 'r') as f:
+                                                json_data = json.load(f)
+                                                if isinstance(json_data, dict):
+                                                    sha256 = json_data.get('sha256', "").upper()
+                                                    if sha256 == file_sha256:
+                                                        found = True
+                                        except:
+                                            print(f"failed to read: \"{file}\"")
+                                    
+                                    if version_filename == file:
+                                        found = True
+
+                                    if found:
                                         folder_location = root
-                                    break
+                                        break
 
         default_subfolder = folder_location.replace(model_folder, '')
         default_subfolder = default_subfolder if default_subfolder else "None"
