@@ -99,7 +99,7 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 ---
 <h3>v1.11.2</h3>
 
-* Redesign of model page by [ManOrMonster](https://github.com/ManOrMonster)
+* Feature: Redesign of model page by [ManOrMonster](https://github.com/ManOrMonster)
 * <details><summary>Model page changes (https://github.com/BlafKing/sd-civitai-browser-plus/pull/33)</summary>
    
    - Redesigned the look of the model page.
@@ -123,14 +123,14 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 * Feature: Error detection during Aria2 downloads.
 * Bug fix: Avoid starting Aria2 RPC multiple times with better port check.
-* Bug fix: fixed dynamic tile status updates after deleting/downloading.
+* Bug fix: Fixed dynamic tile status updates after deleting/downloading.
 ---
 
 <h3>v1.11</h3>
 
 * Feature: Ability to scan all installed models for available updates.
 * Feature: Model ID and sha256 get saved to .json after scanning or downloading a model.
-* Bug fix: fixed crash when base model is not found.
+* Bug fix: Fixed crash when base model is not found.
 * Bug fix: No longer overwrite sha256 and model ID in existing .json.
 ---
 
@@ -149,10 +149,10 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 <h3>v1.9.4</h3>
 
 * Feature: Added Civit AI settings tab
-  - New setting: disable downloading with Aria2. (will use old download method instead)
-  - New setting: disable using Async DNS. (can fix issues for some users who use DNS managing programs)
-  - New setting: show Aria2 logs in the CMD.
-  - New setting: set the amount of connections when downloading a model with Aria2.  
+  - New setting: Disable downloading with Aria2. (will use old download method instead)
+  - New setting: Disable using Async DNS. (can fix issues for some users who use DNS managing programs)
+  - New setting: Show Aria2 logs in the CMD.
+  - New setting: Set the amount of connections when downloading a model with Aria2.  
     (The optimal connection count is different per user, try to find the lowest option which still gives you full bandwidth speed)
 ---
 <h3>v1.9.3</h3>
@@ -192,7 +192,7 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 * Cleanup: Rearranged/Resized UI elements.
 * Bug fix: Downloading models now uses file ID instead of names.
 * Bug fix: NSFW Toggle no longer hides images tagged as "Soft".
-* Bug fix: fixed each model load running twice.
+* Bug fix: Fixed each model load running twice.
 ---
 
 <h3>v1.7.2</h3>
@@ -219,7 +219,7 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 <h3>v1.6</h3>
 
-* Bug fix: page count is now always correclty read when refreshing.  
+* Bug fix: Page count is now always correclty read when refreshing.  
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
 * Feature: 'Filter Base Model' to dynamically hide any unselected Base models.  
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
