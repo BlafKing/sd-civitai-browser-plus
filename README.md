@@ -72,21 +72,29 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.12.2</h3>
+
+* Feature: Able to download multiple files from each version.
+* Bug fix: Models did not get deleted properly when in nested folders.
+* Bug fix: Wrong sha256 was being saved after downloading.
+* Bug fix: Wrong default folder was used when isntalled model got selected.
+
+---
 <h3>v1.12.1</h3>
 
-* File deletion now uses both SHA256 and file name to detect correct file.
-* Fixed a bug where the default file was incorrect when selecting a model.
-* Fixed a bug where Next Page caused an error when changing content type.
-* Added settings option to toggle automatically inserting 2 default sub folders.
-* Added settings option to toggle installing LoCON's in LORA folder.
+* Feature: File deletion now uses both SHA256 and file name to detect correct file.
+* New setting: option to toggle automatically inserting 2 default sub folders.
+* New setting: option to toggle installing LoCON's in LORA folder.
+* Bug fix: default file was incorrect when selecting a model.
+* Bug fix: Next Page caused an error when changing content type.
 
 ---
 <h3>v1.12</h3>
 
-* Added ability to load all selected installed models into browser in Update Models tab.
-* Installed/outdated models check is now also done using SHA256 instead of only file name.
-* Added ability to select multiple content Types when searching and scanning.
-* Greatly improved speed of model installed/update scanning if model ID is in associated .json
+* Feature: Ability to load all selected installed models into browser in Update Models tab.
+* Feature: Installed/outdated models check is now done using SHA256 + file name.
+* Feature: Ability to select multiple content Types when searching and scanning.
+* Feature: Greatly improved speed of model scanning if model ID is saved in .json
 
 ---
 <h3>v1.11.2</h3>
@@ -113,179 +121,176 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 ---
 <h3>v1.11.1</h3>
 
-* Added error detection during Aria2 downloads.
-* Avoid starting Aria2 RPC multiple times with better port check.
-* Bug fix for dynamic tile status updates after deleting/downloading.
+* Feature: Error detection during Aria2 downloads.
+* Bug fix: Avoid starting Aria2 RPC multiple times with better port check.
+* Bug fix: fixed dynamic tile status updates after deleting/downloading.
 ---
 
 <h3>v1.11</h3>
 
-* Added new feature which can scan all installed models for available updates.
-* Fixed a bug which occurs if the Base Model isn't found.
-* Model ID and sha256 now gets saved to matching .json after scanning or downloading a model
-* Update Model functions now use Model IDs or sha256 from .json if available for faster scanning.
+* Feature: Ability to scan all installed models for available updates.
+* Feature: Model ID and sha256 get saved to .json after scanning or downloading a model.
+* Bug fix: fixed crash when base model is not found.
+* Bug fix: No longer overwrite sha256 and model ID in existing .json.
 ---
 
 <h3>v1.10.1</h3>
 
-* Fixed pathing for Unix systems
-* Added extra check to make sure only the selected model gets deleted when pressing delete.
-* Models get moved to trash instead of fully deleted.
-* Added extra Aria2 RPC startup check for Windows Linux sub-systems
+* Bug fix: Fixed pathing for Unix systems
+* Bug fix: Extra checks to prevent deleting unintentional files.
+* Feature: Models get moved to trash instead of fully deleted.
 ---
 <h3>v1.10</h3>
 
-* Added new feature which can update Tags for all installed models!
-* Added tabs for Browsing and updating Tags.
-* Added Buttons to select which folders to update tags in.
+* Feature: Update tags for all installed models!
+* Feature: Tabs for Browsing and updating Tags.
+* Feature: Buttons to select which folders to update tags in.
 ---
 <h3>v1.9.4</h3>
 
-* Added Civit AI settings tab
-  - Option to disable downloading with Aria2. (will use old download method instead)
-  - Option to disable using Async DNS. (can fix issues for some users who use DNS managing programs)
-  - Option to show Aria2 logs in the CMD.
-  - Option to set the amount of connections when downloading a model with Aria2.  
+* Feature: Added Civit AI settings tab
+  - New setting: disable downloading with Aria2. (will use old download method instead)
+  - New setting: disable using Async DNS. (can fix issues for some users who use DNS managing programs)
+  - New setting: show Aria2 logs in the CMD.
+  - New setting: set the amount of connections when downloading a model with Aria2.  
     (The optimal connection count is different per user, try to find the lowest option which still gives you full bandwidth speed)
 ---
 <h3>v1.9.3</h3>
 
-* Included Motrix Aria2 version.
-* Max connections per server set to 64 and split file set 64.
-* Aria2 is now shipped with this extension for Linux as well. (no need to manually install anymore!)
+* Feature: Included Motrix Aria2 version.
+* Feature: Max connections per server set to 64 and split file set 64.
+* Feature: Aria2 is now shipped with this extension for Linux as well.
 ---
 
 <h3>v1.9.2</h3>
 
-* Split up script into multiple files for improved oversight/readability.
-* Centered model icons
+* Cleanup: Split up script into multiple files for improved oversight/readability.
+* Cleanup: Centered model icons
 ---
 
 <h3>v1.9.1</h3>
 
-* Added back old download function if aria2 fails.
+* Bug fix: Added back old download function if aria2 fails.
 ---
 
 <h3>v1.9</h3>
 
-* Integrated Aria2 into the download_file function for faster downloading.
-* Added more info about current download: Speed, ETA, File Size and % completion.
+* Feature: Faster downloads by using Aria2.
+* Feature: More info about current download: Speed, ETA, File Size and % completion.
 ---
 
 <h3>v1.8.1</h3>
 
-* Sub Folder list now contains 2 default options: `/{Model name}` & `/{Model name}/{Version name}`
+* Feature: Sub Folder list now contains 2 default options: `/{Model name}` & `/{Model name}/{Version name}`
 ---
 
 <h3>v1.8</h3>
 
-* Added ability to download different file types per version.
-* Downloading models now uses file ID instead of names.
-* NSFW Toggle is now dynamic.
-* NSFW Toggle no longer hides images tagged as "Soft".
-* Rearranged/Resized UI elements.
-* Version list now dynamically updates after download.
-* Fixed bug where each model load ran twice.
+* Feature: Ability to download different file types per version.
+* Feature: NSFW Toggle is now dynamic.
+* Feature: Version list now dynamically updates after download.
+* Cleanup: Rearranged/Resized UI elements.
+* Bug fix: Downloading models now uses file ID instead of names.
+* Bug fix: NSFW Toggle no longer hides images tagged as "Soft".
+* Bug fix: fixed each model load running twice.
 ---
 
 <h3>v1.7.2</h3>
 
-* Fixed a bug where Download button did not get re-enabled properly.
-* Fixed a bug where tile status did not get updated properly when download failed.
+* Bug fix: Download button did not get re-enabled properly.
+* Bug fix: Tile status did not get updated properly when download failed.
 ---
 
 <h3>v1.7.1</h3>
 
-* Dynamic changing of tile status after installation & deletion now correctly detects other versions.
-* Base Model filtering dims tiles instead of hiding.
-* NSFW Blur increases with tile size.
+* Feature: Base Model filtering dims tiles instead of hiding.
+* Bug fix: NSFW Blur increases with tile size.
+* Bug fix: Dynamic tile status after installation & deletion now correctly detects other versions.
 ---
 
 <h3>v1.7</h3>
 
-* Introduced seperate download progress bar, allows to keep browsing whilst downloading.
-* Removed force refresh after installing, cancelling and deleting.
-* Removed 'Automatically delete old version' option since this relied on a reload after installation.
-* Added toggle to sort Tiles by date, this adds a header with the update date and groups models.
-* Dynamic changing of tile borders after installation & deletion (doesn't detect old versions yet).
+* Feature: Introduced seperate download progress bar, browse while downloading.
+* Feature: no more force refresh after installing, cancelling and deleting.
+* Feature: Added toggle to sort Tiles by date.
+* Feature: Dynamic changing of tile borders after installation & deletion.
+* Removal: 'Auto delete old version' removed since it relied on a reload.
 ---
 
 <h3>v1.6</h3>
 
-* LoCon models now get saved in the Lora folder if A1111's version is 1.5 or higher.
-* improved page_count detection.  
+* Bug fix: page count is now always correclty read when refreshing.  
 (You can fill in the page number you'd like to visit and press refresh to go to that page)
-* Added 'Filter Base Model' dropdown box to dynamically hide any unselected Base models.  
+* Feature: 'Filter Base Model' to dynamically hide any unselected Base models.  
 (Please note: This does not impact search results, since the CivitAI API does not yet support this)
 ---
 
 <h3>v1.5</h3>
 
-* Added slider to change tile size
-* Added Download Folder textbox which can be used to define a custom download path.
-* Added Sub Folder Dropdown to select any available subfolder(s) as download location.
-* Any nested files can now be detected as installed or outdated.
-* Automatically selects corresponding folder of any installed models.
-* Improved cancellation logic to prevent downloads from continuing.
-* Display a timed out message instead of an error icon.
+* Feature: Slider to change tile size.
+* Feature: Download Folder textbox which can be used to define a custom download path.
+* Feature: Sub Folder Dropdown to select any available subfolder(s) as download location.
+* Feature: Display a timed out message instead of an error icon.
+* Bug fix: Nested files can now be detected as installed or outdated.
+* Bug fix: Auto selects corresponding folder of any installed models.
+* Bug fix: Better cancellation logic to prevent downloads from continuing.
 ---
 
 <h3>v1.4</h3>
 
-* Download progress load bar is now on web page instead of CMD.
-* Better margin fixes with theme detection.
-* Delete option now also removes .json files.
-* Buttons are now disabled during download. (except cancel button)
-* Added Cancel and Delete buttons.
-* Download button will now change according to circumstances:
+* Feature: Download progress bar is now on web page instead of CMD.
+* Feature: Added Cancel and Delete buttons.
+* Feature: Download button will now change according to circumstances:
   - Cancel button if there's a current download.
   - Delete button if the selected version is installed.
+* Cleanup: Better margin fixes with theme detection.
+* Bug fix: Delete option now also removes .json files.
+* Bug fix: Buttons are now disabled during download. (except cancel button)
 ---
 
 <h3>v1.3.1</h3>
 
-* Fixed new tag saving bugs/oversights.
-* Improved trained tags display to not include the model itself.
+* Bug fix: Fixed tag saving bugs/oversights.
+* Bug fix: Trained tags display now do not include the model itself.
 ---
 
 <h3>v1.3</h3>
 
-* Changed 'Save Text' to 'Save Tags' the button now saves tags to a .json file which gets used in image creaton.  
+* Feature: 'Save Tags' button saves tags to a .json file which gets used in image creaton.  
   (If a LORA with saved tags is used it will automatically input all tags into the txt box in image creation)
-* Improved padding based on if Lobe theme is being used.
-* Added 'Save tags after download' toggle to automatically save .json tags.
-* Removed "Get model info" button, click any tile to reload model info instead.
-* Removed download link box. (felt unnecessary since there is a Download button)
-* Removed "No" from search options, leave the search term empty to not use Search instead.
-* Added border radius to cards.
+* Feature: 'Save tags after download' toggle to automatically save .json tags.
+* Cleanup: Removed "Get model info" button.
+* Cleanup: Removed download link box.
+* Cleanup: Removed "No" from search options.
+* Cleanup: Added border radius to cards.
+* Cleanup: Improved padding based on if Lobe theme is being used.
 ---
 
 <h3>v1.2</h3>
 
-* Made the 'Version' tab show the installed version by default when selecting a model.
-* Automatically saves preview image when downloading a model.
-* Added [installed] text suffix for any versions that are installed in the 'Version' tab.
-* Changed 'Model Filename' from a dropbox to a textbox.
-* Made bottom textboxes non typeable.
-* Disabled bottom buttons when no model is selected.
-* Fixed margin error on the latest tile.
-* Fixed error where some old model version(s) did not get removed.
-* Improved version checking to be case sensitive.
+* Feature: Automatically saves preview image when downloading a model.
+* Feature: Added [installed] text suffix for any versions that are installed in the 'Version' tab.
+* Cleanup: Changed 'Model Filename' from a dropbox to a textbox.
+* Cleanup: Made bottom textboxes non typeable.
+* Cleanup: Disabled bottom buttons when no model is selected.
+* Bug fix: Margin error on the latest tile.
+* Bug fix: Version checking is now case sensitive.
+* Bug fix: Default verison in version tab shows installed version.
 ---
 
 <h3>v1.1</h3>
 
-* Added dropdown box which can filter by time period.
-* Changed 'Content type' from buttons to a dropdown box.
-* Made selecting a tile always trigger a load, also when the same tile is selected twice.
+* Feature: Dropdown box which can filter by time period.
+* Cleanup: 'Content type' changed from buttons to a dropdown box.
+* Bug fix: Fixed tiles not reloading when already pressed.
 ---
 
 <h3>v1.0</h3>
 
-* Changed 'Get List' to 'Refresh', the button now reloads the current page unless any options have been changed.
-* Removed new folder option and removed the function that puts downloads in their own seperate folders.
-* Made the glow around frames always visible without hovering.
-* Added orange glow for any outdated installed packages.
-* Added 'Delete old version after download' option.
-* Added ability to manually fill in a page number to load the corresponding page.
-* Made the page refresh after a download and made it load during one.
+* Feature: 'Refresh' now reloads the current page unless any options have been changed.
+* Feature: Made the page refresh after a download and made it load during one.
+* Feature: Orange glow for any outdated installed packages.
+* Feature: 'Delete old version after download' option.
+* Feature: Ability to manually fill in a page number to load the corresponding page.
+* Cleanup: Removed new folder option.
+* Cleanup: Made the glow around frames always visible without hovering.

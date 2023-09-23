@@ -15,9 +15,9 @@ from modules.shared import opts
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
-import scripts.civitai_download as _download
 
 gl.init()
+current_sha256 = None
 
 def rpc_running():
     try:
@@ -72,11 +72,14 @@ def random_number(prev):
     
     return number
 
-def download_start(download_start, model_name, model_filename, version):
+def download_start(download_start, model_name, model_filename, version, sha256, modelId):
+    global current_sha256, current_id
     gl.last_version = version
     gl.current_download = model_filename
     gl.cancel_status = False
     gl.recent_model = model_name
+    current_sha256 = sha256
+    current_id = modelId
     number = random_number(download_start)
     return  (
             gr.Button.update(interactive=False, visible=False), # Download Button
@@ -135,7 +138,7 @@ def convert_size(size):
         size /= 1024
     return f"{size:.2f} GB"
 
-def download_file(url, file_path, install_path, model_name, model_version, progress=gr.Progress()):
+def download_file(url, file_path, install_path, progress=gr.Progress()):
     disable_dns = getattr(opts, "disable_dns", False)
     split_aria2 = getattr(opts, "split_aria2", 64)
     
@@ -157,7 +160,8 @@ def download_file(url, file_path, install_path, model_name, model_version, progr
         "dir": install_path,
         "max-connection-per-server": str(f"{split_aria2}"),
         "split": str(f"{split_aria2}"),
-        "async-dns": dns
+        "async-dns": dns,
+        "out": file_name
     }
     
     payload = json.dumps({
@@ -215,8 +219,9 @@ def download_file(url, file_path, install_path, model_name, model_version, progr
             progress(progress_percent / 100, desc=f"Downloading: {file_name} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted}")
             
             if status_info['status'] == 'complete':
+                print(f"Model saved to: {file_path}")
                 progress(1, desc=f"Model saved to: {file_path}")
-                sha256_to_json(model_name, model_version, file_path)
+                sha256_to_json(file_path)
                 time.sleep(2)
                 gl.download_fail = False
                 return
@@ -239,35 +244,24 @@ def download_file(url, file_path, install_path, model_name, model_version, progr
                 return
             time.sleep(5)
 
-def sha256_to_json(model_name, model_version, install_path):
-    for item in gl.json_data['items']:
-            if item['name'] == model_name:
-                modelId = item['id']
-                for model in item['modelVersions']:
-                    if model['name'] == model_version:
-                        for file in model['files']:
-                            hashes = file.get('hashes', {})
-                            sha256 = hashes.get('SHA256', 'None')
+def sha256_to_json(install_path):
     
     json_file = os.path.splitext(install_path)[0] + ".json"
     if os.path.exists(json_file):
         with open(json_file, 'r') as f:
             data = json.load(f)
 
-        if 'modelId' not in data:
-            data['modelId'] = modelId
-        
-        if 'sha256' not in data:
-            data['sha256'] = sha256
+            data['modelId'] = current_id
+            data['sha256'] = current_sha256
             
         with open(json_file, 'w') as f:
             json.dump(data, f, indent=4)
     else:
-        data = {'sha256': sha256, 'modelId': modelId}
+        data = {'sha256': current_sha256, 'modelId': current_id}
         with open(json_file, 'w') as f:
             json.dump(data, f, indent=4)
 
-def download_file_old(url, file_path, model_name, model_version, progress=gr.Progress()):
+def download_file_old(url, file_path,progress=gr.Progress()):
     gl.download_fail = False
     max_retries = 5
     if os.path.exists(file_path):
@@ -356,7 +350,7 @@ def download_file_old(url, file_path, model_name, model_version, progress=gr.Pro
             if not gl.cancel_status:
                 print(f"Model saved to: {file_path}")
                 progress(1, desc=f"Model saved to: {file_path}")
-                sha256_to_json(model_name, model_version, file_path)
+                sha256_to_json(file_path)
                 time.sleep(2)
                 gl.download_fail = False
                 return
@@ -391,11 +385,11 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
     path_to_new_file = os.path.join(install_path, file_name)
     
     if use_aria2:
-        thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, model_name, list_versions, progress))
+        thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
         thread.start()
         thread.join()
     else:
-        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, model_name, list_versions, progress))
+        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, progress))
         thread.start()
         thread.join()
     

@@ -419,7 +419,9 @@ def on_ui_tabs():
                 download_start,
                 list_models,
                 model_filename,
-                list_versions
+                list_versions,
+                current_sha256,
+                model_id
                 ],
             outputs=[
                 download_model,
@@ -562,7 +564,9 @@ def on_ui_tabs():
             outputs=[
                 model_filename,
                 model_id,
-                current_sha256
+                current_sha256,
+                download_model,
+                delete_model
             ]
         )
         

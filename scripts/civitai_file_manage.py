@@ -27,6 +27,7 @@ from_tag = False
 from_installed = False
 
 def delete_model(delete_finish, model_filename, model_name, list_versions, sha256=None):
+    deleted = False
     gr_components = _api.update_model_versions(model_name)
     model_name_search = model_name
     
@@ -47,27 +48,30 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
     # Delete based on provided SHA-256 hash
     if sha256:
         sha256_upper = sha256.upper()  # Convert to upper case for case-insensitive matching
-        for item in gl.json_data['items']:
-            if item['name'] == model_name_search:
-                for model_version in item.get('modelVersions', []):
-                    for file_entry in model_version.get('files', []):
-                        file_sha256 = file_entry.get('hashes', {}).get('SHA256', "").upper()  # Convert to upper case for case-insensitive matching
-                        if file_sha256 == sha256_upper:
-                            path_file = os.path.join(model_folder, file_entry.get('name', ''))
-                            base_name, _ = os.path.splitext(file_entry.get('name', ''))
-                            if os.path.isfile(path_file):
-                                try:
-                                    send2trash(path_file)
-                                    print(f"Model moved to trash based on SHA-256: {path_file}")
-                                except:
-                                    os.remove(path_file)
-                                    print(f"Model deleted based on SHA-256: {path_file}")
-                                # Delete associated files
-                                delete_associated_files(model_folder, base_name)
+        for root, _, files in os.walk(model_folder):
+            for file in files:
+                if file.endswith('.json'):
+                    file_path = os.path.join(root, file)
+                    with open(file_path, 'r') as json_file:
+                        data = json.load(json_file)
+                        file_sha256 = data.get('sha256', '').upper()
+                        
+                    if file_sha256 == sha256_upper:
+                        base_name, _ = os.path.splitext(file)
+                        if os.path.isfile(file_path):
+                            try:
+                                send2trash(file_path)
+                                print(f"Model moved to trash based on SHA-256: {file_path}")
+                            except:
+                                os.remove(file_path)
+                                print(f"Model deleted based on SHA-256: {file_path}")
+                            # Delete associated files
+                            delete_associated_files(root, base_name)
+                            deleted = True
 
     # Fallback to delete based on filename if not deleted based on SHA-256
     file_to_delete = os.path.splitext(model_filename)[0]
-    if not path_file:
+    if not deleted:
         for root, dirs, files in os.walk(model_folder):
             for file in files:
                 current_file = os.path.splitext(file)[0]
