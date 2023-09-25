@@ -1,4 +1,8 @@
-# CivitAI Browser+
+
+![CivitAI Browser-05](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/6b4832cb-9d5e-48f3-93aa-9eaedb226a50)
+
+
+---
 Extension for [Automatic1111's Stable Difussion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)  
 
 This extension allows you to download models from CivitAi without leaving WebUI!  
