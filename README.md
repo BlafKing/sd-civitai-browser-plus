@@ -13,7 +13,7 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 **NOTE: Search results are currently not impacted by the selected Base Model since the CivitAI API does not yet support this feature. If you'd like to have this feature, please upvote my feature request [here](https://civitai.featurebase.app/submissions/64ea19ac4f9cf39e6f9fb2e9) and [here](https://github.com/orgs/civitai/discussions/733)**
 
 <h1>Features 🚀</h1>
-<h3>Browse all models from CivitAI 🧩</h2>
+<h3>Browse all models from CivitAI 🧩</h3>
 
 * Explore a wide range of models at your fingertips.
 
@@ -66,6 +66,22 @@ These settings can be found under the "Settings" tab in Web-UI and then under th
 </details>
 
 <h1></h1>
+
+# How to install 📘
+
+<h3>Automatic Installation:</h3>
+
+![HowTo](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/91a8f636-0fd5-4964-8fb4-830a5c22254a)
+
+
+<h3>Manual Installation:</h3>
+
+1. Download the latest version from this site and unpack the .zip  
+![2023-09-25 13_06_31](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/12e46c6b-74b5-4ed5-bf55-cb76c5f75c62)
+
+2. Navigate to your extensions folder (Your SD folder/webui/extensions)
+3. Place the unpacked folder inside the extensions folder
+4. Restart SD-WebUI
 
 # Preview 👀
 
