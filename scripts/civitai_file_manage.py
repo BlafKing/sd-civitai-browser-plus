@@ -133,8 +133,8 @@ def save_preview(preview_html, file_name, install_path):
                 f.write(url.read())
                 
                 print(f"Preview image saved to: {preview_path}")
-    except urllib.error.URLError as e:
-        print(f'Error downloading preview image: {e.reason}')
+    except Exception as e:
+        print(f'Error downloading preview image: {e}')
 
 def save_images(preview_html, model_filename, model_name, install_path):
     if not os.path.exists(install_path):
