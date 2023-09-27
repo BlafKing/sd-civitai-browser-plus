@@ -91,6 +91,12 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.12.4</h3>
+
+* Feature: You can now refresh by pressing Ctrl+Enter and Alt+Enter
+* Bug fix: Auto unpack feature was unpacking unintended archives, now only unpacks .zip
+
+---
 <h3>v1.12.3</h3>
 
 * New setting: Option to toggle automatically unpacking .zip models.

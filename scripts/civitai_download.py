@@ -7,7 +7,6 @@ import os
 import re
 import random
 import platform
-import zipfile
 import socket
 import stat
 import json
@@ -398,7 +397,7 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
         if os.path.exists(path_to_new_file):
             if unpack_zip:
                 try:
-                    if zipfile.is_zipfile(path_to_new_file):
+                    if path_to_new_file.endswith('.zip'):
                         directory = Path(os.path.dirname(path_to_new_file))
                         zip_handler = ZipHandler(path_to_new_file)
                         zip_handler.extract_all(directory)
