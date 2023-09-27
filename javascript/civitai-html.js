@@ -124,3 +124,29 @@ function updateCard(modelNameWithSuffix) {
         });
     }
 }
+
+document.addEventListener('keydown', function(e) {
+    var handled = false;
+
+    // Check for the combination of "Enter" key along with Ctrl, Alt, or Meta (Cmd on Mac)
+    if (e.key !== undefined) {
+        if ((e.key == "Enter" && (e.metaKey || e.ctrlKey || e.altKey))) handled = true;
+    } else if (e.keyCode !== undefined) {
+        if ((e.keyCode == 13 && (e.metaKey || e.ctrlKey || e.altKey))) handled = true;
+    }
+
+    if (handled) {
+        // Check if the extension's tab is the currently active tab
+        var currentTabContent = get_uiCurrentTabContent();
+        if (currentTabContent && currentTabContent.id === "tab_civitai_interface") {
+
+            // Find the refresh button within the current tab content and click it
+            var refreshButton = currentTabContent.querySelector('#refreshBtn');
+            if (refreshButton) {
+                refreshButton.click();
+            }
+
+            e.preventDefault();
+        }
+    }
+});
