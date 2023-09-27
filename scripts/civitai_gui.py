@@ -84,7 +84,7 @@ def on_ui_tabs():
                     show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle3)
             with gr.Row():
                 with gr.Column(scale=3,min_width=300):
-                    search_term = gr.Textbox(label="Search Term:", interactive=True, lines=1)
+                    search_term = gr.Textbox(label="Search Term (press ctrl+Enter or alt+Enter to search):", interactive=True, lines=1)
                 with gr.Column(scale=2,min_width=120):
                     use_search_term = gr.Radio(label="Search:", choices=["Model name", "User name", "Tag"],value="Model name")
                 with gr.Column(scale=1,min_width=160 ):
