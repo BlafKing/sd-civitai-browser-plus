@@ -91,6 +91,13 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.12.5</h3>
+
+* Bug fix: [Installed] tag was only assigned to latest installed version.
+* Bug fix: Folder location didn't update when selecting different version/file
+* Bug fix: Version scanning didn't properly scan sha256 in uppercase
+
+---
 <h3>v1.12.4</h3>
 
 * Feature: You can now refresh by pressing Ctrl+Enter and Alt+Enter

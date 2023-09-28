@@ -421,20 +421,10 @@ def update_model_versions(model_name):
 
         versions_dict = defaultdict(list)
         installed_versions = []
-        folder_location = "None"
-        sub_folders = ["None"]
 
         model_folder = os.path.join(contenttype_folder(selected_content_type))
         gl.main_folder = model_folder
 
-        for root, dirs, _ in os.walk(model_folder):
-            for d in dirs:
-                sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
-                if sub_folder:
-                    sub_folders.append(f'{os.sep}{sub_folder}')
-        
-        folder_location = model_folder
-        found = False
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 for version in item['modelVersions']:
@@ -444,45 +434,32 @@ def update_model_versions(model_name):
                         version_filename = version_file['name']
                         for root, _, files in os.walk(model_folder):
                             for file in files:
-                                if not found:
-                                    if file.endswith('.json'):
-                                        try:
-                                            json_path = os.path.join(root, file)
-                                            with open(json_path, 'r') as f:
-                                                json_data = json.load(f)
-                                                if isinstance(json_data, dict):
-                                                    sha256 = json_data.get('sha256', "").upper()
-                                                    if sha256 == file_sha256:
-                                                        installed_versions.append(version['name'])
-                                                        found = True
-                                        except:
-                                            print(f"failed to read: \"{file}\"")
-                                    
-                                    if version_filename == file:
-                                        installed_versions.append(version['name'])
-                                        found = True
+                                if file.endswith('.json'):
+                                    try:
+                                        json_path = os.path.join(root, file)
+                                        with open(json_path, 'r') as f:
+                                            json_data = json.load(f)
+                                            if isinstance(json_data, dict):
+                                                sha256 = json_data.get('sha256', "").upper()
+                                                if sha256 == file_sha256:
+                                                    installed_versions.append(version['name'])
+                                    except:
+                                        print(f"failed to read: \"{file}\"")
+                                
+                                if version_filename == file:
+                                    installed_versions.append(version['name'])
 
-                                    if found:
-                                        folder_location = root
-                                        break
-
-        default_subfolder = folder_location.replace(model_folder, '')
-        default_subfolder = default_subfolder if default_subfolder else "None"
         version_names = list(versions_dict.keys())
         display_version_names = [f"{v} [Installed]" if v in installed_versions else v for v in version_names]
         default_installed = next((f"{v} [Installed]" for v in installed_versions), None)
         default_value = default_installed or next(iter(version_names), None)
         
         return  (
-                gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True), # Version List
-                gr.Textbox.update(interactive=True, value=folder_location if model_name else None), # Install Path
-                gr.Dropdown.update(choices=sub_folders, value=default_subfolder, interactive=True) # Sub Folder List
+                gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True) # Version List
         )
     else:
         return  (
-                gr.Dropdown.update(choices=[], value=None, interactive=False), # Version List
-                gr.Textbox.update(interactive=False, value=None), # Install Path
-                gr.Dropdown.update(choices=[], value="", interactive=False) # Sub Folder List
+                gr.Dropdown.update(choices=[], value=None, interactive=False) # Version List
         )
 
 def update_model_info(model_name=None, model_version=None):
@@ -637,24 +614,45 @@ def update_model_info(model_name=None, model_version=None):
                         '''
                 
                 default_file = file_list[0] if file_list else None
-                for root, _, files in os.walk(model_folder):
-                    if model_filename in files:
+                                    
+        folder_location = "None"
+        default_subfolder = "None"
+        sub_folders = ["None"]
+
+        for root, dirs, files in os.walk(model_folder):
+            for filename in files:
+                if filename.endswith('.json'):
+                    json_file_path = os.path.join(root, filename)
+                    with open(json_file_path, 'r') as f:
+                        data = json.load(f)
+                        if data.get('sha256').upper() == sha256_value:
+                            folder_location = root
+                            BtnDown = False
+                            BtnDel = True
+                            break
+
+            else:
+                for filename in files:
+                    if filename == model_filename:
+                        folder_location = root
                         BtnDown = False
                         BtnDel = True
-                        file_checked = True
                         break
 
-                if not file_checked:
-                    for root, _, files in os.walk(model_folder):
-                        for filename in files:
-                            if filename.endswith('.json'):
-                                with open(os.path.join(root, filename), 'r') as f:
-                                    data = json.load(f)
-                                    if data.get('sha256') == sha256_value:
-                                        BtnDown = False
-                                        BtnDel = True
-                                        file_checked = True
-                                        break
+            if folder_location != "None":
+                break
+
+        for root, dirs, _ in os.walk(model_folder):
+            for d in dirs:
+                sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+                if sub_folder:
+                    sub_folders.append(f'{os.sep}{sub_folder}')
+        
+        if folder_location == "None":
+            folder_location = model_folder
+        relative_path = os.path.relpath(folder_location, model_folder)
+        default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else "None"
+                
         return  (
                 gr.HTML.update(value=output_html), # Model Preview
                 gr.Textbox.update(value=output_training), # Trained Tags
@@ -664,7 +662,9 @@ def update_model_info(model_name=None, model_version=None):
                 gr.Dropdown.update(choices=file_list, value=default_file, interactive=True), # File List
                 gr.Textbox.update(value=model_filename),  # Model File Name
                 gr.Textbox.update(value=file_id_value),  # Model ID
-                gr.Textbox.update(value=sha256_value)  # SHA256
+                gr.Textbox.update(value=sha256_value),  # SHA256
+                gr.Textbox.update(interactive=True, value=folder_location if model_name else None), # Install Path
+                gr.Dropdown.update(choices=sub_folders, value=default_subfolder, interactive=True) # Sub Folder List
         )
     else:
         return  (
@@ -676,7 +676,9 @@ def update_model_info(model_name=None, model_version=None):
                 gr.Dropdown.update(choices=None, value=None, interactive=False), # File List
                 gr.Textbox.update(value=None),  # Model File Name
                 gr.Textbox.update(value=None),  # Model ID
-                gr.Textbox.update(value=None)  # SHA256
+                gr.Textbox.update(value=None),  # SHA256
+                gr.Textbox.update(interactive=False, value=None), # Install Path
+                gr.Dropdown.update(choices=None, value=None, interactive=False) # Sub Folder List
         )
 
 def update_file_info(model_name, model_version, file_metadata):
@@ -686,7 +688,6 @@ def update_file_info(model_name, model_version, file_metadata):
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 content_type = item['type']
-                model_folder = os.path.join(contenttype_folder(content_type))
                 for model in item['modelVersions']:
                     if model['name'] == model_version:
                         for file in model['files']:
@@ -702,10 +703,12 @@ def update_file_info(model_name, model_version, file_metadata):
 
                             if f"{file_size} {file_format} {file_fp} ({filesize})" == file_metadata:
                                 installed = False
-
+                                folder_location = "None"
+                                model_folder = os.path.join(contenttype_folder(content_type))
                                 for root, _, files in os.walk(model_folder):
                                     if file_name in files:
                                         installed = True
+                                        folder_location = root
                                         break
 
                                 if not installed:
@@ -714,15 +717,24 @@ def update_file_info(model_name, model_version, file_metadata):
                                             if filename.endswith('.json'):
                                                 with open(os.path.join(root, filename), 'r') as f:
                                                     data = json.load(f)
-                                                    if data.get('sha256') == sha256:
+                                                    if data.get('sha256').upper() == sha256:
+                                                        folder_location = root
                                                         installed = True
                                                         break
+                                
+                                if folder_location == "None":
+                                    folder_location = model_folder
+                                relative_path = os.path.relpath(folder_location, model_folder)
+                                default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else "None"
+                                
                                 return  (
                                         gr.Textbox.update(value=file['name']),  # Update model_filename Textbox
                                         gr.Textbox.update(value=file_id),  # Update ID Textbox
                                         gr.Textbox.update(value=sha256), # sha256 textbox
                                         gr.Button.update(interactive=False if installed else True, visible=False if installed else True), # Download Button
-                                        gr.Button.update(interactive=True if installed else False, visible=True if installed else False)  # Delete Button
+                                        gr.Button.update(interactive=True if installed else False, visible=True if installed else False),  # Delete Button
+                                        gr.Textbox.update(interactive=True, value=folder_location if model_name else None), # Install Path
+                                        gr.Dropdown.update(value=default_subfolder, interactive=True) # Sub Folder List
                                 )
     
     return  (
@@ -730,7 +742,9 @@ def update_file_info(model_name, model_version, file_metadata):
             gr.Textbox.update(value=None), # Update ID Textbox
             gr.Textbox.update(value=None), # sha256 textbox
             gr.Button.update(interactive=False, visible=True), # Download Button
-            gr.Button.update(interactive=False, visible=False) # Delete Button
+            gr.Button.update(interactive=False, visible=False), # Delete Button
+            gr.Textbox.update(interactive=False, value=None), # Install Path
+            gr.Dropdown.update(choices=None, value=None, interactive=False) # Sub Folder List
     )
 
 def request_civit_api(api_url=None):
