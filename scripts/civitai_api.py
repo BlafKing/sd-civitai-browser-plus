@@ -624,13 +624,18 @@ def update_model_info(model_name=None, model_version=None):
                 if filename.endswith('.json'):
                     json_file_path = os.path.join(root, filename)
                     with open(json_file_path, 'r') as f:
-                        data = json.load(f)
-                        if data.get('sha256').upper() == sha256_value:
-                            folder_location = root
-                            BtnDown = False
-                            BtnDel = True
-                            break
-
+                        try:
+                            data = json.load(f)
+                            sha256 = data.get('sha256')
+                            if sha256:
+                                sha256 = sha256.upper()
+                            if sha256 == sha256_value:
+                                folder_location = root
+                                BtnDown = False
+                                BtnDel = True
+                                break
+                        except Exception as e:
+                            print(f"Error decoding JSON: {str(e)}")
             else:
                 for filename in files:
                     if filename == model_filename:
@@ -716,12 +721,14 @@ def update_file_info(model_name, model_version, file_metadata):
                                         for filename in files:
                                             if filename.endswith('.json'):
                                                 with open(os.path.join(root, filename), 'r') as f:
-                                                    data = json.load(f)
-                                                    if data.get('sha256').upper() == sha256:
-                                                        folder_location = root
-                                                        installed = True
-                                                        break
-                                
+                                                    try:
+                                                        data = json.load(f)
+                                                        if data.get('sha256').upper() == sha256:
+                                                            folder_location = root
+                                                            installed = True
+                                                            break
+                                                    except Exception as e:
+                                                        print(f"Error decoding JSON: {str(e)}")
                                 if folder_location == "None":
                                     folder_location = model_folder
                                 relative_path = os.path.relpath(folder_location, model_folder)
