@@ -91,17 +91,31 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.13</h3>
+
+* Feature: Updated available content types: 
+  - Upscaler
+  - MotionModule
+  - Wildcards
+  - Workflows
+  - Other
+* Feature: Videos can now also be displayed on preview cards and in the model info.
+* Feature: Automatically scans upscaler type by looking through model's description.
+* Feature: Automatically identify correct folder for wildcards based on extension.
+* Bug fix: Version ID got saved instead of correct Model ID after download.
+
+---
 <h3>v1.12.5</h3>
 
 * Bug fix: [Installed] tag was only assigned to latest installed version.
-* Bug fix: Folder location didn't update when selecting different version/file
-* Bug fix: Version scanning didn't properly scan sha256 in uppercase
+* Bug fix: Folder location didn't update when selecting different version/file.
+* Bug fix: Version scanning didn't properly scan sha256 in uppercase.
 
 ---
 <h3>v1.12.4</h3>
 
-* Feature: You can now refresh by pressing Ctrl+Enter and Alt+Enter
-* Bug fix: Auto unpack feature was unpacking unintended archives, now only unpacks .zip
+* Feature: You can now refresh by pressing Ctrl+Enter and Alt+Enter.
+* Bug fix: Auto unpack feature was unpacking unintended archives, now only unpacks .zip.
 
 ---
 <h3>v1.12.3</h3>

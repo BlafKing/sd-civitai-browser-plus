@@ -37,13 +37,14 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
         for item in gl.json_data['items']:
             if item['name'] == model_name_search:
                 selected_content_type = item['type']
+                desc = item['description']
                 break
         
         if selected_content_type is None:
             print("Model name not found in json_data. (delete_model)")
             return
     
-    model_folder = os.path.join(_api.contenttype_folder(selected_content_type))
+    model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
 
     # Delete based on provided SHA-256 hash
     if sha256:
@@ -213,7 +214,7 @@ def save_json(file_name, install_path, trained_tags):
     return trained_tags
 
 def card_update(gr_components, model_name, list_versions, is_install):
-    version_choices = gr_components['choices']
+    version_choices = gr_components[0]['choices']
     
     if is_install and not gl.download_fail and not gl.cancel_status:
         version_value_clean = list_versions + " [Installed]"
@@ -444,10 +445,24 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
     
     folders_to_check = []
     for item in folders:
-        folder = _api.contenttype_folder(item)
-        if folder:
-            folders_to_check.append(folder)
-    
+        upscaler = False
+        if item == "Upscaler":
+            upscaler = True
+        if upscaler:
+            folder = _api.contenttype_folder(item, "ESRGAN")
+            if folder:
+                folders_to_check.append(folder)
+            folder = _api.contenttype_folder(item, "RealESRGAN")
+            if folder:
+                folders_to_check.append(folder)
+            folder = _api.contenttype_folder(item, "SwinIR")
+            if folder:
+                folders_to_check.append(folder)
+        else:
+            folder = _api.contenttype_folder(item)
+            if folder:
+                folders_to_check.append(folder)
+        
     total_files = 0
     files_done = 0
 
@@ -601,16 +616,16 @@ def load_to_browser():
     global from_ver, from_installed
     _ = None
     if from_ver:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl) = _api.update_model_list(_,_,_,_,_,_,_,_,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,True)
     if from_installed:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl) = _api.update_model_list(_,_,_,_,_,_,_,_,False,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,False,True)
         
     from_ver, from_installed = False, False
     return (
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=False, visible=False),
-        lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,
+        lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt,
         gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Models loaded into the browser!</div>')
     )
     

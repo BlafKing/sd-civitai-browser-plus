@@ -12,12 +12,13 @@ function select_model(model_name) {
 
 function updateCardSize(width, height) {
     var styleSheet = document.styleSheets[0];
-    var imgKeyframes = `width: ${width}em !important; height: ${height}em !important;`;
+    var dimensionsKeyframes = `width: ${width}em !important; height: ${height}em !important;`;
     
     var fontSize = (width / 8) * 100;
     var textKeyframes = `font-size: ${fontSize}% !important;`;
 
-    addOrUpdateRule(styleSheet, '.civmodelcard img', imgKeyframes);
+    addOrUpdateRule(styleSheet, '.civmodelcard img', dimensionsKeyframes);
+    addOrUpdateRule(styleSheet, '.civmodelcard .video-bg', dimensionsKeyframes);
     addOrUpdateRule(styleSheet, '.civmodelcard figcaption', textKeyframes);
 }
 
@@ -150,3 +151,12 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+function BackToTop() {
+    const c = Math.max(document.body.scrollTop, document.documentElement.scrollTop);
+    if (c > 0) {
+        window.requestAnimationFrame(BackToTop);
+        document.body.scrollTop = c - c / 8;
+        document.documentElement.scrollTop = c - c / 8;
+    }
+}

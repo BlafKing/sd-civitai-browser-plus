@@ -35,7 +35,7 @@
 	background-color: rgba(32, 32, 32, 0.9);
 }
 
-.civmodelcard img {
+.civmodelcard img, .civmodelcard .video-bg {
 	width: 8em;
 	height: 12em;
 	object-fit: cover;
@@ -103,7 +103,8 @@
     margin-bottom: 20px;
 }
 
-#civitai_preview_html .sampleimgs .model-block img {
+#civitai_preview_html .sampleimgs .model-block img,
+#civitai_preview_html .sampleimgs .model-block video {
 	padding-top: 1em;
 	max-width: 20em;
 	cursor: zoom-in;
@@ -116,7 +117,8 @@
 }
 
 /* Style for when the image is clicked (radio button checked) */
-#civitai_preview_html .zoom-radio:checked + label > img {
+#civitai_preview_html .zoom-radio:checked + label > img,
+#civitai_preview_html .zoom-radio:checked + label > video {
     max-width: 95vw;
     max-height: 95vh;
     padding-top: 0px;

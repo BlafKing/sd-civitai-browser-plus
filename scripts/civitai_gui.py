@@ -25,8 +25,9 @@ def insert_sub(model_name, version_name):
             for item in gl.json_data['items']:
                 if item['name'] == model_name:
                     selected_content_type = item['type']
+                    desc = item['description']
             
-            model_folder = os.path.join(_api.contenttype_folder(selected_content_type))
+            model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
             for root, dirs, _ in os.walk(model_folder):
                 for d in dirs:
                     sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
@@ -63,15 +64,15 @@ def on_ui_tabs():
     toggle3 = None if lobe_directory else "toggle3"
     
     if use_LORA:
-        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "VAE", "Controlnet", "Poses"] 
+        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "VAE", "Controlnet", "Poses", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"] 
     else:
-        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses"]
+        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
     
     with gr.Blocks() as civitai_interface:
         with gr.Tab("Browser"):
             with gr.Row():
                 with gr.Column(scale=2, min_width=200):
-                    content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint","TextualInversion","LORA","LoCon","Poses","Controlnet","Hypernetwork","AestheticGradient", "VAE"], value=None, type="value", multiselect=True)
+                    content_type = gr.Dropdown(label='Content Type:', choices=["Checkpoint", "TextualInversion", "LORA", "LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"], value=None, type="value", multiselect=True)
                 with gr.Column(scale=2, min_width=200):
                     period_type = gr.Dropdown(label='Time Period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value")
                 with gr.Column(scale=2, min_width=200):
@@ -128,6 +129,8 @@ def on_ui_tabs():
                 delete_model = gr.Button(value="Delete Model", interactive=False, visible=False)
             with gr.Row():
                 preview_html = gr.HTML(elem_id="civitai_preview_html")
+            with gr.Row():
+                back_to_top = gr.Button(value="Back To Top", interactive=True, visible=False)
         with gr.Tab("Update Models"):
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=tag_choices)
@@ -255,6 +258,7 @@ def on_ui_tabs():
                 install_path,
                 sub_folder,
                 file_list,
+                back_to_top,
                 version_progress
             ]
         )
@@ -315,6 +319,7 @@ def on_ui_tabs():
                 install_path,
                 sub_folder,
                 file_list,
+                back_to_top,
                 installed_progress
             ]
         )
@@ -354,6 +359,12 @@ def on_ui_tabs():
         
         cancel_all_tags.click(
             fn=_file.cancel_scan
+        )
+        
+        back_to_top.click(
+            fn=None,
+            inputs=[],
+            _js="() => BackToTop()"
         )
         
         download_finish.change(
@@ -529,7 +540,8 @@ def on_ui_tabs():
                 list_models
             ],
             outputs=[
-                list_versions
+                list_versions,
+                back_to_top
             ]
         )
         
@@ -609,7 +621,8 @@ def on_ui_tabs():
                 save_images,
                 download_model,
                 install_path,
-                sub_folder
+                sub_folder,
+                back_to_top
             ]
         )
         
@@ -635,7 +648,8 @@ def on_ui_tabs():
                 download_model,
                 install_path,
                 sub_folder,
-                file_list
+                file_list,
+                back_to_top
             ],
         )
         
@@ -658,16 +672,17 @@ def on_ui_tabs():
                 pages,
                 save_tags,
                 save_images,
-                download_model
+                download_model,
+                back_to_top
             ]
         )
         
         def update_models_dropdown(model_name):
             model_name = re.sub(r'\.\d{3}$', '', model_name)
-            (ret_versions) = _api.update_model_versions(model_name)
+            (ret_versions, back_to_top) = _api.update_model_versions(model_name)
             (html, tags, _, DwnButton, _, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
             (dl_url, _, _, _) = _api.update_dl_url(tags, id['value'], model_name, ret_versions['value'])
-            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url,tags,filename,install_path,sub_folder, DwnButton, filelist, id, current_sha256
+            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url,tags,filename,install_path,sub_folder,DwnButton,filelist,id,current_sha256,back_to_top
         
         event_text.change(
             fn=update_models_dropdown,
@@ -686,7 +701,8 @@ def on_ui_tabs():
                 download_model,
                 file_list,
                 model_id,
-                current_sha256
+                current_sha256,
+                back_to_top
             ]
         )
 
