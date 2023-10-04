@@ -200,6 +200,8 @@ function adjustFilterBoxAndButtons() {
     // Adjust childDiv based on viewport width or mobile device check
     if (window.innerWidth < 500 || isMobile) {
         childDiv.style.width = "300px";
+    } else {
+        childDiv.style.width = "375px";
     }
     
     // Move the buttons based solely on viewport width
