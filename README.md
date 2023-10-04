@@ -97,7 +97,7 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 * Feature: New dropdown with filter settings.
 * Feature: Button to save current filter settings as default. (requires restart)
 * Feature: Tag box can now be typed in to save custom tags.
-* Feature: Delete function removes any unpacked files from zip.
+* Feature: Delete function removes any unpacked files.
 
 ---
 <h3>v1.13</h3>
