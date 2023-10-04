@@ -54,7 +54,7 @@ def contenttype_folder(content_type, desc=None):
     use_LORA = getattr(opts, "use_LORA", False)
     if content_type == "modelFolder":
         folder = os.path.join(models_path)
-    
+        
     if content_type == "Checkpoint":
         if cmd_opts.ckpt_dir:
             folder = cmd_opts.ckpt_dir
@@ -127,24 +127,23 @@ def contenttype_folder(content_type, desc=None):
     
     return folder
 
-def api_to_data(content_type, sort_type, period_type, use_search_term, page_count, search_term=None, timeOut=None, isNext=None):
+def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, search_term=None, timeOut=None, isNext=None):
     
-    if page_count in ("0", ""):
-        page_count = "1"
-    
-    page_value = page_count.split('/')[0]
+    if current_page in [0, None, ""]:
+        current_page = 1
     if search_term != gl.previous_search_term or gl.tile_count != gl.previous_tile_count or gl.inputs_changed or gl.contentChange:
         gl.previous_search_term = search_term
         gl.previous_tile_count = gl.tile_count
         api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page=1"
     else:
-        api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={page_value}"
+        api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={current_page}"
     
     if timeOut:
         if isNext:
-            next_page = str(int(page_value) + 1)
+            next_page = str(int(current_page) + 1)
         else:
-            next_page = str(int(page_value) - 1)
+            if current_page not in [1, 0, None, ""]:
+                next_page = str(int(current_page) - 1)
         api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={next_page}"
     
     period_type = period_type.replace(" ", "")
@@ -283,14 +282,14 @@ def model_list_html(json_data, model_dict):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, page_count):
-    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, isNext=False)
+def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page):
+    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=False)
 
-def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, page_count, isNext=True):
+def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=True):
     
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, timeOut, isNext)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut, isNext)
         timeOut = False
         
         return return_values
@@ -308,7 +307,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     gl.previous_inputs = current_inputs
 
     if gl.inputs_changed or gl.contentChange:
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page)
         return return_values
     
     if isNext:
@@ -324,14 +323,12 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     
     if gl.json_data == "timeout":
         HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
-        page_value = page_count.split('/')[0]
-        hasPrev = page_value not in [0, 1]
-        hasNext = page_value == 1 or hasPrev
+        hasPrev = current_page not in [0, 1]
+        hasNext = current_page == 1 or hasPrev
         model_dict = {}
-        pages=page_count
         
     if gl.json_data != None and gl.json_data != "timeout":
-        (hasPrev, hasNext, pages) = pagecontrol(gl.json_data)
+        (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         model_dict = {}
         try:
             gl.json_data['items']
@@ -342,32 +339,36 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             model_dict[item['name']] = item['name']
         HTML = model_list_html(gl.json_data, model_dict)
 
+    page_string = f"Page: {current_page}/{total_pages}"
+    
     return  (
-            gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value=""), # Model List
+            gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value="", interactive=True), # Model List
             gr.Dropdown.update(choices=[], value=""), # Version List
-            gr.HTML.update(value=HTML), # Model Cards HTML
-            gr.Button.update(interactive=hasPrev), # Prev Button
-            gr.Button.update(interactive=hasNext), # Next Button
-            gr.Textbox.update(value=pages), # Pages
-            gr.Button.update(interactive=False), # Save Tags Button
-            gr.Button.update(interactive=False), # Save Images Button
+            gr.HTML.update(value=HTML), # HTML Tiles
+            gr.Button.update(interactive=hasPrev), # Prev Page Button
+            gr.Button.update(interactive=hasNext), # Next Page Button
+            gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Count
+            gr.Button.update(interactive=False), # Save Tags
+            gr.Button.update(interactive=False), # Save Images
             gr.Button.update(interactive=False), # Download Button
             gr.Textbox.update(interactive=False, value=None), # Install Path
-            gr.Dropdown.update(choices=[], value=""), # Sub Folder List
+            gr.Dropdown.update(choices=[], value="", interactive=False), # Sub Folder List
+            gr.Dropdown.update(choices=[], value="", interactive=False), # File List
             gr.Button.update(visible=False)
     )
 
 def pagecontrol(json_data):
-    pages_ctrl = f"{json_data['metadata']['currentPage']}/{json_data['metadata']['totalPages']}"
+    current_page = f"{json_data['metadata']['currentPage']}"
+    total_pages = f"{json_data['metadata']['totalPages']}"
     hasNext = False
     hasPrev = False
     if 'nextPage' in json_data['metadata']:
         hasNext = True
     if 'prevPage' in json_data['metadata']:
         hasPrev = True
-    return hasPrev, hasNext, pages_ctrl
+    return hasPrev, hasNext, current_page, total_pages
 
-def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, page_count, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     if not from_ver and not from_installed:
         gl.ver_json = None
         if not gl.pageChange:
@@ -381,14 +382,12 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             
             gl.previous_inputs = current_inputs
         
-        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, page_count, search_term, timeOut, isNext)
+        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, search_term, timeOut, isNext)
         if gl.json_data == "timeout":
             HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
-            page_value = page_count.split('/')[0]
-            hasPrev = page_value not in [0, 1]
-            hasNext = page_value == 1 or hasPrev
+            hasPrev = current_page not in [0, 1]
+            hasNext = current_page == 1 or hasPrev
             model_dict = {}
-            pages=page_count
         
         if gl.json_data is None:
             return
@@ -396,34 +395,29 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
         if gl.pageChange:
             gl.pageChange = False
         
-        if gl.json_data != None and gl.json_data != "timeout":
-            (hasPrev, hasNext, pages) = pagecontrol(gl.json_data)
-            model_dict = {}
-            for item in gl.json_data['items']:
-                model_dict[item['name']] = item['name']
-            
-            HTML = model_list_html(gl.json_data, model_dict)
-        
         gl.contentChange = False
     
-    if from_ver:
-        hasPrev = False
-        hasNext = False
-        pages = ""
-        model_dict = {}
-        for item in gl.ver_json['items']:
-            model_dict[item['name']] = item['name']
-        HTML = model_list_html(gl.ver_json, model_dict)
+    if from_installed or from_ver:
         gl.json_data = gl.ver_json
     
-    if from_installed:
-        (hasPrev, hasNext, pages) = pagecontrol(gl.ver_json)
+    if gl.json_data != None and gl.json_data != "timeout":
+        if not from_ver:
+            (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
+        else:
+            current_page = 1
+            total_pages = 1
+            hasPrev = False
+            hasNext = False
         model_dict = {}
-        for item in gl.ver_json['items']:
+        for item in gl.json_data['items']:
             model_dict[item['name']] = item['name']
         
-        HTML = model_list_html(gl.ver_json, model_dict)
-        gl.json_data = gl.ver_json
+        HTML = model_list_html(gl.json_data, model_dict)
+    else:
+        current_page = 1
+        total_pages = 1
+    
+    page_string = f"Page: {current_page}/{total_pages}"
     
     return  (
             gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value="", interactive=True), # Model List
@@ -431,7 +425,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             gr.HTML.update(value=HTML), # HTML Tiles
             gr.Button.update(interactive=hasPrev), # Prev Page Button
             gr.Button.update(interactive=hasNext), # Next Page Button
-            gr.Textbox.update(value=pages), # Page Count
+            gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Count
             gr.Button.update(interactive=False), # Save Tags
             gr.Button.update(interactive=False), # Save Images
             gr.Button.update(interactive=False), # Download Button
@@ -708,7 +702,7 @@ def update_model_info(model_name=None, model_version=None):
                 
         return  (
                 gr.HTML.update(value=output_html), # Model Preview
-                gr.Textbox.update(value=output_training), # Trained Tags
+                gr.Textbox.update(value=output_training, interactive=True), # Trained Tags
                 gr.Textbox.update(value=output_basemodel), # Base Model Number
                 gr.Button.update(visible=BtnDown, interactive=BtnDown), # Download Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
@@ -722,7 +716,7 @@ def update_model_info(model_name=None, model_version=None):
     else:
         return  (
                 gr.HTML.update(value=None), # Model Preview
-                gr.Textbox.update(value=None), # Trained Tags
+                gr.Textbox.update(value=None, interactive=False), # Trained Tags
                 gr.Textbox.update(value=''), # Base Model Number
                 gr.Button.update(visible=BtnDown), # Download Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button

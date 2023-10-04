@@ -47,16 +47,16 @@ This modified extension is based on [v1.1.0](https://github.com/SignalFlagZ/sd-c
 
 **If you're experiencing issues with broken or frozen downloads, there are two possible solutions you can try:**
 
-1. **Disable Async DNS for Aria2**:
-   If you're using any DNS manager program like PortMaster, try turning on the "Disable Async DNS for Aria2" option.
-
-   ![Disable Async DNS for Aria2](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
-
-2. **Revert to the old download method**:
-   Another solution could be to disable the "Download models using Aria2" feature.  
+1. **Revert to the old download method**:
+   A solution could be to disable the "Download models using Aria2" feature.  
 This will switch back to the old download method, which may resolve the issue.
 
    ![Revert to old download method](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/982b0ebb-0cac-4053-8060-285533e0e176)
+
+2. **Disable Async DNS for Aria2**:
+   If you're using any DNS manager program like PortMaster, try turning on the "Disable Async DNS for Aria2" option.
+
+   ![Disable Async DNS for Aria2](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
 
 These settings can be found under the "Settings" tab in Web-UI and then under the "Civit AI" tile.
 
@@ -91,6 +91,15 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14</h3>
+
+* Feature: Redesign of UI.
+* Feature: New dropdown with filter settings.
+* Feature: Button to save current filter settings as default. (requires restart)
+* Feature: Tag box can now be typed in to save custom tags.
+* Feature: Delete function removes any unpacked files from zip.
+
+---
 <h3>v1.13</h3>
 
 * Feature: Updated available content types: 

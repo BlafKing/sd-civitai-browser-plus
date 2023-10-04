@@ -58,6 +58,17 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                         file_sha256 = data.get('sha256', '').upper()
                         
                     if file_sha256 == sha256_upper:
+                        unpack_list = data.get('unpackList', [])
+                        for unpacked_file in unpack_list:
+                            unpacked_file_path = os.path.join(root, unpacked_file)
+                            if os.path.isfile(unpacked_file_path):
+                                try:
+                                    send2trash(unpacked_file_path)
+                                    print(f"File moved to trash based on unpackList: {unpacked_file_path}")
+                                except:
+                                    os.remove(unpacked_file_path)
+                                    print(f"File deleted based on unpackList: {unpacked_file_path}")
+                        
                         base_name, _ = os.path.splitext(file)
                         if os.path.isfile(file_path):
                             try:

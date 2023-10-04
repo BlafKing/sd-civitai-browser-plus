@@ -57,7 +57,7 @@
 	width: auto !important;
 }
 
-#lobe_toggles{
+#togglesL{
 	margin-top: 3px;
 }
 
@@ -67,7 +67,52 @@
 
 #toggle1, #toggle2, #toggle3{
 	margin-top: 5px;
+    display: flex;
+    justify-content: center;
 }
+
+#toggle1L, #toggle2L, #toggle3L{
+    display: flex;
+	justify-content: center;
+}
+
+#centerText, #searchType {
+    text-align: center;
+}
+
+#searchType {
+    display: flex;
+    justify-content: center;
+}
+
+#browserTab {
+    min-height: 650px;
+}
+
+#searchBox > label > textarea {
+    padding-top: 11px !important;
+}
+
+#searchBox {
+    max-width: 800px;
+    align-self: center;
+}
+
+#baseMdl {
+    min-width: 100px !important;
+    max-width: 100px !important;
+}
+
+#spanWidth {
+    display: flex !important;
+    flex-direction: row;
+}
+
+#spanWidth > div {
+    flex-wrap: nowrap;
+}
+
+#pageSlider > div:nth-child(2) > div > input
 
 .gradio-container-3-32-0 .prose :last-child {
     margin-bottom: auto !important;
@@ -89,6 +134,144 @@
 #selected_tags {
     text-align: center;
 }
+
+#pageBtn1, #pageBtn2 {
+    max-width: 120px !important;
+    min-width: 50px !important;
+    height: 50px !important;
+    max-height: 50px !important;
+}
+
+#pageBoxMobile {
+    display: flex;
+    justify-content: space-between;
+}
+
+#pageBox {
+    display: flex;
+    justify-content: center;
+    align-self: center;
+    max-width: 950px !important;
+}
+
+#pageBox > div:first-child {
+    align-items: end;
+}
+
+#refreshBtn, #refreshBtnL {
+    align-self: end;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    max-width: 42px !important;
+    min-width: 42px !important;
+    width: 42px !important;
+    padding: 0px !important;
+}
+
+#refreshBtn > img,
+#refreshBtnL > img {
+    margin: unset;
+}
+
+#searchRow {
+    max-width: 800px;
+    align-self: center;
+}
+
+/* Customized Accordion Filter */
+
+#filterBox,
+#filterBoxL {
+    align-self: end;
+    height: 42px;
+    max-width: 42px;
+    padding: unset !important;
+    margin: 0px !important;
+    display: flex;
+    justify-content: center;
+}
+
+#filterBox {
+    background: var(--button-secondary-background-fill);
+}
+
+#filterBoxL {
+    background: var(--input-background-fill);
+}
+
+#filterBox:hover,
+#filterBoxL:hover {
+    background: var(--button-secondary-background-fill-hover);
+}
+
+#filterBox .label-wrap.open,
+#filterBoxL .label-wrap.open{
+    border-bottom: unset !important;
+    background: var(--button-secondary-background-fill-hover);
+    border-radius: 7px !important;
+    height: 40px;
+}
+
+#filterBox > div:nth-child(3),
+#filterBoxL > div:nth-child(3) {
+    padding: 20px;
+    position: absolute;
+    box-shadow: whitesmoke 0px 0px 2px 0px;
+    border-radius: 10px;
+    width: 375px;
+    z-index: 100 !important;
+    margin-top: 55px;
+}
+
+#filterBox > div:nth-child(3) {
+    background: var(--background-fill-primary);
+}
+
+#filterBoxL > div:nth-child(3) {
+    background: var(--neutral-950);
+}
+
+#filterBox > div:nth-child(2),
+#filterBoxL > div:nth-child(2) {
+    padding: 10px !important;
+}
+
+#filterBox .gradio-slider input[type="number"],
+#filterBoxL .gradio-slider input[type="number"] {
+    width: 70px !important;
+}
+
+#pageBox .gradio-slider input[type="number"] {
+    width: 5em !important;
+}
+
+#filterBox > div:nth-child(2) > span:nth-child(1),
+#filterBoxL > div:nth-child(2) > span:nth-child(1) {
+    display: none;
+}
+
+#filterBox > div:nth-child(2) > span:nth-child(2),
+#filterBoxL > div:nth-child(2) > span:nth-child(2) {
+    transform: rotate(0deg) !important;
+    transition: 0s !important;
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    font-size: 0;
+    color: transparent;
+    overflow: hidden;
+}
+
+#filterBox > div:nth-child(2) > span:nth-child(2)::before,
+#filterBoxL > div:nth-child(2) > span:nth-child(2)::before {
+    content: "";
+    display: block;
+    width: 100%; 
+    height: 100%;
+}
+
+/* End of Custom Accordion */
 
 #selected_tags > div {
     justify-content: center;
@@ -203,61 +386,61 @@
 /*CSS accordion for toggling extra metadata*/
 /*-----------------------------------------*/
 #civitai_preview_html .accordionCheckbox {
-  position: absolute;
-  opacity: 0;
-  z-index: -1;
+    position: absolute;
+    opacity: 0;
+    z-index: -1;
 }
 
 #civitai_preview_html .tabs {
-  border-radius: 10px;
-  overflow: hidden;
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 #civitai_preview_html .tab {
-  width: 100%;
-  color: white;
-  overflow: hidden;
-  margin-left: -15px;
+    width: 100%;
+    color: white;
+    overflow: hidden;
+    margin-left: -15px;
 }
 
 #civitai_preview_html .tab-label {
-  display: flex;
-  padding: 1em;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: large;
+    display: flex;
+    padding: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: large;
 }
 
 /* Icon */
 #civitai_preview_html .tab-label::before {
-  content: "❯";
-  width: 1em;
-  height: 1em;
-  text-align: center;
-  transition: all 0.3s;
+    content: "❯";
+    width: 1em;
+    height: 1em;
+    text-align: center;
+    transition: all 0.3s;
 }
 
 #civitai_preview_html .accordionCheckbox:checked + .tab-label::before {
-  transform: rotate(90deg);
+    transform: rotate(90deg);
 }
 
 #civitai_preview_html .tab-content {
-  max-height: 0;
-  padding: 0 1em;
-  transition: all 0.3s;
+    max-height: 0;
+    padding: 0 1em;
+    transition: all 0.3s;
 }
 
 #civitai_preview_html .tab-close {
-  display: flex;
-  justify-content: flex-end;
-  padding: 1em;
-  font-size: 0.75em;
-  cursor: pointer;
+    display: flex;
+    justify-content: flex-end;
+    padding: 1em;
+    font-size: 0.75em;
+    cursor: pointer;
 }
 
 #civitai_preview_html .accordionCheckbox:checked ~ .tab-content {
-  max-height: 100vh;
-  padding: 1em;
+    max-height: 100vh;
+    padding: 1em;
 }
 /*-----------------------------------------*/
 /*End CSS accordion for toggling extra metadata*/

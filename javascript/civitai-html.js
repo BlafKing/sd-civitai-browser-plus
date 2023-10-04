@@ -143,6 +143,9 @@ document.addEventListener('keydown', function(e) {
 
             // Find the refresh button within the current tab content and click it
             var refreshButton = currentTabContent.querySelector('#refreshBtn');
+            if (!refreshButton) {
+                refreshButton = currentTabContent.querySelector('#refreshBtnL');
+            }
             if (refreshButton) {
                 refreshButton.click();
             }
@@ -160,3 +163,159 @@ function BackToTop() {
         document.documentElement.scrollTop = c - c / 8;
     }
 }
+
+// Function to adjust alignment of Filter Accordion
+function adjustFilterBoxAndButtons() {
+    const element = document.querySelector("#filterBox") || document.querySelector("#filterBoxL");
+    if (!element) {
+        return;
+    }
+
+    const childDiv = element.querySelector("div:nth-child(3)");
+    if (!childDiv) {
+        return;
+    }
+
+    if (window.innerWidth >= 1250) {
+        childDiv.style.marginLeft = "0px";  // Reset margin-left when width is >= 1250
+        element.style.justifyContent = "center";
+    } else if (window.innerWidth < 1250 && window.innerWidth > 915) {
+        const marginLeftValue = 1250 - window.innerWidth;
+        childDiv.style.marginLeft = `${marginLeftValue}px`;
+        element.style.justifyContent = "center";
+    } else if (window.innerWidth <= 915) {
+        childDiv.style.marginLeft = "0px";  // Reset margin-left when width is <= 915
+        element.style.justifyContent = "flex-start";
+    }
+
+    // Check if the site is accessed from a mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // Reference to the buttons and divs
+    const pageBtn1 = document.querySelector("#pageBtn1");
+    const pageBtn2 = document.querySelector("#pageBtn2");
+    const pageBox = document.querySelector("#pageBox");
+    const pageBoxMobile = document.querySelector("#pageBoxMobile");
+
+    // Adjust childDiv based on viewport width or mobile device check
+    if (window.innerWidth < 500 || isMobile) {
+        childDiv.style.width = "300px";
+    }
+    
+    // Move the buttons based solely on viewport width
+    if (window.innerWidth < 500) {
+        // Move the buttons to pageBoxMobile
+        if (pageBoxMobile) {
+            if (pageBtn1) {
+                pageBoxMobile.appendChild(pageBtn1);
+            }
+            if (pageBtn2) {
+                pageBoxMobile.appendChild(pageBtn2);
+            }
+        }
+    } else {
+        // Move the buttons back to pageBox
+        if (pageBox) {
+            // Ensure pageBtn1 is the first child
+            if (pageBtn1) {
+                pageBox.insertBefore(pageBtn1, pageBox.firstChild);
+            }
+            // Append pageBtn2 to ensure it's the last child
+            if (pageBtn2) {
+                pageBox.appendChild(pageBtn2);
+            }
+        }
+    }
+}
+
+// Calls the function above whenever the window is resized
+window.addEventListener("resize", adjustFilterBoxAndButtons);
+
+// Function to trigger refresh button with extra checks for page slider
+function pressRefresh() {
+    setTimeout(() => {
+        // Check if the user is currently typing in the specified input
+        const input = document.querySelector("#pageSlider > div:nth-child(2) > div > input");
+        if (document.activeElement === input) {
+            // Attach an event listener to detect the 'Enter' key press
+            input.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.keyCode === 13) {
+                    // If 'Enter' key is detected, blur the input to make it inactive
+                    input.blur();
+                }
+            });
+
+            // Attach an event listener to detect if the input gets blurred
+            input.addEventListener('blur', function() {
+                return; // If input is blurred (either by user or programmatically), return from the function
+            });
+
+            return; // Exit the function if the user is typing
+        }
+
+        let button = document.querySelector("#refreshBtn");
+        if (!button) {
+            button = document.querySelector("#refreshBtnL");
+        }
+        if (button) {
+            button.click();
+        } else {
+            console.error("Both buttons with IDs #refreshBtn and #refreshBtnL not found.");
+        }
+    }, 200); // Delay of 200 milliseconds
+}
+
+// Update SVG Icons based on dark theme or light theme
+function updateSVGIcons() {
+    // Check if body has class "dark" and set appropriate SVG Icons
+    const isDark = document.body.classList.contains('dark');
+    const filterIconUrl = isDark ? "https://svgur.com/i/y93.svg" : "https://svgur.com/i/yBY.svg";
+    const searchIconUrl = isDark ? "https://svgur.com/i/y9S.svg" : "https://svgur.com/i/y8H.svg";
+
+    // Update filter SVG
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #filterBox > div:nth-child(2) > span:nth-child(2)::before, 
+        #filterBoxL > div:nth-child(2) > span:nth-child(2)::before {
+            background: url('${filterIconUrl}') no-repeat center center;
+            background-size: contain;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Update search SVG
+    const refreshBtn = document.querySelector("#refreshBtn");
+    const refreshBtnL = document.querySelector("#refreshBtnL");
+    let targetSearchElement;
+
+    if (refreshBtn && refreshBtn.firstChild) {
+        targetSearchElement = refreshBtn.firstChild;
+    } else if (refreshBtnL && refreshBtnL.firstChild) {
+        targetSearchElement = refreshBtnL.firstChild;
+    }
+    if (targetSearchElement) {
+        targetSearchElement.src = searchIconUrl;
+    }
+}
+
+let intervalID;
+
+function initAlignment() {
+    // The tab element which exists if page is done loading
+    const targetButton = document.querySelector("#tab_civitai_interface");
+
+    // If the target tab doesn't exist yet, retry after 1 second
+    if (!targetButton) {
+        return;
+    }
+
+    // If the tab is found, clear the interval
+    clearInterval(intervalID);
+
+    adjustFilterBoxAndButtons();
+    updateSVGIcons();
+    pressRefresh();
+}
+
+// Start the observer on page load and retry every second until successful
+intervalID = setInterval(initAlignment, 1000);
