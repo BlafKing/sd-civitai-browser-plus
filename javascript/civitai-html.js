@@ -272,6 +272,14 @@ function updateSVGIcons() {
     const filterIconUrl = isDark ? "https://svgur.com/i/y93.svg" : "https://svgur.com/i/yBY.svg";
     const searchIconUrl = isDark ? "https://svgur.com/i/y9S.svg" : "https://svgur.com/i/y8H.svg";
 
+    const element = document.querySelector("#filterBox") || document.querySelector("#filterBoxL");
+    const childDiv = element.querySelector("div:nth-child(3)");
+
+    if (childDiv) {
+        const boxShadowValue = isDark ? 'box-shadow: #ffffff 0px 0px 2px 0px;' : 'box-shadow: #000000 0px 0px 2px 0px;';
+        childDiv.style.cssText = boxShadowValue;
+    }
+
     // Update filter SVG
     const style = document.createElement('style');
     style.innerHTML = `

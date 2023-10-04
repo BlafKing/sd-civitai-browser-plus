@@ -217,7 +217,6 @@
 #filterBoxL > div:nth-child(3) {
     padding: 20px;
     position: absolute;
-    box-shadow: whitesmoke 0px 0px 2px 0px;
     border-radius: 10px;
     width: 375px;
     z-index: 100 !important;
