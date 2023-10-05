@@ -128,7 +128,7 @@ def contenttype_folder(content_type, desc=None):
     return folder
 
 def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, search_term=None, timeOut=None, isNext=None):
-    
+    use_LORA = getattr(opts, "use_LORA", False)
     if current_page in [0, None, ""]:
         current_page = 1
     if search_term != gl.previous_search_term or gl.tile_count != gl.previous_tile_count or gl.inputs_changed or gl.contentChange:
@@ -150,6 +150,10 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     query = {'sort': sort_type, 'period': period_type}
     
     types_query_str = ""
+    
+    if use_LORA and 'LORA' in content_type:
+        content_type.append('LoCon')
+    
     if content_type:
         types_query_str = "".join([f"&types={type}" for type in content_type])
     
@@ -193,7 +197,6 @@ def model_list_html(json_data, model_dict):
                     desc = item['description']
                         
                 if not selected_content_type:
-                    print("Model name not found in json_data. (model_list_html)")
                     return
                 
                 nsfw = ""
@@ -220,10 +223,12 @@ def model_list_html(json_data, model_dict):
                         if item["modelVersions"][0]["images"][0]['nsfw'] not in ["None", "Soft"]:
                             nsfw = "civcardnsfw"
                         media_type = item["modelVersions"][0]["images"][0]["type"]
+                        image = item["modelVersions"][0]["images"][0]["url"]
                         if media_type == "video":
-                            imgtag = f'<video class="video-bg" autoplay loop muted playsinline><source src="{item["modelVersions"][0]["images"][0]["url"]}" type="video/mp4"></video>'
+                            image = image.replace("width=", "transcode=true,width=")
+                            imgtag = f'<video class="video-bg" autoplay loop muted playsinline><source src="{image}" type="video/mp4"></video>'
                         else:
-                            imgtag = f'<img src="{item["modelVersions"][0]["images"][0]["url"]}"></img>'
+                            imgtag = f'<img src="{image}"></img>'
                     else:
                         imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
 
@@ -570,8 +575,9 @@ def update_model_info(model_name=None, model_version=None):
                         for index, pic in enumerate(model['images']):
                             # Change width value in URL to original image width
                             image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
-                            
-                            if first_image:                                
+                            if pic['type'] == "video":
+                                image_url = image_url.replace("width=", "transcode=true,width=")
+                            if first_image and pic['type'] != "video":
                                 # Set a data attribute on the first image to designate it as preview
                                 preview_attr = f'data-preview-img={image_url}'
                                 first_image = False

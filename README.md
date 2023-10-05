@@ -91,6 +91,13 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14.1</h3>
+
+* Bug fix: Gifs did not display properly.
+* Bug fix: Video's no longer save as preview since they cannot be used.
+* Bug fix: Filter window was not hidden by default.
+
+---
 <h3>v1.14</h3>
 
 * Feature: Redesign of UI.

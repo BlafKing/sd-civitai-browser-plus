@@ -278,7 +278,7 @@ function updateSVGIcons() {
     const childDiv = element.querySelector("div:nth-child(3)");
 
     if (childDiv) {
-        const boxShadowValue = isDark ? 'box-shadow: #ffffff 0px 0px 2px 0px;' : 'box-shadow: #000000 0px 0px 2px 0px;';
+        const boxShadowValue = isDark ? 'box-shadow: #ffffff 0px 0px 2px 0px; display: none;' : 'box-shadow: #000000 0px 0px 2px 0px; display: none;';
         childDiv.style.cssText = boxShadowValue;
     }
 

@@ -97,8 +97,10 @@ def download_start(download_start, model_name, model_filename, version, sha256, 
 
 def download_finish(model_filename, version, model_name):
     gr_components = _api.update_model_versions(model_name)
-    version_choices = gr_components[0]['choices']
-    
+    if gr_components:
+        version_choices = gr_components[0]['choices']
+    else:
+        version_choices = []
     prev_version = gl.last_version + " [Installed]"
     
     if prev_version in version_choices:
@@ -119,7 +121,6 @@ def download_finish(model_filename, version, model_name):
             gr.Button.update(interactive=Del, visible=Del), # Delete Button
             gr.HTML.update(value='<div style="min-height: 0px;"></div>'), # Download Progress
             gr.Dropdown.update(value=version, choices=version_choices)
-            
     )
 
 def download_cancel(delete_finish, model_name, list_versions, model_filename, sha256):
@@ -388,12 +389,10 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
     
     if use_aria2:
         thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
-        thread.start()
-        thread.join()
     else:
         thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, progress))
-        thread.start()
-        thread.join()
+    thread.start()
+    thread.join()
     
     if not gl.cancel_status or gl.download_fail:
         if os.path.exists(path_to_new_file):

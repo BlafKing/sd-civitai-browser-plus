@@ -112,9 +112,9 @@ def on_ui_tabs():
     filterBox = "filterBoxL" if lobe_directory else "filterBox"
     
     if use_LORA:
-        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "VAE", "Controlnet", "Poses", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"] 
+        content_choices = ["Checkpoint", "TextualInversion", "LORA", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"] 
     else:
-        tag_choices = ["Checkpoint", "Hypernetwork", "TextualInversion", "AestheticGradient", "LORA", "LoCon", "VAE", "Controlnet", "Poses", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
+        content_choices = ["Checkpoint", "TextualInversion", "LORA", "LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
     
     with gr.Blocks() as civitai_interface:
         with gr.Tab(label="Browser", elem_id="browserTab"):
@@ -123,7 +123,7 @@ def on_ui_tabs():
                     with gr.Row():
                         use_search_term = gr.Radio(label="Search type:", choices=["Model name", "User name", "Tag"],value="Model name", elem_id="searchType")
                     with gr.Row():
-                        content_type = gr.Dropdown(label='Content type:', choices=["Checkpoint", "TextualInversion", "LORA", "LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"], value=None, type="value", multiselect=True, elem_id="centerText")
+                        content_type = gr.Dropdown(label='Content type:', choices=content_choices, value=None, type="value", multiselect=True, elem_id="centerText")
                     with gr.Row():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
                         sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value", elem_id="centerText")
@@ -177,7 +177,7 @@ def on_ui_tabs():
                 back_to_top = gr.Button(value="Back to top", interactive=True, visible=False)
         with gr.Tab("Update Models"):
             with gr.Row():
-                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=tag_choices)
+                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=content_choices)
             with gr.Row():
                 save_all_tags = gr.Button(value="Update assigned tags", interactive=True, visible=True)
                 cancel_all_tags = gr.Button(value="Cancel updating tags", interactive=False, visible=False)
@@ -765,7 +765,7 @@ def on_ui_settings():
     shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 Logs in CMD", section=section).info("Requires Web-UI Restart"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
     shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
-    shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Use LORA directory for LoCon's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, so they can be placed in the LORA folder."))
+    shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Treat LoCon's as LORA's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, so they can be placed in the LORA folder."))
     shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip after downloading", section=section))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)

@@ -532,7 +532,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
                 metadata = api_response.get('metadata', {})
                 url = metadata.get('nextPage', None)
             else:
-                print(f"Error: Received status code {response.status_code}")
+                print(f"Error: Received status code {response.status_code} with URL:")
+                print(url)
                 break
 
         api_response['items'] = all_items
