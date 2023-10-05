@@ -8,7 +8,6 @@ import urllib.error
 import os
 import re
 from collections import defaultdict
-from packaging import version
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir
 from html import escape 
@@ -174,14 +173,6 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
 
     return request_civit_api(full_url)
 
-def api_next_page(next_page_url=None):
-    if next_page_url is None:
-        try: gl.json_data['metadata']['nextPage']
-        except: return
-        next_page_url = gl.json_data['metadata']['nextPage']
-        next_page_url = re.sub(r'limit=\d+', f'limit={gl.tile_count}', next_page_url)
-    return request_civit_api(next_page_url)
-
 def model_list_html(json_data, model_dict):
     gl.contentChange = False
     HTML = '<div class="column civmodellist">'
@@ -250,7 +241,7 @@ def model_list_html(json_data, model_dict):
                                                 existing_files_sha256.append(sha256.upper())
                                         else:
                                             print(f"Invalid JSON data in {json_path}. Expected a dictionary.")
-                                    except json.JSONDecodeError as e:
+                                    except Exception as e:
                                         print(f"Error decoding JSON in {json_path}: {str(e)}")
                     
                     installstatus = None
@@ -291,7 +282,6 @@ def update_prev_page(content_type, sort_type, period_type, use_search_term, sear
     return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=False)
 
 def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=True):
-    
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
         return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut, isNext)
@@ -311,15 +301,19 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     
     gl.previous_inputs = current_inputs
 
-    if gl.inputs_changed or gl.contentChange:
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page)
-        return return_values
+    if not gl.file_scan:
+        if gl.inputs_changed or gl.contentChange:
+            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page)
+            return return_values
     
     if isNext:
-        gl.json_data = api_next_page()
+        if gl.json_data['metadata']['nextPage'] is not None:
+            gl.json_data = request_civit_api(gl.json_data['metadata']['nextPage'])
+        else:
+            gl.json_data = None
     else:
         if gl.json_data['metadata']['prevPage'] is not None:
-            gl.json_data = api_next_page(gl.json_data['metadata']['prevPage'])
+            gl.json_data = request_civit_api(gl.json_data['metadata']['prevPage'])
         else:
             gl.json_data = None
             
@@ -374,6 +368,7 @@ def pagecontrol(json_data):
     return hasPrev, hasNext, current_page, total_pages
 
 def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+    gl.file_scan = False
     if not from_ver and not from_installed:
         gl.ver_json = None
         if not gl.pageChange:
@@ -477,8 +472,8 @@ def update_model_versions(model_name):
                                                 sha256 = json_data.get('sha256', "").upper()
                                                 if sha256 == file_sha256:
                                                     installed_versions.append(version['name'])
-                                    except:
-                                        print(f"failed to read: \"{file}\"")
+                                    except Exception as e:
+                                        print(f"failed to read: \"{file}\": {e}")
                                 
                                 if version_filename == file:
                                     installed_versions.append(version['name'])

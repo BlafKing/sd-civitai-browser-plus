@@ -53,9 +53,13 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
             for file in files:
                 if file.endswith('.json'):
                     file_path = os.path.join(root, file)
-                    with open(file_path, 'r') as json_file:
-                        data = json.load(json_file)
-                        file_sha256 = data.get('sha256', '').upper()
+                    try:
+                        with open(file_path, 'r') as json_file:
+                            data = json.load(json_file)
+                            file_sha256 = data.get('sha256', '').upper()
+                    except Exception as e:
+                        print(f"Failed to open: {file_path}: {e}")
+                        file_sha256 = "0"
                         
                     if file_sha256 == sha256_upper:
                         unpack_list = data.get('unpackList', [])
@@ -211,9 +215,12 @@ def save_json(file_name, install_path, trained_tags):
     path_to_new_file = os.path.join(install_path, file_name)
 
     if os.path.exists(path_to_new_file):
-        with open(path_to_new_file, 'r') as f:
-            content = json.load(f)
-        content["activation text"] = trained_tags
+        try:
+            with open(path_to_new_file, 'r') as f:
+                content = json.load(f)
+            content["activation text"] = trained_tags
+        except Exception as e:
+            print(f"Failed to open {path_to_new_file}: {e}")
     else:
         content = {"activation text": trained_tags}
 
@@ -267,12 +274,15 @@ def gen_sha256(file_path):
     json_file = os.path.splitext(file_path)[0] + ".json"
     
     if os.path.exists(json_file):
-        with open(json_file, 'r') as f:
-            data = json.load(f)
-    
-        if 'sha256' in data:
-            hash_value = data['sha256']
-            return hash_value
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+        
+            if 'sha256' in data:
+                hash_value = data['sha256']
+                return hash_value
+        except Exception as e:
+            print(f"Failed to open {json_file}: {e}")
         
     def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         while True:
@@ -292,14 +302,17 @@ def gen_sha256(file_path):
     hash_value = h.hexdigest()
     
     if os.path.exists(json_file):
-        with open(json_file, 'r') as f:
-            data = json.load(f)
- 
-        if 'sha256' not in data:
-            data['sha256'] = hash_value
-            
-        with open(json_file, 'w') as f:
-            json.dump(data, f, indent=4)
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+    
+            if 'sha256' not in data:
+                data['sha256'] = hash_value
+                
+            with open(json_file, 'w') as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            print(f"Failed to open {json_file}: {e}")
     else:
         data = {'sha256': hash_value}
         with open(json_file, 'w') as f:
@@ -335,7 +348,7 @@ def tags_save(api_response, file_paths):
                             with open(json_file, 'r') as f:
                                 try:
                                     content = json.load(f)
-                                except json.JSONDecodeError:
+                                except:
                                     content = {}
 
                             content["activation text"] = trained_tags
@@ -353,11 +366,14 @@ def get_models(file_path):
     json_file = os.path.splitext(file_path)[0] + ".json"
     
     if os.path.exists(json_file):
-        with open(json_file, 'r') as f:
-            data = json.load(f)
-            
-            if 'modelId' in data:
-                modelId = data['modelId']
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+                
+                if 'modelId' in data:
+                    modelId = data['modelId']
+        except Exception as e:
+            print(f"Failed to open {json_file}: {e}")
     
     if not modelId:
         model_hash = gen_sha256(file_path)
@@ -370,14 +386,17 @@ def get_models(file_path):
                 data = response.json()
                 modelId = data.get("modelId", "")
                 if os.path.exists(json_file):
-                    with open(json_file, 'r') as f:
-                        data = json.load(f)
+                    try:
+                        with open(json_file, 'r') as f:
+                            data = json.load(f)
 
-                    if 'modelId' not in data:
-                        data['modelId'] = modelId
-                        
-                    with open(json_file, 'w') as f:
-                        json.dump(data, f, indent=4)
+                        if 'modelId' not in data:
+                            data['modelId'] = modelId
+                            
+                        with open(json_file, 'w') as f:
+                            json.dump(data, f, indent=4)
+                    except Exception as e:
+                        print(f"Failed to open {json_file}: {e}")
                 else:
                     data = {'modelId': modelId}
                     with open(json_file, 'w') as f:
@@ -397,10 +416,13 @@ def version_match(file_paths, api_response):
         json_path = f"{os.path.splitext(file_path)[0]}.json"
         if os.path.exists(json_path):
             with open(json_path, 'r') as f:
-                json_data = json.load(f)
-                sha256 = json_data.get('sha256')
-                if sha256:
-                    sha256_hashes[os.path.basename(file_path)] = sha256.upper()
+                try:
+                    json_data = json.load(f)
+                    sha256 = json_data.get('sha256')
+                    if sha256:
+                        sha256_hashes[os.path.basename(file_path)] = sha256.upper()
+                except Exception as e:
+                    print(f"Failed to open {json_path}: {e}")
     
     for item in api_response.get('items', []):
         model_versions = item.get('modelVersions', [])
@@ -631,7 +653,8 @@ def load_to_browser():
         (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,True)
     if from_installed:
         (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,False,True)
-        
+    
+    gl.file_scan = True
     from_ver, from_installed = False, False
     return (
         gr.Button.update(interactive=True, visible=True),

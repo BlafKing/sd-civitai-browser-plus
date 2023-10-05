@@ -254,8 +254,11 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
 def info_to_json(install_path, unpackList=None):
     json_file = os.path.splitext(install_path)[0] + ".json"
     if os.path.exists(json_file):
-        with open(json_file, 'r') as f:
-            data = json.load(f)
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"Failed to open {json_file}: {e}")
     else:
         data = {}
 
