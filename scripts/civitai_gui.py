@@ -52,7 +52,6 @@ def insert_sub(model_name, version_name):
 
 def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
     config = cmd_opts.ui_config_file
-
     # Convert list variables to the desired format
     ct = '['+', '.join(['"'+item+'"'for item in ct])+']'
     bf = '['+', '.join(['"'+item + '"' for item in bf])+']'
@@ -80,21 +79,26 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
     with open(config, 'r') as file:
         lines = file.readlines()
 
-    # Modify the lines based on the provided settings
+    # Remove any line that does not contain `/` except if the line contains either `{` or `}`
+    filtered_lines = [line for line in lines if "/" in line or "{" in line or "}" in line]
+
+    # Modify the filtered lines based on the provided settings
     new_lines = []
-    for line in lines:
+    for line in filtered_lines:
         for setting, value in settings_map.items():
             if setting in line:
                 # Get the leading whitespace (indentation) from the original line
                 leading_ws = line.split(setting)[0]
                 # Replace the line with the new value while preserving the indentation
                 line = leading_ws + setting + ': ' + str(value) + ',\n'
+                print(f"Setting adjusted: {setting + ': ' + str(value)}")
                 break
         new_lines.append(line)
 
     # Save the modified content back to the file
     with open(config, 'w') as file:
         file.writelines(new_lines)
+        print(f"File written to: {config}")
 
 def on_ui_tabs():    
     use_LORA = getattr(opts, "use_LORA", False)
