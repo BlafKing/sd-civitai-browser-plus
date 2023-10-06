@@ -1,6 +1,7 @@
 import gradio as gr
 from modules import script_callbacks, shared
 import os
+import json
 import fnmatch
 import re
 from modules.shared import opts, cmd_opts
@@ -52,54 +53,38 @@ def insert_sub(model_name, version_name):
 
 def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
     config = cmd_opts.ui_config_file
-    # Convert list variables to the desired format
-    ct = '['+', '.join(['"'+item+'"'for item in ct])+']'
-    bf = '['+', '.join(['"'+item + '"' for item in bf])+']'
-    cj = str(cj).lower()
-    td = str(td).lower()
-    sn = str(sn).lower()
-    ss = str(ss).lower()
-    ts = str(ts).lower()
 
     # Create a dictionary to map the settings to their respective variables
     settings_map = {
-        '"civitai_interface/Search type:/value"': '"'+ust+'"',
-        '"civitai_interface/Content type:/value"': ct,
-        '"civitai_interface/Time period:/value"': '"'+pt+'"',
-        '"civitai_interface/Sort by:/value"': '"'+st+'"',
-        '"civitai_interface/Filter base model:/value"': bf,
-        '"civitai_interface/Save tags after download/value"': cj,
-        '"civitai_interface/Divide cards by date/value"': td,
-        '"civitai_interface/NSFW content/value"': sn,
-        '"civitai_interface/Tile size:/value"': ss,
-        '"civitai_interface/Tile count:/value"': ts
+        "civitai_interface/Search type:/value": ust,
+        "civitai_interface/Content type:/value": ct,
+        "civitai_interface/Time period:/value": pt,
+        "civitai_interface/Sort by:/value": st,
+        "civitai_interface/Filter base model:/value": bf,
+        "civitai_interface/Save tags after download/value": cj,
+        "civitai_interface/Divide cards by date/value": td,
+        "civitai_interface/NSFW content/value": sn,
+        "civitai_interface/Tile size:/value": ss,
+        "civitai_interface/Tile count:/value": ts
     }
-
-    # Read the current contents of the config file
+    
+    # Load the current contents of the config file into a dictionary
     with open(config, 'r') as file:
-        lines = file.readlines()
+        data = json.load(file)
 
-    # Remove any line that does not contain `/` except if the line contains either `{` or `}`
-    filtered_lines = [line for line in lines if "/" in line or "{" in line or "}" in line]
+    # Remove any keys containing the text `civitai_interface`
+    keys_to_remove = [key for key in data if "civitai_interface" in key]
+    for key in keys_to_remove:
+        del data[key]
 
-    # Modify the filtered lines based on the provided settings
-    new_lines = []
-    for line in filtered_lines:
-        for setting, value in settings_map.items():
-            if setting in line:
-                # Get the leading whitespace (indentation) from the original line
-                leading_ws = line.split(setting)[0]
-                # Replace the line with the new value while preserving the indentation
-                line = leading_ws + setting + ': ' + str(value) + ',\n'
-                print(f"Setting adjusted: {setting + ': ' + str(value)}")
-                break
-        new_lines.append(line)
+    # Update the dictionary with the new settings
+    data.update(settings_map)
 
     # Save the modified content back to the file
     with open(config, 'w') as file:
-        file.writelines(new_lines)
-        print(f"File written to: {config}")
-
+        json.dump(data, file, indent=4)
+        print(f"Updated settings to: {config}")
+        
 def on_ui_tabs():    
     use_LORA = getattr(opts, "use_LORA", False)
     lobe_directory = None
