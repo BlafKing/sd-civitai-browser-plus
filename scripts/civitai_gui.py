@@ -340,6 +340,8 @@ def on_ui_tabs():
                 ver_start,
                 ver_search,
                 cancel_ver_search,
+                load_installed,
+                save_all_tags,
                 version_progress
                 ]
         )
@@ -362,31 +364,10 @@ def on_ui_tabs():
             fn=_file.finish_ver_search,
             outputs=[
                 ver_search,
+                save_all_tags,
+                load_installed,
                 cancel_ver_search,
                 load_to_browser
-            ]
-        )
-        
-        load_to_browser.click(
-            fn=_file.load_to_browser,
-            outputs=[
-                ver_search,
-                cancel_ver_search,
-                load_to_browser,
-                list_models,
-                list_versions,
-                list_html,
-                get_prev_page,
-                get_next_page,
-                page_slider,
-                save_tags,
-                save_images,
-                download_model,
-                install_path,
-                sub_folder,
-                file_list,
-                back_to_top,
-                version_progress
             ]
         )
         
@@ -401,6 +382,8 @@ def on_ui_tabs():
                 installed_start,
                 load_installed,
                 cancel_installed,
+                ver_search,
+                save_all_tags,
                 installed_progress
             ]
         )
@@ -422,6 +405,8 @@ def on_ui_tabs():
         installed_finish.change(
             fn=_file.finish_installed_models,
             outputs=[
+                ver_search,
+                save_all_tags,
                 load_installed,
                 cancel_installed,
                 load_to_browser_installed
@@ -431,6 +416,8 @@ def on_ui_tabs():
         load_to_browser_installed.click(
             fn=_file.load_to_browser,
             outputs=[
+                ver_search,
+                save_all_tags,
                 load_installed,
                 cancel_installed,
                 load_to_browser_installed,
@@ -451,6 +438,31 @@ def on_ui_tabs():
             ]
         )
         
+        load_to_browser.click(
+            fn=_file.load_to_browser,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                cancel_ver_search,
+                load_to_browser,
+                list_models,
+                list_versions,
+                list_html,
+                get_prev_page,
+                get_next_page,
+                page_slider,
+                save_tags,
+                save_images,
+                download_model,
+                install_path,
+                sub_folder,
+                file_list,
+                back_to_top,
+                version_progress
+            ]
+        )
+        
         save_all_tags.click(
             fn=_file.save_tag_start,
             inputs=[tag_start],
@@ -458,6 +470,8 @@ def on_ui_tabs():
                 tag_start,
                 save_all_tags,
                 cancel_all_tags,
+                load_installed,
+                ver_search,
                 tag_progress
             ]
         )
@@ -479,7 +493,9 @@ def on_ui_tabs():
         tag_finish.change(
             fn=_file.save_tag_finish,
             outputs=[
+                ver_search,
                 save_all_tags,
+                load_installed,
                 cancel_all_tags
             ]
         )

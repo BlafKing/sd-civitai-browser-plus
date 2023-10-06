@@ -632,13 +632,15 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
             )
 
 def save_tag_start(tag_start):
-    global from_tag
-    from_tag = True
+    global from_tag, from_ver, from_installed
+    from_tag, from_ver, from_installed = True, False, False
     number = _download.random_number(tag_start)
     return (
         gr.Textbox.update(value=number),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
         gr.HTML.update(value='<div style="min-height: 100px;"></div>')
     )
 
@@ -647,25 +649,32 @@ def save_tag_finish():
     from_tag = False
     return (
         gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False)
     )
     
 def start_ver_search(ver_start):
-    global from_ver
-    from_ver = True
+    global from_ver, from_tag, from_installed
+    from_ver, from_tag, from_installed = True, False, False
     number = _download.random_number(ver_start)
     return (
         gr.Textbox.update(value=number),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
         gr.HTML.update(value='<div style="min-height: 100px;"></div>')
     )
 
 def finish_ver_search():
     return (
         gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
+        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
+        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True),
+        
     )
 
 def load_to_browser():
@@ -680,25 +689,31 @@ def load_to_browser():
     from_ver, from_installed = False, False
     return (
         gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=False, visible=False),
         lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt,
-        gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Models loaded into the browser!</div>')
+        gr.HTML.update(value='<div style="min-height: 0px;"></div>')
     )
     
 def start_installed_models(installed_start):
-    global from_installed
-    from_installed = True
+    global from_installed, from_ver, from_tag
+    from_installed, from_ver, from_tag = True, False, False
     number = _download.random_number(installed_start)
     return (
         gr.Textbox.update(value=number),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
         gr.HTML.update(value='<div style="min-height: 100px;"></div>')
     )
     
 def finish_installed_models():
     return (
+        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
+        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True),
