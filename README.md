@@ -91,6 +91,11 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14.3</h3>
+
+* Bug fix: LORA content type was broken when "Treat LoCon as LORA" was turned on.
+
+---
 <h3>v1.14.2</h3>
 
 * Feature: Custom page handling when scanning models.

@@ -113,7 +113,7 @@ def on_ui_tabs():
     filterBox = "filterBoxL" if lobe_directory else "filterBox"
     
     if use_LORA:
-        content_choices = ["Checkpoint", "TextualInversion", "LORA", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"] 
+        content_choices = ["Checkpoint", "TextualInversion", "LORA & LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"] 
     else:
         content_choices = ["Checkpoint", "TextualInversion", "LORA", "LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
     

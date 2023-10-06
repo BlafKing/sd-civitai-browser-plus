@@ -50,7 +50,6 @@ def contenttype_folder(content_type, desc=None):
     folder = None
     if desc:
         desc = desc.upper()
-    use_LORA = getattr(opts, "use_LORA", False)
     if content_type == "modelFolder":
         folder = os.path.join(models_path)
         
@@ -78,9 +77,7 @@ def contenttype_folder(content_type, desc=None):
         elif "lyco_dir_backcompat" in cmd_opts:
             folder = f"{cmd_opts.lyco_dir_backcompat}"
         else:
-            folder = os.path.join(models_path,"LyCORIS")    
-        if use_LORA:
-            folder = cmd_opts.lora_dir
+            folder = os.path.join(models_path,"LyCORIS")
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:
@@ -127,7 +124,6 @@ def contenttype_folder(content_type, desc=None):
     return folder
 
 def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, search_term=None, timeOut=None, isNext=None):
-    use_LORA = getattr(opts, "use_LORA", False)
     if current_page in [0, None, ""]:
         current_page = 1
     if search_term != gl.previous_search_term or gl.tile_count != gl.previous_tile_count or gl.inputs_changed or gl.contentChange:
@@ -150,10 +146,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     query = {'sort': sort_type, 'period': period_type}
     
     types_query_str = ""
-    
-    if use_LORA and 'LORA' in content_type:
-        content_type.append('LoCon')
-    
+        
     if content_type:
         types_query_str = "".join([f"&types={type}" for type in content_type])
     
@@ -298,6 +291,16 @@ def update_prev_page(content_type, sort_type, period_type, use_search_term, sear
     return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=False)
 
 def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=True):
+    use_LORA = getattr(opts, "use_LORA", False)
+    
+    if content_type:
+        if use_LORA and 'LORA & LoCon' in content_type:
+            content_type.remove('LORA & LoCon')
+            if 'LORA' not in content_type:
+                content_type.append('LORA')
+            if 'LoCon' not in content_type:
+                content_type.append('LoCon')
+            
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
         return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut, isNext)
@@ -308,7 +311,6 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     gl.pageChange = True
     
     current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count)
-    
     if gl.previous_inputs and current_inputs != gl.previous_inputs:
         gl.inputs_changed = True
     else:
@@ -418,6 +420,16 @@ def pagecontrol(json_data):
     return hasPrev, hasNext, current_page, total_pages
 
 def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+    use_LORA = getattr(opts, "use_LORA", False)
+    
+    if content_type:
+        if use_LORA and 'LORA & LoCon' in content_type:
+            content_type.remove('LORA & LoCon')
+            if 'LORA' not in content_type:
+                content_type.append('LORA')
+            if 'LoCon' not in content_type:
+                content_type.append('LoCon')
+            
     if not from_ver and not from_installed:
         gl.ver_json = None
         if not gl.pageChange and not gl.file_scan:

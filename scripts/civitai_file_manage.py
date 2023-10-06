@@ -478,10 +478,14 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
     
     folders_to_check = []
     for item in folders:
-        upscaler = False
+        if item == "LORA & LoCon":
+            folder = _api.contenttype_folder("LORA")
+            if folder:
+                folders_to_check.append(folder)
+            folder = _api.contenttype_folder("LoCon")
+            if folder:
+                folders_to_check.append(folder)
         if item == "Upscaler":
-            upscaler = True
-        if upscaler:
             folder = _api.contenttype_folder(item, "ESRGAN")
             if folder:
                 folders_to_check.append(folder)
