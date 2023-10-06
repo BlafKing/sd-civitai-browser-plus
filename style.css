@@ -80,11 +80,6 @@
     text-align: center;
 }
 
-#searchType {
-    display: flex;
-    justify-content: center;
-}
-
 #browserTab {
     min-height: 650px;
 }
@@ -179,6 +174,23 @@
     align-self: center;
 }
 
+#save_set_box {
+    display: flex;
+    justify-content: center;
+}
+
+#save_set_btn {
+    max-height: 28px !important;
+    min-height: 28px !important;
+    max-width: 60px !important;
+    margin-bottom: -5px;
+    margin-top: 5px;
+}
+
+#searchType > div:nth-child(3) {
+    justify-content: center;
+}
+
 /* Customized Accordion Filter */
 
 #filterBox,
@@ -218,7 +230,7 @@
     padding: 20px;
     position: absolute;
     border-radius: 10px;
-    width: 375px;
+    width: 300px;
     z-index: 100 !important;
     margin-top: 55px;
 }

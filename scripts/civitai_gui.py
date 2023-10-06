@@ -9,6 +9,7 @@ import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
 import scripts.civitai_api as _api
+from time import sleep
 
 gl.init()
 
@@ -136,8 +137,8 @@ def on_ui_tabs():
                     with gr.Row():
                         size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
                         tile_slider = gr.Slider(label="Tile count:", minimum=1, maximum=100, value=15, step=1, max_width=100)
-                    with gr.Row():
-                        save_settings = gr.Button(value="Save settings as default")
+                    with gr.Row(elem_id="save_set_box"):
+                        save_settings = gr.Button(value="Save settings as default", elem_id="save_set_btn")
                 search_term = gr.Textbox(label="", placeholder="Search CivitAI", elem_id="searchBox")
                 refresh = gr.Button(label="", value="", elem_id=refreshbtn, icon="https://svgur.com/i/y9S.svg")
             with gr.Row(elem_id="pageBox"):
@@ -145,7 +146,7 @@ def on_ui_tabs():
                 page_slider = gr.Slider(label='Current page', step=1, minimum=1, maximum=1, value=1, min_width=80, elem_id="pageSlider")
                 get_next_page = gr.Button(value="Next page", interactive=False, elem_id="pageBtn2")
             with gr.Row(elem_id="pageBoxMobile"):
-                pass
+                pass # Row used for button placement on mobile
             with gr.Row():
                 list_html = gr.HTML(value='<div style="min-height: 0px;"></div>')
             with gr.Row():
@@ -211,6 +212,8 @@ def on_ui_tabs():
         delete_finish = gr.Textbox(value=None, visible=False)
         current_model = gr.Textbox(value=None, visible=False)
         current_sha256 = gr.Textbox(value=None, visible=False)
+        true = gr.Checkbox(value=True, visible=False)
+        page_load = gr.Button(value="", elem_id="pageLoadBtn", visible=False)
         
         # Global variable to detect if content has changed.
         def save_tags_btn(tags, file):

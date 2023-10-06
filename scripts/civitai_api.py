@@ -133,6 +133,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     if search_term != gl.previous_search_term or gl.tile_count != gl.previous_tile_count or gl.inputs_changed or gl.contentChange:
         gl.previous_search_term = search_term
         gl.previous_tile_count = gl.tile_count
+        gl.file_scan = False
         api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page=1"
     else:
         api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={current_page}"
@@ -170,8 +171,23 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
             query_str += f"&query={urllib.parse.quote(search_term)}"
     
     full_url = f"{api_url}&{query_str}"
-
-    return request_civit_api(full_url)
+    
+    if gl.file_scan:
+        highest_number = max(gl.url_list_with_numbers.keys())
+        full_url = gl.url_list_with_numbers.get(int(current_page))
+        nextPage = int(current_page) + 1
+        prevPage = int(current_page) - 1
+        data = request_civit_api(full_url)
+        data["metadata"]["currentPage"] = current_page
+        data["metadata"]["totalPages"] = highest_number
+        if not nextPage == highest_number:
+            gl.json_data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
+        if not prevPage == 0:
+            gl.json_data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
+    else:
+        data = request_civit_api(full_url)
+        
+    return data
 
 def model_list_html(json_data, model_dict):
     gl.contentChange = False
@@ -242,7 +258,7 @@ def model_list_html(json_data, model_dict):
                                         else:
                                             print(f"Invalid JSON data in {json_path}. Expected a dictionary.")
                                     except Exception as e:
-                                        print(f"Error decoding JSON in {json_path}: {str(e)}")
+                                        print(f"Error decoding JSON in {json_path}: {e}")
                     
                     installstatus = None
                     
@@ -306,17 +322,51 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page)
             return return_values
     
-    if isNext:
-        if gl.json_data['metadata']['nextPage'] is not None:
-            gl.json_data = request_civit_api(gl.json_data['metadata']['nextPage'])
+        if isNext:
+            if gl.json_data['metadata']['nextPage'] is not None:
+                gl.json_data = request_civit_api(gl.json_data['metadata']['nextPage'])
+            else:
+                gl.json_data = None
         else:
-            gl.json_data = None
+            if gl.json_data['metadata']['prevPage'] is not None:
+                gl.json_data = request_civit_api(gl.json_data['metadata']['prevPage'])
+            else:
+                gl.json_data = None
     else:
-        if gl.json_data['metadata']['prevPage'] is not None:
-            gl.json_data = request_civit_api(gl.json_data['metadata']['prevPage'])
+        highest_number = max(gl.url_list_with_numbers.keys())
+        if isNext:
+            if gl.json_data['metadata']['nextPage'] is not None:
+                currentPage = int(gl.json_data['metadata']['currentPage'])
+                nextPage = currentPage + 2
+                prevPage = currentPage
+                pageCount = currentPage + 1
+                gl.json_data = request_civit_api(gl.json_data['metadata']['nextPage'])
+                
+                gl.json_data["metadata"]["totalPages"] = highest_number
+                if not nextPage > highest_number:
+                    gl.json_data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
+                if not prevPage == 0:
+                    gl.json_data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
+                gl.json_data["metadata"]["currentPage"] = pageCount
+            else:
+                gl.json_data = None
         else:
-            gl.json_data = None
-            
+            if gl.json_data['metadata']['prevPage'] is not None:
+                currentPage = int(gl.json_data['metadata']['currentPage'])
+                nextPage = currentPage
+                prevPage = currentPage - 2
+                pageCount = currentPage -1
+                gl.json_data = request_civit_api(gl.json_data['metadata']['prevPage'])
+                
+                gl.json_data["metadata"]["totalPages"] = highest_number
+                if not nextPage > highest_number:
+                    gl.json_data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
+                if not prevPage == 0:
+                    gl.json_data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
+                gl.json_data["metadata"]["currentPage"] = pageCount
+            else:
+                gl.json_data = None
+                
     if gl.json_data is None:
         return
     
@@ -368,10 +418,9 @@ def pagecontrol(json_data):
     return hasPrev, hasNext, current_page, total_pages
 
 def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut=None, isNext=None, from_ver=False, from_installed=False):
-    gl.file_scan = False
     if not from_ver and not from_installed:
         gl.ver_json = None
-        if not gl.pageChange:
+        if not gl.pageChange and not gl.file_scan:
         
             current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count)
             

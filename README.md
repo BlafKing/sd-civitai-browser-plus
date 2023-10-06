@@ -91,6 +91,13 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14.2</h3>
+
+* Feature: Custom page handling when scanning models.
+* Bug fix: Model scan feature now works for large model count (+900)
+* Bug fix: Better broken .json error handling
+
+---
 <h3>v1.14.1</h3>
 
 * Bug fix: Gifs did not display properly.

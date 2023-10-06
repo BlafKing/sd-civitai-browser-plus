@@ -188,24 +188,15 @@ function adjustFilterBoxAndButtons() {
         element.style.justifyContent = "flex-start";
     }
 
-    // Check if the site is accessed from a mobile device
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
     // Reference to the buttons and divs
     const pageBtn1 = document.querySelector("#pageBtn1");
     const pageBtn2 = document.querySelector("#pageBtn2");
     const pageBox = document.querySelector("#pageBox");
     const pageBoxMobile = document.querySelector("#pageBoxMobile");
-
-    // Adjust childDiv based on viewport width or mobile device check
-    if (window.innerWidth < 500 || isMobile) {
-        childDiv.style.width = "300px";
-    } else {
-        childDiv.style.width = "375px";
-    }
     
     // Move the buttons based solely on viewport width
     if (window.innerWidth < 500) {
+        childDiv.style.width = "300px";
         // Move the buttons to pageBoxMobile
         if (pageBoxMobile) {
             if (pageBtn1) {
@@ -216,6 +207,7 @@ function adjustFilterBoxAndButtons() {
             }
         }
     } else {
+        childDiv.style.width = "375px";
         // Move the buttons back to pageBox
         if (pageBox) {
             // Ensure pageBtn1 is the first child
@@ -308,9 +300,7 @@ function updateSVGIcons() {
     }
 }
 
-let intervalID;
-
-function initAlignment() {
+function onPageLoad() {
     // The tab element which exists if page is done loading
     const targetButton = document.querySelector("#tab_civitai_interface");
 
@@ -322,10 +312,10 @@ function initAlignment() {
     // If the tab is found, clear the interval
     clearInterval(intervalID);
 
-    adjustFilterBoxAndButtons();
     updateSVGIcons();
     pressRefresh();
+    adjustFilterBoxAndButtons();
 }
 
 // Start the observer on page load and retry every second until successful
-intervalID = setInterval(initAlignment, 1000);
+let intervalID = setInterval(onPageLoad, 1000);

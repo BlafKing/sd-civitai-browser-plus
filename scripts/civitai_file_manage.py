@@ -381,7 +381,7 @@ def get_models(file_path):
     
     try:
         if not modelId:
-            response = requests.get(by_hash, timeout=40)
+            response = requests.get(by_hash, timeout=(10,30))
             if response.status_code == 200:
                 data = response.json()
                 modelId = data.get("modelId", "")
@@ -445,10 +445,10 @@ def version_match(file_paths, api_response):
                     if entry_name == file_name_without_ext or entry_sha256 == file_sha256:
                         if idx == 0:
                             print(f"{file_name} is currently the latest version")
-                            updated_models.append(item)
+                            updated_models.append(f"&ids={item['id']}")
                         else:
                             print(f"{file_name} has an available update!")
-                            outdated_models.append(item)
+                            outdated_models.append(f"&ids={item['id']}")
                         break 
                 else:
                     continue
@@ -536,44 +536,48 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
     all_items = []
 
     all_model_ids = list(set(all_model_ids))
-    if from_installed:
-        base_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}"
-    else:
-        base_url = "https://civitai.com/api/v1/models?limit=100"
-    url = f"{base_url}{''.join(all_model_ids)}"
-    
+
+    def chunks(lst, n):
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+            
     if not from_installed:
-        while url:
-            progress(1, desc=f"Sending API request...")
-            response = requests.get(url)
-            if response.status_code == 200:
-                api_response = response.json()
+        model_chunks = list(chunks(all_model_ids, 500))
 
-                all_items.extend(api_response['items'])
+        base_url = "https://civitai.com/api/v1/models?limit=100"
+        url_list = [f"{base_url}{''.join(chunk)}" for chunk in model_chunks]
+        
+        for url in url_list:
+            while url:
+                progress(1, desc=f"Sending API request...")
+                response = requests.get(url, timeout=(10,30))
+                if response.status_code == 200:
+                    api_response = response.json()
 
-                metadata = api_response.get('metadata', {})
-                url = metadata.get('nextPage', None)
-            else:
-                print(f"Error: Received status code {response.status_code} with URL:")
-                print(url)
-                break
+                    all_items.extend(api_response['items'])
+
+                    metadata = api_response.get('metadata', {})
+                    url = metadata.get('nextPage', None)
+                else:
+                    print(f"Error: Received status code {response.status_code} with URL:")
+                    print(url)
+                    break
 
         api_response['items'] = all_items
     
-    else:
-        progress(1, desc=f"Sending API request...")
-        response = requests.get(url)
-        if response.status_code == 200:
-            api_response = response.json()
-            
     if from_ver:
+        # return a list of outdated and updated models by ID
         updated_models, outdated_models = version_match(file_paths, api_response)
         
-        outdated_models = [model for model in outdated_models if model not in updated_models]
-        seen_ids = set()
-        outdated_models = [model for model in outdated_models if model.get("id") not in seen_ids and not seen_ids.add(model.get("id"))]
+        # Convert the lists to sets
+        updated_set = set(updated_models)
+        outdated_set = set(outdated_models)
+
+        # Remove IDs from outdated_models that are in updated_models
+        outdated_set = outdated_set - updated_set
+        all_model_ids = list(outdated_set)
         
-        if len(outdated_models) == 0:
+        if len(all_model_ids) == 0:
             no_update = True
             gl.scan_files = False
             from_ver = False
@@ -581,10 +585,26 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
                     gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">No updates found for selected models.</div>'),
                     gr.Textbox.update(value=number)
                 )
+    
+    model_chunks = list(chunks(all_model_ids, gl.tile_count))
+
+    base_url = "https://civitai.com/api/v1/models?limit=100"
+    gl.url_list_with_numbers = {i+1: f"{base_url}{''.join(chunk)}" for i, chunk in enumerate(model_chunks)}
+
+    api_url = gl.url_list_with_numbers.get(1)
+    response = requests.get(api_url, timeout=(10,30))
+    if response.status_code == 200:
+        response.encoding = "utf-8"
+        gl.ver_json = json.loads(response.text)
         
-        models_list = {'items': outdated_models}
-        combined_json = json.dumps(models_list)
-        gl.ver_json = json.loads(combined_json)
+        # Modify the metadata
+        highest_number = max(gl.url_list_with_numbers.keys())
+        gl.ver_json["metadata"]["totalPages"] = highest_number
+        
+        if highest_number > 1:
+            gl.ver_json["metadata"]["nextPage"] = gl.url_list_with_numbers.get(2)
+    
+    if from_ver:
         gl.scan_files = False
         return  (
                 gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Outdated models have been found.<br>Please press the button above to load the models into the browser tab</div>'),
@@ -592,8 +612,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
             )
 
     if from_installed:
-        combined_json = json.dumps(api_response)
-        gl.ver_json = json.loads(combined_json)
         gl.scan_files = False
         return  (
                 gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Installed models have been loaded.<br>Please press the button above to load the models into the browser tab</div>'),
