@@ -46,10 +46,12 @@ def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=No
                 gr.Button.update(interactive=True if model_version else False) # Download Button
         )
 
-def contenttype_folder(content_type, desc=None):
+def contenttype_folder(content_type, desc=None, fromCheck=False):
+    use_LORA = getattr(opts, "use_LORA", False)
     folder = None
     if desc:
         desc = desc.upper()
+        
     if content_type == "modelFolder":
         folder = os.path.join(models_path)
         
@@ -78,6 +80,8 @@ def contenttype_folder(content_type, desc=None):
             folder = f"{cmd_opts.lyco_dir_backcompat}"
         else:
             folder = os.path.join(models_path,"LyCORIS")
+        if use_LORA and not fromCheck:
+            folder = cmd_opts.lora_dir
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:
