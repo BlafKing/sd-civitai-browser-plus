@@ -1,7 +1,6 @@
 import requests
 import json
 import gradio as gr
-import subprocess
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -13,7 +12,6 @@ from modules.paths import models_path, extensions_dir
 from html import escape 
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
-import time
 
 gl.init()
 
@@ -177,10 +175,10 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
         data = request_civit_api(full_url)
         data["metadata"]["currentPage"] = current_page
         data["metadata"]["totalPages"] = highest_number
-        if not nextPage == highest_number:
-            gl.json_data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
+        if not nextPage > highest_number:
+            data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
         if not prevPage == 0:
-            gl.json_data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
+            data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
     else:
         data = request_civit_api(full_url)
         

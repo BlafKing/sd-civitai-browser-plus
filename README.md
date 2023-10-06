@@ -91,6 +91,13 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14.4</h3>
+
+* Bug fix: Page slider broke the Next Page button when loaded from "Update Models".
+* Bug fix: Save settings as default inserted broken .json data.
+* Bug fix: Triggering "Scan for available updates" resulted in an error.
+
+---
 <h3>v1.14.3</h3>
 
 * Bug fix: LORA content type was broken when "Treat LoCon as LORA" was turned on.
