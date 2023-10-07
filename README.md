@@ -91,11 +91,18 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14.5</h3>
+
+* Feature: Base Model filter now impacts search results.
+* Feature: Ability to input model URL into search bar to find corresponding model.
+* Bug fix: Adetailer models now get placed in the correct folder
+
+---
 <h3>v1.14.4</h3>
 
 * Bug fix: Page slider broke the Next Page button when loaded from "Update Models".
-* Bug fix: Save settings as default inserted broken .json data.
-* Bug fix: Triggering "Scan for available updates" resulted in an error.
+* Bug fix: "Save settings as default" button inserted broken .json data.
+* Bug fix: Triggering "Scan for available updates" twice resulted in an error.
 
 ---
 <h3>v1.14.3</h3>

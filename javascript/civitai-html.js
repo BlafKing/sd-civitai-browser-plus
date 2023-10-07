@@ -58,43 +58,6 @@ function addOrUpdateRule(styleSheet, selector, newRules) {
     styleSheet.insertRule(`${selector} { ${newRules} }`, styleSheet.cssRules.length);
 }
 
-function filterByBaseModel(selectedBaseModels) {
-    if (!selectedBaseModels || selectedBaseModels.length === 0) {
-        document.querySelectorAll('.civmodelcard').forEach(card => {
-            card.style.opacity = '1';
-        });
-        return;
-    }
-
-    if (!Array.isArray(selectedBaseModels)) {
-        selectedBaseModels = [selectedBaseModels];
-    }
-
-    document.querySelectorAll('.civmodelcard').forEach(card => {
-        const cardBaseModel = card.getAttribute('base-model');
-        let shouldDisplay = false;
-
-        for (let i = 0; i < selectedBaseModels.length; i++) {
-            if (cardBaseModel === selectedBaseModels[i]) {
-                shouldDisplay = true;
-                break;
-            }
-
-            if (selectedBaseModels[i] === "SD 2.0" && (cardBaseModel === "SD 2.0" || cardBaseModel === "SD 2.0 768")) {
-                shouldDisplay = true;
-                break;
-            }
-
-            if (selectedBaseModels[i] === "SD 2.1" && ["SD 2.1", "SD 2.1 768", "SD 2.1 Unclip"].includes(cardBaseModel)) {
-                shouldDisplay = true;
-                break;
-            }
-        }
-
-        card.style.opacity = shouldDisplay ? '1' : '0.1';
-    });
-}
-
 function updateCard(modelNameWithSuffix) {
     const lastDotIndex = modelNameWithSuffix.lastIndexOf('.');
     const modelName = modelNameWithSuffix.slice(0, lastDotIndex);

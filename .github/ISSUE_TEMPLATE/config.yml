@@ -1,8 +1,8 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
   - name: "🌟 Feature Request"
     url: "https://github.com/BlafKing/sd-civitai-browser-plus/discussions/new?category=ideas"
     about: "Feature requests are handled in the Discussions tab under 'Ideas'."
-  - name: "❓ Questions"
+  - name: "❓ Question"
     url: "https://github.com/BlafKing/sd-civitai-browser-plus/discussions/new?category=q-a"
     about: "If you have questions, please ask them in the Discussions tab under 'Q&A'."

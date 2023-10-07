@@ -116,7 +116,10 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
         folder = os.path.join(models_path,"Workflows")
         
     elif content_type == "Other":
-        folder = os.path.join(models_path,"Other")
+        if "ADETAILER" in desc:
+            folder = os.path.join(models_path,"adetailer")
+        else:
+            folder = os.path.join(models_path,"Other")
     
     elif content_type == "Wildcards":
         folder = os.path.join(extensions_dir, "UnivAICharGen", "wildcards")
@@ -125,7 +128,7 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
     
     return folder
 
-def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, search_term=None, timeOut=None, isNext=None):
+def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, search_term=None, timeOut=None, isNext=None):
     if current_page in [0, None, ""]:
         current_page = 1
     if search_term != gl.previous_search_term or gl.tile_count != gl.previous_tile_count or gl.inputs_changed or gl.contentChange:
@@ -148,7 +151,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     query = {'sort': sort_type, 'period': period_type}
     
     types_query_str = ""
-        
+    
     if content_type:
         types_query_str = "".join([f"&types={type}" for type in content_type])
     
@@ -158,12 +161,20 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
         query_str += types_query_str
 
     if use_search_term != "None" and search_term:
-        if use_search_term == "User name":
+        if "civitai.com" in search_term:
+            match = re.search(r'models/(\d+)', search_term)
+            model_number = match.group(1)
+            query_str = f"&ids={urllib.parse.quote(model_number)}"
+        elif use_search_term == "User name":
             query_str += f"&username={urllib.parse.quote(search_term)}"
         elif use_search_term == "Tag":
             query_str += f"&tag={urllib.parse.quote(search_term)}"
         else:
             query_str += f"&query={urllib.parse.quote(search_term)}"
+            
+    if base_filter:
+        for base in base_filter:
+            query_str += f"&baseModels={urllib.parse.quote(base)}"
     
     full_url = f"{api_url}&{query_str}"
     
@@ -289,10 +300,10 @@ def model_list_html(json_data, model_dict):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page):
-    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=False)
+def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter):
+    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, isNext=False)
 
-def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, isNext=True):
+def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, isNext=True):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -305,14 +316,14 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut, isNext)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, timeOut, isNext)
         timeOut = False
         
         return return_values
         
     gl.pageChange = True
     
-    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count)
+    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter)
     if gl.previous_inputs and current_inputs != gl.previous_inputs:
         gl.inputs_changed = True
     else:
@@ -323,7 +334,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
 
     if not gl.file_scan:
         if gl.inputs_changed or gl.contentChange:
-            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page)
+            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter)
             return return_values
     
         if isNext:
@@ -421,7 +432,7 @@ def pagecontrol(json_data):
         hasPrev = True
     return hasPrev, hasNext, current_page, total_pages
 
-def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -436,7 +447,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
         gl.ver_json = None
         if not gl.pageChange and not gl.file_scan:
         
-            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count)
+            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter)
             
             if gl.previous_inputs and current_inputs != gl.previous_inputs:
                 gl.inputs_changed = True
@@ -445,7 +456,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             
             gl.previous_inputs = current_inputs
         
-        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, search_term, timeOut, isNext)
+        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, search_term, timeOut, isNext)
         if gl.json_data == "timeout":
             HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
             hasPrev = current_page not in [0, 1]

@@ -19,7 +19,7 @@ body:
     id: steps
     attributes:
       label: Steps to reproduce the problem.
-      description: Please provide me with precise step by step instructions on how to reproduce the bug.
+      description: Precise step by step instructions on how to reproduce the bug.
       value: |
         1. Go to .... 
         2. Press ....
@@ -49,7 +49,7 @@ body:
     id: logs
     attributes:
       label: Console logs
-      description: Please provide **full** cmd/terminal logs from the moment you started UI to the end of it, after your bug happened. If it's very long, provide a link to pastebin or similar service.
+      description: Please share the complete cmd/terminal logs from the time the error occurred, ensuring you include all associated error messages.
       render: Shell
     validations:
       required: true
@@ -57,4 +57,4 @@ body:
     id: misc
     attributes:
       label: Additional information
-      description: Please provide me with any relevant additional info or context.
+      description: Please provide any relevant additional info or context.

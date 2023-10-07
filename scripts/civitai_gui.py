@@ -118,7 +118,7 @@ def on_ui_tabs():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
                         sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value", elem_id="centerText")
                     with gr.Row():
-                        base_filter = gr.Dropdown(label='Filter base model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 2.0","SD 2.1", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value", elem_id="centerText")
+                        base_filter = gr.Dropdown(label='Filter base model:', multiselect=True, choices=["SD 1.4", "SD 1.5", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value", elem_id="centerText")
                     with gr.Row(elem_id=component_id):
                         create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1, min_width=200)
                         toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle2, min_width=200)
@@ -201,8 +201,6 @@ def on_ui_tabs():
         delete_finish = gr.Textbox(value=None, visible=False)
         current_model = gr.Textbox(value=None, visible=False)
         current_sha256 = gr.Textbox(value=None, visible=False)
-        true = gr.Checkbox(value=True, visible=False)
-        page_load = gr.Button(value="", elem_id="pageLoadBtn", visible=False)
         
         # Global variable to detect if content has changed.
         def save_tags_btn(tags, file):
@@ -262,18 +260,6 @@ def on_ui_tabs():
             inputs=[show_nsfw],
             _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)"
         )
-
-        list_html.change(
-            fn=None,
-            inputs=[base_filter],
-            _js="(baseModelValue) => filterByBaseModel(baseModelValue)"
-        )
-        
-        base_filter.change(
-            fn=None,
-            inputs=[base_filter],
-            _js="(baseModelValue) => filterByBaseModel(baseModelValue)"
-        )
         
         list_html.change(
             fn=None,
@@ -288,7 +274,6 @@ def on_ui_tabs():
         )
         
         # Gradio components Logic #
-            
         trained_tags.input(
             fn=save_tags_btn,
             inputs=[trained_tags, model_filename],
@@ -696,7 +681,8 @@ def on_ui_tabs():
             period_type,
             use_search_term,
             search_term,
-            page_slider
+            page_slider,
+            base_filter
         ]
         
         # Define common page load outputs
