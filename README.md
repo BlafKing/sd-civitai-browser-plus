@@ -4,8 +4,6 @@
 ---
 Extension for [Automatic1111's Stable Difussion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)  
 
-This extension allows you to download models from CivitAi without leaving WebUI!  
-
 
 <h1>Features 🚀</h1>
 <h3>Browse all models from CivitAI 🧩</h3>
