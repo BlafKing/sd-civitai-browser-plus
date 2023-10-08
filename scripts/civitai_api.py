@@ -162,6 +162,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
         query_str += types_query_str
 
     if use_search_term != "None" and search_term:
+        search_term = search_term.replace("\\","\\\\")
         if "civitai.com" in search_term:
             match = re.search(r'models/(\d+)', search_term)
             model_number = match.group(1)
