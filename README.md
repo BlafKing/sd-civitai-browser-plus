@@ -27,6 +27,10 @@
 
 * Maximize your bandwidth for lightning-fast downloads.
 
+<h3>Sleek and Intuitive User Interface 🖌️</h3>
+
+* Enjoy a clutter-free, user-friendly interface, designed to enhance your CivitAi browsing and management experience.
+
 <h3>Actively maintained with feature requests welcome 🛠️</h3>
 
 * Feel free to send me your feature requests, and I'll do my best to implement them!

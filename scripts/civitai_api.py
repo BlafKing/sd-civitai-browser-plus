@@ -147,7 +147,8 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
                 next_page = str(int(current_page) - 1)
         api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={next_page}"
     
-    period_type = period_type.replace(" ", "")
+    if period_type:
+        period_type = period_type.replace(" ", "")
     query = {'sort': sort_type, 'period': period_type}
     
     types_query_str = ""

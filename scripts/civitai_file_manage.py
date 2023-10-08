@@ -681,9 +681,9 @@ def load_to_browser():
     global from_ver, from_installed
     _ = None
     if from_ver:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,_,True)
     if from_installed:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,False,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,_,False,True)
     
     gl.file_scan = True
     from_ver, from_installed = False, False
