@@ -60,7 +60,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
         "civitai_interface/Content type:/value": ct,
         "civitai_interface/Time period:/value": pt,
         "civitai_interface/Sort by:/value": st,
-        "civitai_interface/Filter base model:/value": bf,
+        "civitai_interface/Base model:/value": bf,
         "civitai_interface/Save tags after download/value": cj,
         "civitai_interface/Divide cards by date/value": td,
         "civitai_interface/NSFW content/value": sn,
@@ -115,10 +115,10 @@ def on_ui_tabs():
                     with gr.Row():
                         content_type = gr.Dropdown(label='Content type:', choices=content_choices, value=None, type="value", multiselect=True, elem_id="centerText")
                     with gr.Row():
+                        base_filter = gr.Dropdown(label='Base model:', multiselect=True, choices=["SD 1.4", "SD 1.5", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value", elem_id="centerText")
+                    with gr.Row():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
                         sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value", elem_id="centerText")
-                    with gr.Row():
-                        base_filter = gr.Dropdown(label='Filter base model:', multiselect=True, choices=["SD 1.4", "SD 1.5", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", "SDXL 0.9", "SDXL 1.0", "Other"], value=None, type="value", elem_id="centerText")
                     with gr.Row(elem_id=component_id):
                         create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1, min_width=200)
                         toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle2, min_width=200)
