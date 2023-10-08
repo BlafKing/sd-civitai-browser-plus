@@ -204,7 +204,7 @@ def model_list_html(json_data, model_dict):
     for item in json_data['items']:
         for k, model in model_dict.items():
             if model_dict[k].lower() == item['name'].lower():
-                model_name = escape(item["name"].replace("'", "\\'"), quote=True)
+                model_name = escape(item["name"].replace("'", "\\'"), quote=True).replace("\\", "\\\\")
                 
                 if model_name:
                     selected_content_type = item['type']
