@@ -29,7 +29,7 @@
 
 <h3>Sleek and Intuitive User Interface 🖌️</h3>
 
-* Enjoy a clutter-free, user-friendly interface, designed to enhance your CivitAi browsing and management experience.
+* Enjoy a clutter-free, user-friendly interface, designed to enhance your experience.
 
 <h3>Actively maintained with feature requests welcome 🛠️</h3>
 
