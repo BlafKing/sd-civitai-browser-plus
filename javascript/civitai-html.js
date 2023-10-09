@@ -276,7 +276,6 @@ function onPageLoad() {
     clearInterval(intervalID);
 
     updateSVGIcons();
-    pressRefresh();
     adjustFilterBoxAndButtons();
 }
 

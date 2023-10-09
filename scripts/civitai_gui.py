@@ -137,7 +137,7 @@ def on_ui_tabs():
             with gr.Row(elem_id="pageBoxMobile"):
                 pass # Row used for button placement on mobile
             with gr.Row():
-                list_html = gr.HTML(value='<div style="min-height: 0px;"></div>')
+                list_html = gr.HTML(value='<div style="font-size: 24px; text-align: center; margin: 50px;">Click the search icon to load models.<br>Use the filter icon to filter results.</div>')
             with gr.Row():
                 download_progress = gr.HTML(value='<div style="min-height: 0px;"></div>', elem_id="DownloadProgress")
             with gr.Row():
