@@ -89,6 +89,14 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14.6</h3>
+
+* Bug fix: Removed pre-load of default page, caused issues for some users.
+* Bug fix: Fixed internal model naming, caused issues when model names included '
+* Bug fix: Different host for .svg icons, caused issues with MalwareBytes.
+* Bug fix: Preview saving was broken due to passing the wrong file path.
+
+---
 <h3>v1.14.5</h3>
 
 * Feature: Base Model filter now impacts search results.

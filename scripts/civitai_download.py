@@ -419,7 +419,7 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
             if create_json:
                 _file.save_json(file_name, install_path, trained_tags)
             info_to_json(path_to_new_file, unpackList)
-            _file.save_preview(preview_html, path_to_new_file, install_path)
+            _file.save_preview(file_name, install_path, preview_html)
 
                 
     base_name = os.path.splitext(file_name)[0]

@@ -127,12 +127,13 @@ def delete_associated_files(directory, base_name):
                 os.remove(path_to_delete)
                 print(f"Associated file deleted: {path_to_delete}")
 
-def save_preview(preview_html, file_name, install_path):
+def save_preview(file_name, install_path, preview_html):
     if not os.path.exists(install_path):
         os.makedirs(install_path)
     img_urls = re.findall(r'data-preview-img=[\'"]?([^\'" >]+)', preview_html)
 
     if not img_urls:
+        print(f"No images found, preview won't be saved.")
         return
 
     name = os.path.splitext(file_name)[0]
@@ -206,11 +207,8 @@ def save_json(file_name, install_path, trained_tags):
     if not os.path.exists(install_path):
         os.makedirs(install_path)
 
-    parts = file_name.split('.')
-    if len(parts) > 1:
-        file_name = '.'.join(parts[:-1]) + ".json"
-    else:
-        file_name += ".json"
+    name = os.path.splitext(file_name)[0]
+    file_name = f'{name}.json'
     
     path_to_new_file = os.path.join(install_path, file_name)
 

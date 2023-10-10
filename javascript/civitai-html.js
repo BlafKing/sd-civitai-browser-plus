@@ -226,8 +226,8 @@ function pressRefresh() {
 function updateSVGIcons() {
     // Check if body has class "dark" and set appropriate SVG Icons
     const isDark = document.body.classList.contains('dark');
-    const filterIconUrl = isDark ? "https://svgur.com/i/y93.svg" : "https://svgur.com/i/yBY.svg";
-    const searchIconUrl = isDark ? "https://svgur.com/i/y9S.svg" : "https://svgur.com/i/y8H.svg";
+    const filterIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/a20124cedafad23d4eecc1367ec22896/raw/04a4dae0771353377747dadf57c91d55bf841bed/filter-light.svg" : "https://gistcdn.githack.com/BlafKing/686c3438f5d0d13e7e47135f25445ef3/raw/46477777faac7209d001829a171462d9a2ff1467/filter-dark.svg";
+    const searchIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/3f95619089bac3b4fd5470a986e1b3bb/raw/ebaa9cceee3436711eb560a7a65e151f1d651c6a/search-light.svg" : "https://gistcdn.githack.com/BlafKing/57573592d5857e102a4bfde852f62639/raw/aa213e9e82d705651603507e26545eb0ffe60c90/search-dark.svg";
 
     const element = document.querySelector("#filterBox") || document.querySelector("#filterBoxL");
     const childDiv = element.querySelector("div:nth-child(3)");

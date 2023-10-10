@@ -129,7 +129,7 @@ def on_ui_tabs():
                     with gr.Row(elem_id="save_set_box"):
                         save_settings = gr.Button(value="Save settings as default", elem_id="save_set_btn")
                 search_term = gr.Textbox(label="", placeholder="Search CivitAI", elem_id="searchBox")
-                refresh = gr.Button(label="", value="", elem_id=refreshbtn, icon="https://svgur.com/i/y9S.svg")
+                refresh = gr.Button(label="", value="", elem_id=refreshbtn, icon="placeholder")
             with gr.Row(elem_id="pageBox"):
                 get_prev_page = gr.Button(value="Prev page", interactive=False, elem_id="pageBtn1")
                 page_slider = gr.Slider(label='Current page', step=1, minimum=1, maximum=1, value=1, min_width=80, elem_id="pageSlider")
