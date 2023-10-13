@@ -183,9 +183,9 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 <h3>v1.12.1</h3>
 
 * Feature: File deletion now uses both SHA256 and file name to detect correct file.
-* New setting: option to toggle automatically inserting 2 default sub folders.
-* New setting: option to toggle installing LoCON's in LORA folder.
-* Bug fix: default file was incorrect when selecting a model.
+* New setting: Option to toggle automatically inserting 2 default sub folders.
+* New setting: Option to toggle installing LoCON's in LORA folder.
+* Bug fix: Default file was incorrect when selecting a model.
 * Bug fix: Next Page caused an error when changing content type.
 
 ---

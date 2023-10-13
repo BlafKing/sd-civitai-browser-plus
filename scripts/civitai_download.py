@@ -10,6 +10,7 @@ import platform
 import socket
 import stat
 import json
+import time
 from pathlib import Path
 from modules.shared import opts
 import scripts.civitai_global as gl
@@ -20,9 +21,17 @@ try:
 except:
     print("Civit AI: Python module 'ZipUnicode' has not been imported correctly, please try to restart or install it manually.")
 
+def random_number(prev):
+    number = str(random.randint(10000, 99999))
+    
+    while number == prev:
+        number = str(random.randint(10000, 99999))
+    
+    return number
 
 gl.init()
 current_sha256 = None
+rpc_secret = None
 
 def rpc_running():
     try:
@@ -39,10 +48,15 @@ def rpc_running():
     return False
 
 def start_aria2_rpc(aria2c):
+    global rpc_secret
+    if not rpc_secret:
+        rpc_secret = str(random_number(0))
+    time.sleep(1)
     if not rpc_running():
         try:
             show_log = getattr(opts, "show_log", False)
-            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --check-certificate=false --ca-certificate=" " --file-allocation=none'
+            aria2_flags = getattr(opts, "aria2_flags", "")
+            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " --file-allocation=none {aria2_flags}'
             subprocess_args = {'shell': True}
             if not show_log:
                 subprocess_args.update({'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL})
@@ -68,14 +82,6 @@ start_aria2_rpc(aria2)
 
 class TimeOutFunction(Exception):
     pass
-
-def random_number(prev):
-    number = str(random.randint(10000, 99999))
-
-    while number == prev:
-        number = str(random.randint(10000, 99999))
-    
-    return number
 
 def download_start(download_start, model_name, model_filename, version, sha256, modelId):
     global current_sha256, current_id
@@ -176,7 +182,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
         "jsonrpc": "2.0",
         "id": "1",
         "method": "aria2.addUri",
-        "params": [[url], options]
+        "params": ["token:" + rpc_secret, [url], options]
     })
     
     try:
@@ -193,7 +199,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
                 "jsonrpc": "2.0",
                 "id": "1",
                 "method": "aria2.remove",
-                "params": [gid]
+                "params": ["token:" + rpc_secret, gid]
             })
             requests.post(aria2_rpc_url, data=payload)
             progress(0, desc=f"Download cancelled.")
@@ -205,7 +211,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
                 "jsonrpc": "2.0",
                 "id": "1",
                 "method": "aria2.tellStatus",
-                "params": [gid]
+                "params": ["token:" + rpc_secret, gid]
             })
             
             response = requests.post(aria2_rpc_url, data=payload)
