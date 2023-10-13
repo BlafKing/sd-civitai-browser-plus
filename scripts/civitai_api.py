@@ -49,6 +49,8 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
     folder = None
     if desc:
         desc = desc.upper()
+    else:
+        desc = "PLACEHOLDER"
         
     if content_type == "modelFolder":
         folder = os.path.join(models_path)
