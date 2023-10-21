@@ -49,8 +49,7 @@ def rpc_running():
 
 def start_aria2_rpc(aria2c):
     global rpc_secret
-    if not rpc_secret:
-        rpc_secret = str(random_number(0))
+    rpc_secret = "R7T5P2Q9K6"
     time.sleep(1)
     if not rpc_running():
         try:
@@ -71,14 +70,12 @@ os_type = platform.system()
 
 if os_type == 'Windows':
     aria2 = os.path.join(aria2path, 'win', 'aria2.exe')
+    start_aria2_rpc(aria2)
 elif os_type == 'Linux':
     aria2 = os.path.join(aria2path, 'lin', 'aria2')
     st = os.stat(aria2)
     os.chmod(aria2, st.st_mode | stat.S_IEXEC)
-elif os_type == 'Darwin':
-    aria2 = os.path.join(aria2path, 'mac', 'aria2')
-
-start_aria2_rpc(aria2)
+    start_aria2_rpc(aria2)
 
 class TimeOutFunction(Exception):
     pass
@@ -187,7 +184,10 @@ def download_file(url, file_path, install_path, progress=gr.Progress()):
     
     try:
         response = requests.post(aria2_rpc_url, data=payload)
-        gid = json.loads(response.text)['result']
+        data = json.loads(response.text)
+        if 'result' not in data:
+                raise ValueError(f'Failed to start download: {data}')
+        gid = data['result']
     except Exception as e:
         print(f"Failed to start download: {e}")
         gl.download_fail = True
@@ -396,7 +396,7 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
         
     path_to_new_file = os.path.join(install_path, file_name)
     
-    if use_aria2:
+    if use_aria2 and os_type != 'Darwin':
         thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
     else:
         thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, progress))

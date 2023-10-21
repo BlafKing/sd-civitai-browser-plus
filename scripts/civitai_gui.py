@@ -69,8 +69,13 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
     }
     
     # Load the current contents of the config file into a dictionary
-    with open(config, 'r') as file:
-        data = json.load(file)
+    try:
+        with open(config, 'r') as file:
+            data = json.load(file)
+    except:
+        print(f"Cannot save settings, failed to open \"{file}\"")
+        print("Please try to manually repair the file or remove it to reset settings.")
+        return
 
     # Remove any keys containing the text `civitai_interface`
     keys_to_remove = [key for key in data if "civitai_interface" in key]
