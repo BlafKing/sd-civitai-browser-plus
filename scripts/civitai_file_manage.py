@@ -10,6 +10,7 @@ import time
 import shutil
 import requests
 import hashlib
+from modules.shared import cmd_opts
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
@@ -25,6 +26,7 @@ no_update = False
 from_ver = False
 from_tag = False
 from_installed = False
+queue = not cmd_opts.no_gradio_queue
 
 def delete_model(delete_finish, model_filename, model_name, list_versions, sha256=None):
     deleted = False
@@ -454,7 +456,7 @@ def version_match(file_paths, api_response):
                 
     return updated_models, outdated_models
 
-def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Progress()):
+def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Progress() if queue else None):
     global from_ver, from_installed, no_update
     gl.scan_files = True
     no_update = False
@@ -466,7 +468,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
         number = _download.random_number(installed_finish)
     
     if not folders:
-        progress(0, desc=f"No folder selected.")
+        if progress:
+            progress(0, desc=f"No folder selected.")
         no_update = True
         gl.scan_files = False
         from_ver, from_installed = False, False
@@ -505,7 +508,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
     total_files += len(files)
     
     if total_files == 0:
-        progress(1, desc=f"No files in selected folder.")
+        if progress:
+            progress(1, desc=f"No files in selected folder.")
         no_update = True
         gl.scan_files = False
         from_ver, from_installed = False, False
@@ -520,7 +524,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
     
     for file_path in files:
         if gl.cancel_status:
-            progress(files_done / total_files, desc=f"Saving tags cancelled.")
+            if progress:
+                progress(files_done / total_files, desc=f"Saving tags cancelled.")
             no_update = True
             gl.scan_files = False
             from_ver, from_installed = False, False
@@ -528,7 +533,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
             return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                     gr.Textbox.update(value=number))
         file_name = os.path.basename(file_path)
-        progress(files_done / total_files, desc=f"Processing file: {file_name}")
+        if progress:
+            progress(files_done / total_files, desc=f"Processing file: {file_name}")
         model_id = get_models(file_path)
         if model_id != None:
             all_model_ids.append(f"&ids={model_id}")
@@ -551,7 +557,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
         
         for url in url_list:
             while url:
-                progress(1, desc=f"Sending API request...")
+                if progress:
+                    progress(1, desc=f"Sending API request...")
                 response = requests.get(url, timeout=(10,30))
                 if response.status_code == 200:
                     api_response = response.json()
@@ -622,7 +629,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
 
     if from_tag:
         tags_save(api_response, file_paths)
-        progress(1, desc=f"All tags succesfully saved!")
+        if progress:
+            progress(1, desc=f"All tags succesfully saved!")
         time.sleep(2)
         return  (
                 gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
