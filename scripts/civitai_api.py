@@ -108,16 +108,26 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
         folder = os.path.join(models_path, "Poses")
     
     elif content_type == "Upscaler":
-        if "REALESRGAN" in desc:
-            if cmd_opts.realesrgan_models_path:
-                folder = cmd_opts.realesrgan_models_path
-            else:
-                folder = os.path.join(models_path, "RealESRGAN")
-        elif "SWINIR" in desc:
+        if "SWINIR" in desc:
             if cmd_opts.swinir_models_path:
                 folder = cmd_opts.swinir_models_path
             else:
                 folder = os.path.join(models_path, "SwinIR")
+        elif "REALESRGAN" in desc:
+            if cmd_opts.realesrgan_models_path:
+                folder = cmd_opts.realesrgan_models_path
+            else:
+                folder = os.path.join(models_path, "RealESRGAN")
+        elif "GFPGAN" in desc:
+            if cmd_opts.gfpgan_models_path:
+                folder = cmd_opts.gfpgan_models_path
+            else:
+                folder = os.path.join(models_path, "GFPGAN")
+        elif "BSRGAN" in desc:
+            if cmd_opts.bsrgan_models_path:
+                folder = cmd_opts.bsrgan_models_path
+            else:
+                folder = os.path.join(models_path, "BSRGAN")
         else:
             if cmd_opts.esrgan_models_path:
                 folder = cmd_opts.esrgan_models_path
