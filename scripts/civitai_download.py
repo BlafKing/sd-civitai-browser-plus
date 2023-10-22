@@ -38,7 +38,7 @@ def rpc_running():
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(2)
-        sock.connect(("localhost", 6800))
+        sock.connect(("localhost", 24000))
 
         return True
     except Exception as e:
@@ -54,7 +54,7 @@ def start_aria2_rpc(aria2c):
         try:
             show_log = getattr(opts, "show_log", False)
             aria2_flags = getattr(opts, "aria2_flags", "")
-            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " --file-allocation=none {aria2_flags}'
+            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --rpc-listen-port=24000 --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " --file-allocation=none {aria2_flags}'
             subprocess_args = {'shell': True}
             if not show_log:
                 subprocess_args.update({'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL})
@@ -154,7 +154,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
     
     max_retries = 5
     gl.download_fail = False
-    aria2_rpc_url = "http://localhost:6800/jsonrpc"
+    aria2_rpc_url = "http://localhost:24000/jsonrpc"
 
     if os.path.exists(file_path):
         os.remove(file_path)

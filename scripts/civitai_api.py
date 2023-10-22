@@ -8,7 +8,7 @@ import os
 import re
 from collections import defaultdict
 from modules.shared import cmd_opts, opts
-from modules.paths import models_path, extensions_dir
+from modules.paths import models_path, extensions_dir, data_path
 from html import escape 
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
@@ -62,66 +62,79 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
             folder = os.path.join(models_path,"Stable-diffusion")
             
     elif content_type == "Hypernetwork":
-        folder = cmd_opts.hypernetwork_dir
+        if cmd_opts.hypernetwork_dir:
+            folder = cmd_opts.hypernetwork_dir
+        else:
+            folder = os.path.join(models_path, "hypernetworks")
         
     elif content_type == "TextualInversion":
-        folder = cmd_opts.embeddings_dir
+        if cmd_opts.embeddings_dir:
+            folder = cmd_opts.embeddings_dir
+        else:
+            folder = os.path.join(data_path, "embeddings")
         
     elif content_type == "AestheticGradient":
         folder = os.path.join(extensions_dir, "stable-diffusion-webui-aesthetic-gradients", "aesthetic_embeddings")
         
     elif content_type == "LORA":
-        folder = cmd_opts.lora_dir
+        if cmd_opts.lora_dir:
+            folder = cmd_opts.lora_dir
+        else:
+            folder = folder = os.path.join(models_path, "Lora")
         
     elif content_type == "LoCon":
-        if "lyco_dir" in cmd_opts:
-            folder = f"{cmd_opts.lyco_dir}"
-        elif "lyco_dir_backcompat" in cmd_opts:
-            folder = f"{cmd_opts.lyco_dir_backcompat}"
+        if cmd_opts.lyco_dir:
+            folder = cmd_opts.lyco_dir
+        elif cmd_opts.lyco_dir_backcompat:
+            folder = cmd_opts.lyco_dir_backcompat
         else:
-            folder = os.path.join(models_path,"LyCORIS")
+            folder = os.path.join(models_path, "LyCORIS")
         if use_LORA and not fromCheck:
-            folder = cmd_opts.lora_dir
+            if cmd_opts.lora_dir:
+                folder = cmd_opts.lora_dir
+            else:
+                folder = folder = os.path.join(models_path, "Lora")
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir:
             folder = cmd_opts.vae_dir
         else:
-            folder = os.path.join(models_path,"VAE")
+            folder = os.path.join(models_path, "VAE")
             
-    elif content_type == "Controlnet":
-        if cmd_opts.ckpt_dir:
-            folder = os.path.join(os.path.join(cmd_opts.ckpt_dir, os.pardir), "ControlNet")
-        else:            
-            folder = os.path.join(models_path,"ControlNet")
+    elif content_type == "Controlnet":  
+        folder = os.path.join(models_path, "ControlNet")
             
     elif content_type == "Poses":
-        if cmd_opts.ckpt_dir:
-            folder = os.path.join(os.path.join(cmd_opts.ckpt_dir, os.pardir), "Poses")
-        else:            
-            folder = os.path.join(models_path,"Poses")
+        folder = os.path.join(models_path, "Poses")
     
     elif content_type == "Upscaler":
         if "REALESRGAN" in desc:
-            folder = os.path.join(models_path,"RealESRGAN")
-        
+            if cmd_opts.realesrgan_models_path:
+                folder = cmd_opts.realesrgan_models_path
+            else:
+                folder = os.path.join(models_path, "RealESRGAN")
         elif "SWINIR" in desc:
-            folder = os.path.join(models_path,"SwinIR")
-        
+            if cmd_opts.swinir_models_path:
+                folder = cmd_opts.swinir_models_path
+            else:
+                folder = os.path.join(models_path, "SwinIR")
         else:
-            folder = os.path.join(models_path,"ESRGAN")
+            if cmd_opts.esrgan_models_path:
+                folder = cmd_opts.esrgan_models_path
+            else:
+                folder = os.path.join(models_path, "ESRGAN")
             
     elif content_type == "MotionModule":
         folder = os.path.join(extensions_dir, "sd-webui-animatediff", "model")
         
     elif content_type == "Workflows":
-        folder = os.path.join(models_path,"Workflows")
+        folder = os.path.join(models_path, "Workflows")
         
     elif content_type == "Other":
         if "ADETAILER" in desc:
-            folder = os.path.join(models_path,"adetailer")
+            folder = os.path.join(models_path, "adetailer")
         else:
-            folder = os.path.join(models_path,"Other")
+            folder = os.path.join(models_path, "Other")
     
     elif content_type == "Wildcards":
         folder = os.path.join(extensions_dir, "UnivAICharGen", "wildcards")
