@@ -468,7 +468,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
         number = _download.random_number(installed_finish)
     
     if not folders:
-        if progress:
+        if progress != None:
             progress(0, desc=f"No folder selected.")
         no_update = True
         gl.scan_files = False
@@ -508,7 +508,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
     total_files += len(files)
     
     if total_files == 0:
-        if progress:
+        if progress != None:
             progress(1, desc=f"No files in selected folder.")
         no_update = True
         gl.scan_files = False
@@ -524,7 +524,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
     
     for file_path in files:
         if gl.cancel_status:
-            if progress:
+            if progress != None:
                 progress(files_done / total_files, desc=f"Saving tags cancelled.")
             no_update = True
             gl.scan_files = False
@@ -533,7 +533,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
             return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                     gr.Textbox.update(value=number))
         file_name = os.path.basename(file_path)
-        if progress:
+        if progress != None:
             progress(files_done / total_files, desc=f"Processing file: {file_name}")
         model_id = get_models(file_path)
         if model_id != None:
@@ -557,7 +557,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
         
         for url in url_list:
             while url:
-                if progress:
+                if progress != None:
                     progress(1, desc=f"Sending API request...")
                 response = requests.get(url, timeout=(10,30))
                 if response.status_code == 200:
@@ -629,7 +629,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
 
     if from_tag:
         tags_save(api_response, file_paths)
-        if progress:
+        if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
         time.sleep(2)
         return  (
