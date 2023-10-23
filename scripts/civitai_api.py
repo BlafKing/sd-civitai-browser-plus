@@ -58,7 +58,7 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
     if content_type == "Checkpoint":
         if cmd_opts.ckpt_dir:
             folder = cmd_opts.ckpt_dir
-        else:            
+        else:
             folder = os.path.join(models_path,"Stable-diffusion")
             
     elif content_type == "Hypernetwork":
@@ -83,12 +83,7 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
             folder = folder = os.path.join(models_path, "Lora")
         
     elif content_type == "LoCon":
-        if cmd_opts.lyco_dir:
-            folder = cmd_opts.lyco_dir
-        elif cmd_opts.lyco_dir_backcompat:
-            folder = cmd_opts.lyco_dir_backcompat
-        else:
-            folder = os.path.join(models_path, "LyCORIS")
+        folder = os.path.join(models_path, "LyCORIS")
         if use_LORA and not fromCheck:
             if cmd_opts.lora_dir:
                 folder = cmd_opts.lora_dir
@@ -570,7 +565,8 @@ def update_model_versions(model_name):
                                         with open(json_path, 'r') as f:
                                             json_data = json.load(f)
                                             if isinstance(json_data, dict):
-                                                sha256 = json_data.get('sha256', "").upper()
+                                                if 'sha256' in json_data:
+                                                    sha256 = json_data.get('sha256', "").upper()
                                                 if sha256 == file_sha256:
                                                     installed_versions.append(version['name'])
                                     except Exception as e:
@@ -868,10 +864,11 @@ def update_file_info(model_name, model_version, file_metadata):
                                                 with open(os.path.join(root, filename), 'r') as f:
                                                     try:
                                                         data = json.load(f)
-                                                        if data.get('sha256').upper() == sha256:
-                                                            folder_location = root
-                                                            installed = True
-                                                            break
+                                                        if "sha256" in data:
+                                                            if data.get('sha256').upper() == sha256:
+                                                                folder_location = root
+                                                                installed = True
+                                                                break
                                                     except Exception as e:
                                                         print(f"Error decoding JSON: {str(e)}")
                                 if folder_location == "None":

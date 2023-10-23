@@ -79,13 +79,14 @@ elif os_type == 'Linux':
 class TimeOutFunction(Exception):
     pass
 
-def download_start(download_start, model_name, model_filename, version, sha256, modelId):
+def download_start(download_start, model_name, model_filename, version, sha256):
     global current_sha256, current_id
     gl.last_version = version
     gl.current_download = model_filename
     gl.cancel_status = False
     gl.recent_model = model_name
-    current_sha256 = sha256.upper()
+    if sha256:
+        current_sha256 = sha256.upper()
     for item in gl.json_data['items']:
         if item['name'] == model_name:
             current_id = item['id']
