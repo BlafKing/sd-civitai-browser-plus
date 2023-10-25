@@ -295,6 +295,10 @@
     margin-bottom: 20px;
 }
 
+#civitai_preview_html .model-block code {
+    white-space: pre-wrap;
+}
+
 #civitai_preview_html .sampleimgs .model-block img,
 #civitai_preview_html .sampleimgs .model-block video {
 	padding-top: 1em;
