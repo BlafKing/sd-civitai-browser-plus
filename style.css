@@ -299,6 +299,10 @@
     white-space: pre-wrap;
 }
 
+#civitai_preview_html .model-block dl {
+    overflow-wrap: anywhere;
+}
+
 #civitai_preview_html .sampleimgs .model-block img,
 #civitai_preview_html .sampleimgs .model-block video {
 	padding-top: 1em;
