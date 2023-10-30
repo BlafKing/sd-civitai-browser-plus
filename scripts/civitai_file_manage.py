@@ -30,6 +30,8 @@ try:
     queue = not cmd_opts.no_gradio_queue
 except AttributeError:
     queue = not cmd_opts.disable_queue
+except:
+    queue = True
 
 def delete_model(delete_finish, model_filename, model_name, list_versions, sha256=None):
     deleted = False

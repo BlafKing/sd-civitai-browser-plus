@@ -158,7 +158,7 @@ def on_ui_tabs():
                 with gr.Column(scale=4):
                     trained_tags = gr.Textbox(label='Trained tags (if any):', value=None, interactive=False, lines=1)
                 with gr.Column(scale=2, elem_id="spanWidth"):
-                    base_model = gr.Textbox(label='Base model:', value='', interactive=False, lines=1, elem_id="baseMdl")
+                    base_model = gr.Textbox(label='Base model: ', value='', interactive=False, lines=1, elem_id="baseMdl")
                     model_filename = gr.Textbox(label="Model filename:", interactive=False, value=None)
             with gr.Row():
                 save_tags = gr.Button(value="Save tags", interactive=False)

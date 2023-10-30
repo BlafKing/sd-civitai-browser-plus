@@ -89,6 +89,15 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.14.7</h3>
+
+* Bug fix: Extension didn't work with `no gradio queue` flag.
+* Bug fix: Auto disable Aria2 on MacOS.
+* Bug fix: Extension didn't work properly on SD.Next.
+* Bug fix: Download progression and cancelling was broken on non Aria2 download method.
+* Bug fix: Fixed downloading models where logging in was required.
+
+---
 <h3>v1.14.6</h3>
 
 * Bug fix: Removed pre-load of default page, caused issues for some users.

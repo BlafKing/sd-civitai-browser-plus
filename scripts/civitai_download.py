@@ -36,6 +36,8 @@ try:
     queue = not cmd_opts.no_gradio_queue
 except AttributeError:
     queue = not cmd_opts.disable_queue
+except:
+    queue = True
 
 def rpc_running():
     try:
@@ -152,6 +154,18 @@ def convert_size(size):
         size /= 1024
     return f"{size:.2f} GB"
 
+def get_download_link(url):
+    headers = {
+        'Authorization': f'Bearer eaee11648ef4c72efb2333d5ebc68b98'
+    }
+
+    response = requests.get(url, headers=headers, allow_redirects=False)
+    if 300 <= response.status_code <= 308:
+        download_link = response.headers["Location"]
+        return download_link
+    else:
+        return None
+
 def download_file(url, file_path, install_path, progress=gr.Progress() if queue else None):
     disable_dns = getattr(opts, "disable_dns", False)
     split_aria2 = getattr(opts, "split_aria2", 64)
@@ -160,6 +174,12 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
     gl.download_fail = False
     aria2_rpc_url = "http://localhost:24000/jsonrpc"
 
+    download_link = get_download_link(url)
+    if not download_link:
+        print("Couldn't retrieve download link")
+        gl.download_fail = True
+        return
+    
     if os.path.exists(file_path):
         os.remove(file_path)
 
@@ -182,7 +202,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
         "jsonrpc": "2.0",
         "id": "1",
         "method": "aria2.addUri",
-        "params": ["token:" + rpc_secret, [url], options]
+        "params": ["token:" + rpc_secret, [download_link], options]
     })
     
     try:
@@ -288,10 +308,20 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
     max_retries = 5
     if os.path.exists(file_path):
         os.remove(file_path)
+        
     downloaded_size = 0
     tokens = re.split(re.escape('\\'), file_path)
     file_name_display = tokens[-1]
     start_time = time.time()
+    last_update_time = 0
+    update_interval = 0.25
+    
+    download_link = get_download_link(url)
+    if not download_link:
+        print("Couldn't retrieve download link")
+        gl.download_fail = True
+        return
+    
     while True:
         if gl.cancel_status:
             if progress != None:
@@ -317,7 +347,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                                 progress(0, desc=f"Download cancelled.")
                             time.sleep(2)
                             return
-                        response = requests.get(url, headers=headers, stream=True, timeout=4)
+                        response = requests.get(download_link, headers=headers, stream=True, timeout=4)
                         if response.status_code == 404:
                             if progress != None:
                                 progress(0, desc="File returned a 404, file is not found.")
@@ -348,8 +378,10 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                                 eta_formatted = time.strftime("%H:%M:%S", time.gmtime(eta_seconds))
                             else:
                                 eta_formatted = "XX:XX:XX"
-                            if progress != None:
+                            current_time = time.time()
+                            if current_time - last_update_time >= update_interval:
                                 progress(downloaded_size / total_size, desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)} - Speed: {convert_size(int(download_speed))}/s - ETA: {eta_formatted}")
+                                last_update_time = current_time
                             if gl.isDownloading == False:
                                 response.close
                                 break
