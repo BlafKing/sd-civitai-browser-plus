@@ -95,7 +95,8 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 * Bug fix: Auto disable Aria2 on MacOS.
 * Bug fix: Extension didn't work properly on SD.Next.
 * Bug fix: Download progression and cancelling was broken on non Aria2 download method.
-* Bug fix: Fixed downloading models where logging in was required.
+* Bug fix: Downloading models didn't work when logging in was required.
+* Bug fix: Extension used to install dependencies when they were already installed.
 
 ---
 <h3>v1.14.6</h3>
