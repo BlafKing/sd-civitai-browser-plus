@@ -32,7 +32,10 @@ def random_number(prev):
 gl.init()
 current_sha256 = None
 rpc_secret = "R7T5P2Q9K6"
-queue = not cmd_opts.no_gradio_queue
+try:
+    queue = not cmd_opts.no_gradio_queue
+except AttributeError:
+    queue = not cmd_opts.disable_queue
 
 def rpc_running():
     try:

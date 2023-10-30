@@ -26,7 +26,10 @@ no_update = False
 from_ver = False
 from_tag = False
 from_installed = False
-queue = not cmd_opts.no_gradio_queue
+try:
+    queue = not cmd_opts.no_gradio_queue
+except AttributeError:
+    queue = not cmd_opts.disable_queue
 
 def delete_model(delete_finish, model_filename, model_name, list_versions, sha256=None):
     deleted = False
