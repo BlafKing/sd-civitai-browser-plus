@@ -766,7 +766,6 @@ def on_ui_settings():
     shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
     shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Treat LoCon's as LORA's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, so they can be placed in the LORA folder."))
     shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip after downloading", section=section))
-    shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=section).info("Early access models are only downloadable for supporter tier members"))
     shared.opts.add_option("custom_api_key", shared.OptionInfo("", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, this allows downloading early access models if you're a supporter"))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)
