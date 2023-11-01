@@ -155,9 +155,15 @@ def convert_size(size):
     return f"{size:.2f} GB"
 
 def get_download_link(url):
-    headers = {
-        'Authorization': f'Bearer eaee11648ef4c72efb2333d5ebc68b98'
-    }
+    api_key = getattr(opts, "custom_api_key", "")
+    if api_key:
+        headers = {
+            'Authorization': f'Bearer {api_key}'
+        }
+    else:
+        headers = {
+            'Authorization': f'Bearer eaee11648ef4c72efb2333d5ebc68b98'
+        }
 
     response = requests.get(url, headers=headers, allow_redirects=False)
     if 300 <= response.status_code <= 308:

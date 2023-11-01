@@ -40,6 +40,10 @@
 <details>
 <summary><h1>Known Issues 🐛</h1></summary>
 
+<h3>Incompatible Extension</h3>
+
+* This extension is currently not compatible with [SignalFlagZ's CivBrowser](https://github.com/SignalFlagZ/sd-webui-civbrowser) please uninstall it if you're experiencing issues.
+
 <details>
 <summary><h3>Unable to download / Frozen download</h3></summary>
 
@@ -52,7 +56,7 @@ This will switch back to the old download method, which may resolve the issue.
    ![Revert to old download method](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/982b0ebb-0cac-4053-8060-285533e0e176)
 
 2. **Disable Async DNS for Aria2**:
-   If you're using any DNS manager program like PortMaster, try turning on the "Disable Async DNS for Aria2" option.
+   If you're using a DNS manager program like PortMaster, try turning on the "Disable Async DNS for Aria2" option.
 
    ![Disable Async DNS for Aria2](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
 
@@ -91,12 +95,16 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 <h3>v1.14.7</h3>
 
-* Bug fix: Extension didn't work with `no gradio queue` flag.
-* Bug fix: Auto disable Aria2 on MacOS.
-* Bug fix: Extension didn't work properly on SD.Next.
-* Bug fix: Download progression and cancelling was broken on non Aria2 download method.
-* Bug fix: Downloading models didn't work when logging in was required.
-* Bug fix: Extension used to install dependencies when they were already installed.
+* New setting: Hide early access models (EA models are only downloadable by supporters)
+* New setting: Personal CivitAI API key (Text field to insert personal API key)
+  - Useful for CivitAI supporters, you can use your own API Key to allow downloading Early Access models
+* Bug fix: Early Access models are now hidden by default (can only be downloaded by supporters).
+* Bug fix: Extension now works with `no gradio queue` flag.
+* Bug fix: Auto disable Aria2 on MacOS due to incompatibility.
+* Bug fix: Now properly works on SD.Next again.
+* Bug fix: Download progression and cancelling is no longer broken on old download method.
+* Bug fix: Extension now correctly downloads models where it is required to be logged in.
+* Bug fix: Extension no longer attempts to install already installed requirements.
 
 ---
 <h3>v1.14.6</h3>
