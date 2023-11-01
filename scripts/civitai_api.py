@@ -219,6 +219,38 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     return data
 
 def model_list_html(json_data, model_dict):
+    hide_ea = getattr(opts, "hide_early_access", True)
+    filtered_items = []
+    current_time = datetime.datetime.utcnow()
+    
+    if hide_ea:
+        for item in json_data['items']:
+            # Initialize a list to store versions for the current model
+            versions_to_keep = []
+
+            for version in item['modelVersions']:
+                early_access_days = version['earlyAccessTimeFrame']
+
+                if early_access_days == 0:
+                    # If it's not early access at all, add the version to the list
+                    versions_to_keep.append(version)
+                else:
+                    # Convert the "updatedAt" field to a datetime object
+                    updated_at = datetime.datetime.strptime(version['updatedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+                    # Calculate the adjusted date by adding the early_access_days
+                    adjusted_date = updated_at + datetime.timedelta(days=early_access_days)
+
+                    # Compare the adjusted date with the current UTC time
+                    if current_time > adjusted_date:
+                        versions_to_keep.append(version)
+
+            if versions_to_keep:
+                item['modelVersions'] = versions_to_keep
+                filtered_items.append(item)
+                
+        json_data['items'] = filtered_items
+    
     gl.contentChange = False
     HTML = '<div class="column civmodellist">'
     sorted_models = {}
