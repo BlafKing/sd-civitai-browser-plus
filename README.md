@@ -98,7 +98,6 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 * New setting: Hide early access models (EA models are only downloadable by supporters)
 * New setting: Personal CivitAI API key (Text field to insert personal API key)
   - Useful for CivitAI supporters, you can use your own API Key to allow downloading Early Access models
-* Bug fix: Early Access models are now hidden by default (can only be downloaded by supporters).
 * Bug fix: Extension now works with `no gradio queue` flag.
 * Bug fix: Auto disable Aria2 on MacOS due to incompatibility.
 * Bug fix: Now properly works on SD.Next again.
