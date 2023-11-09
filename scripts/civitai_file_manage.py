@@ -18,7 +18,7 @@ import scripts.civitai_download as _download
 try:
     from send2trash import send2trash
 except:
-    print("Civit AI: Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
+    print(f"{gl.print} Civit AI: Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
@@ -48,7 +48,7 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                 break
         
         if selected_content_type is None:
-            print("Model name not found in json_data. (delete_model)")
+            print(f"{gl.print} Model name not found in json_data. (delete_model)")
             return
     
     model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
@@ -65,7 +65,7 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                             data = json.load(json_file)
                             file_sha256 = data.get('sha256', '').upper()
                     except Exception as e:
-                        print(f"Failed to open: {file_path}: {e}")
+                        print(f"{gl.print} Failed to open: {file_path}: {e}")
                         file_sha256 = "0"
                         
                     if file_sha256 == sha256_upper:
@@ -75,19 +75,19 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                             if os.path.isfile(unpacked_file_path):
                                 try:
                                     send2trash(unpacked_file_path)
-                                    print(f"File moved to trash based on unpackList: {unpacked_file_path}")
+                                    print(f"{gl.print} File moved to trash based on unpackList: {unpacked_file_path}")
                                 except:
                                     os.remove(unpacked_file_path)
-                                    print(f"File deleted based on unpackList: {unpacked_file_path}")
+                                    print(f"{gl.print} File deleted based on unpackList: {unpacked_file_path}")
                         
                         base_name, _ = os.path.splitext(file)
                         if os.path.isfile(file_path):
                             try:
                                 send2trash(file_path)
-                                print(f"Model moved to trash based on SHA-256: {file_path}")
+                                print(f"{gl.print} Model moved to trash based on SHA-256: {file_path}")
                             except:
                                 os.remove(file_path)
-                                print(f"Model deleted based on SHA-256: {file_path}")
+                                print(f"{gl.print} Model deleted based on SHA-256: {file_path}")
                             # Delete associated files
                             delete_associated_files(root, base_name)
                             deleted = True
@@ -103,10 +103,10 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                     if os.path.isfile(path_file):
                         try:
                             send2trash(path_file)
-                            print(f"Model moved to trash based on filename: {path_file}")
+                            print(f"{gl.print} Model moved to trash based on filename: {path_file}")
                         except:
                             os.remove(path_file)
-                            print(f"Model deleted based on filename: {path_file}")
+                            print(f"{gl.print} Model deleted based on filename: {path_file}")
                         # Delete associated files
                         delete_associated_files(root, current_file)
 
@@ -122,17 +122,16 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
     )
 
 def delete_associated_files(directory, base_name):
-    """Delete all files in the given directory with the same base name or base name followed by .preview"""
     for file in os.listdir(directory):
         current_base_name, ext = os.path.splitext(file)
         if current_base_name == base_name or current_base_name == f"{base_name}.preview":
             path_to_delete = os.path.join(directory, file)
             try:
                 send2trash(path_to_delete)
-                print(f"Associated file moved to trash: {path_to_delete}")
+                print(f"{gl.print} Associated file moved to trash: {path_to_delete}")
             except:
                 os.remove(path_to_delete)
-                print(f"Associated file deleted: {path_to_delete}")
+                print(f"{gl.print} Associated file deleted: {path_to_delete}")
 
 def save_preview(file_name, install_path, preview_html):
     if not os.path.exists(install_path):
@@ -140,7 +139,7 @@ def save_preview(file_name, install_path, preview_html):
     img_urls = re.findall(r'data-preview-img=[\'"]?([^\'" >]+)', preview_html)
 
     if not img_urls:
-        print(f"No images found, preview won't be saved.")
+        print(f"{gl.print} No images found, preview won't be saved.")
         return
 
     name = os.path.splitext(file_name)[0]
@@ -156,9 +155,9 @@ def save_preview(file_name, install_path, preview_html):
             with open(preview_path, 'wb') as f:
                 f.write(url.read())
                 
-                print(f"Preview image saved to: {preview_path}")
+                print(f"{gl.print} Preview image saved to: {preview_path}")
     except Exception as e:
-        print(f'Error downloading preview image: {e}')
+        print(f'{gl.print} Error downloading preview image: {e}')
 
 def save_images(preview_html, model_filename, model_name, install_path):
     if not os.path.exists(install_path):
@@ -183,14 +182,13 @@ def save_images(preview_html, model_filename, model_name, install_path):
                         filenamethumb = f'{name}.preview.png'
         HTML = HTML.replace(img_url,f'"{filename}"')
         img_url = urllib.parse.quote(img_url,  safe=':/=')
-        print(img_url, install_path, filename)
         try:
             with urllib.request.urlopen(img_url) as url:
                 with open(os.path.join(install_path, filename), 'wb') as f:
                     f.write(url.read())
                     if i == 0 and not os.path.exists(os.path.join(install_path, filenamethumb)):
                         shutil.copy2(os.path.join(install_path, filename),os.path.join(install_path, filenamethumb))
-                    print("Downloaded images.")
+                    print(f"{gl.print} Downloaded images.")
                     
         except urllib.error.URLError as e:
             print(f'Error: {e.reason}')
@@ -225,14 +223,14 @@ def save_json(file_name, install_path, trained_tags):
                 content = json.load(f)
             content["activation text"] = trained_tags
         except Exception as e:
-            print(f"Failed to open {path_to_new_file}: {e}")
+            print(f"{gl.print} Failed to open {path_to_new_file}: {e}")
     else:
         content = {"activation text": trained_tags}
 
     with open(path_to_new_file, 'w') as f:
         json.dump(content, f)
 
-    print(f"Tags saved to: {path_to_new_file}")
+    print(f"{gl.print} Tags saved to: {path_to_new_file}")
 
     return trained_tags
 
@@ -287,7 +285,7 @@ def gen_sha256(file_path):
                 hash_value = data['sha256']
                 return hash_value
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            print(f"{gl.print} Failed to open {json_file}: {e}")
         
     def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         while True:
@@ -317,7 +315,7 @@ def gen_sha256(file_path):
             with open(json_file, 'w') as f:
                 json.dump(data, f, indent=4)
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            print(f"{gl.print} Failed to open {json_file}: {e}")
     else:
         data = {'sha256': hash_value}
         with open(json_file, 'w') as f:
@@ -364,7 +362,7 @@ def tags_save(api_response, file_paths):
                             with open(json_file, 'w') as f:
                                 json.dump(content, f, indent=4)
                         
-                        print(f"Tags saved in {json_file}")
+                        print(f"{gl.print} Tags saved in {json_file}")
 
 def get_models(file_path):
     modelId = None
@@ -378,7 +376,7 @@ def get_models(file_path):
                 if 'modelId' in data:
                     modelId = data['modelId']
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            print(f"{gl.print} Failed to open {json_file}: {e}")
     
     if not modelId:
         model_hash = gen_sha256(file_path)
@@ -401,7 +399,7 @@ def get_models(file_path):
                         with open(json_file, 'w') as f:
                             json.dump(data, f, indent=4)
                     except Exception as e:
-                        print(f"Failed to open {json_file}: {e}")
+                        print(f"{gl.print} Failed to open {json_file}: {e}")
                 else:
                     data = {'modelId': modelId}
                     with open(json_file, 'w') as f:
@@ -409,9 +407,9 @@ def get_models(file_path):
         
         return modelId
     except requests.exceptions.Timeout:
-        print(f"Request timed out for {file_path}. Skipping...")
+        print(f"{gl.print} Request timed out for {file_path}. Skipping...")
     except Exception as e:
-        print(f"An error occurred for {file_path}: {str(e)}")
+        print(f"{gl.print} An error occurred for {file_path}: {str(e)}")
         
 def version_match(file_paths, api_response):
     updated_models = []
@@ -427,7 +425,7 @@ def version_match(file_paths, api_response):
                     if sha256:
                         sha256_hashes[os.path.basename(file_path)] = sha256.upper()
                 except Exception as e:
-                    print(f"Failed to open {json_path}: {e}")
+                    print(f"{gl.print} Failed to open {json_path}: {e}")
     
     for item in api_response.get('items', []):
         model_versions = item.get('modelVersions', [])
@@ -449,10 +447,9 @@ def version_match(file_paths, api_response):
                     
                     if entry_name == file_name_without_ext or entry_sha256 == file_sha256:
                         if idx == 0:
-                            print(f"{file_name} is currently the latest version")
                             updated_models.append(f"&ids={item['id']}")
                         else:
-                            print(f"{file_name} has an available update!")
+                            print(f"{gl.print} {file_name} has an available update!")
                             outdated_models.append(f"&ids={item['id']}")
                         break 
                 else:
@@ -491,14 +488,20 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
             folder = _api.contenttype_folder("LoCon", None, True)
             if folder:
                 folders_to_check.append(folder)
-        if item == "Upscaler":
-            folder = _api.contenttype_folder(item, "ESRGAN")
+        elif item == "Upscaler":
+            folder = _api.contenttype_folder(item, "SwinIR")
             if folder:
                 folders_to_check.append(folder)
             folder = _api.contenttype_folder(item, "RealESRGAN")
             if folder:
                 folders_to_check.append(folder)
-            folder = _api.contenttype_folder(item, "SwinIR")
+            folder = _api.contenttype_folder(item, "GFPGAN")
+            if folder:
+                folders_to_check.append(folder)
+            folder = _api.contenttype_folder(item, "BSRGAN")
+            if folder:
+                folders_to_check.append(folder)
+            folder = _api.contenttype_folder(item, "ESRGAN")
             if folder:
                 folders_to_check.append(folder)
         else:
@@ -508,7 +511,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
         
     total_files = 0
     files_done = 0
-
+    
     files = list_files(folders_to_check)
     total_files += len(files)
     
@@ -573,7 +576,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
                     metadata = api_response.get('metadata', {})
                     url = metadata.get('nextPage', None)
                 else:
-                    print(f"Error: Received status code {response.status_code} with URL:")
+                    print(f"{gl.print} Error: Received status code {response.status_code} with URL:")
                     print(url)
                     break
 
@@ -684,17 +687,16 @@ def finish_ver_search():
         gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True),
-        
+        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True)
     )
 
 def load_to_browser():
     global from_ver, from_installed
     _ = None
     if from_ver:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,_,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,True)
     if from_installed:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt) = _api.update_model_list(_,_,_,_,_,_,_,_,_,False,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,False,True)
     
     gl.file_scan = True
     from_ver, from_installed = False, False
@@ -704,7 +706,7 @@ def load_to_browser():
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=False, visible=False),
-        lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,bt,
+        lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,
         gr.HTML.update(value='<div style="min-height: 0px;"></div>')
     )
     
@@ -727,7 +729,7 @@ def finish_installed_models():
         gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
         gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True),
+        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True)
     )
 
 def cancel_scan():

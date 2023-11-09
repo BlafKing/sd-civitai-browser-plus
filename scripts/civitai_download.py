@@ -13,13 +13,14 @@ import json
 import time
 from pathlib import Path
 from modules.shared import opts, cmd_opts
+from modules.paths import extensions_dir
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 try:
     from zip_unicode import ZipHandler
 except:
-    print("Civit AI: Python module 'ZipUnicode' has not been imported correctly, please try to restart or install it manually.")
+    print(f"{gl.print} Python module 'ZipUnicode' has not been imported correctly, please try to restart or install it manually.")
 
 def random_number(prev):
     number = str(random.randint(10000, 99999))
@@ -39,47 +40,59 @@ except AttributeError:
 except:
     queue = True
 
-def rpc_running():
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2)
-        sock.connect(("localhost", 24000))
-
-        return True
-    except Exception as e:
-        pass
-    finally:
-        sock.close()
-
-    return False
-
-def start_aria2_rpc(aria2c):
-    time.sleep(1)
-    if not rpc_running():
+def start_aria2_rpc():
+    start_file = os.path.join(aria2path, '_')
+    running_file = os.path.join(aria2path, 'running')
+    null = open(os.devnull, 'w')
+    
+    if os.path.exists(running_file):
         try:
-            show_log = getattr(opts, "show_log", False)
-            aria2_flags = getattr(opts, "aria2_flags", "")
-            cmd = f'"{aria2c}" --enable-rpc --rpc-listen-all --rpc-listen-port=24000 --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " --file-allocation=none {aria2_flags}'
-            subprocess_args = {'shell': True}
-            if not show_log:
-                subprocess_args.update({'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL})
-                
-            subprocess.Popen(cmd, **subprocess_args)
-            print("Aria2 RPC started")
+            if os_type == 'Linux':
+                env = os.environ.copy()
+                env['PATH'] = '/usr/bin:' + env['PATH']
+                subprocess.Popen("pkill aria2", shell=True, env=env)
+            else:
+                subprocess.Popen(stop_rpc, stdout=null, stderr=null)
+            time.sleep(1)
         except Exception as e:
-            print(f"Failed to start Aria2 RPC server: {e}")
+            print(f"{gl.print} Failed to stop Aria2 RPC : {e}")
+    else:
+        if os.path.exists(start_file):
+            os.rename(start_file, running_file)
+            return
+        else:
+            with open(start_file, 'w'):
+                pass
 
+    try:
+        show_log = getattr(opts, "show_log", False)
+        aria2_flags = getattr(opts, "aria2_flags", "")
+        cmd = f'"{aria2}" --enable-rpc --rpc-listen-all --rpc-listen-port=24000 --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " --file-allocation=none {aria2_flags}'
+        subprocess_args = {'shell': True}
+        if not show_log:
+            subprocess_args.update({'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL})
+            
+        subprocess.Popen(cmd, **subprocess_args)
+        if os.path.exists(running_file):
+            print(f"{gl.print} Aria2 RPC restarted")
+        else:
+            print(f"{gl.print} Aria2 RPC started")
+    except Exception as e:
+        print(f"{gl.print} Failed to start Aria2 RPC server: {e}")
+        
 aria2path = Path(__file__).resolve().parents[1] / "aria2"
 os_type = platform.system()
 
 if os_type == 'Windows':
     aria2 = os.path.join(aria2path, 'win', 'aria2.exe')
-    start_aria2_rpc(aria2)
+    stop_rpc = "taskkill /im aria2.exe /f"
+    start_aria2_rpc()
 elif os_type == 'Linux':
     aria2 = os.path.join(aria2path, 'lin', 'aria2')
     st = os.stat(aria2)
     os.chmod(aria2, st.st_mode | stat.S_IEXEC)
-    start_aria2_rpc(aria2)
+    stop_rpc = "pkill aria2"
+    start_aria2_rpc()
 
 class TimeOutFunction(Exception):
     pass
@@ -142,7 +155,7 @@ def download_cancel(delete_finish, model_name, list_versions, model_filename, sh
             time.sleep(0.5)
             
     return  (
-            gr.Button.update(interactive=model_filename, visible=True), # Download Button
+            gr.Button.update(interactive=model_filename, visible=True), # Down Button
             gr.Button.update(interactive=False, visible=False), # Cancel Button
             gr.HTML.update(value='<div style="min-height: 0px;"></div>') # Download Progress
     )
@@ -156,14 +169,11 @@ def convert_size(size):
 
 def get_download_link(url):
     api_key = getattr(opts, "custom_api_key", "")
-    if api_key:
-        headers = {
-            'Authorization': f'Bearer {api_key}'
-        }
-    else:
-        headers = {
-            'Authorization': f'Bearer eaee11648ef4c72efb2333d5ebc68b98'
-        }
+    if not api_key:
+        api_key = "eaee11648ef4c72efb2333d5ebc68b98"
+    headers = {
+        'Authorization': f'Bearer {api_key}'
+    }
 
     response = requests.get(url, headers=headers, allow_redirects=False)
     if 300 <= response.status_code <= 308:
@@ -182,7 +192,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
 
     download_link = get_download_link(url)
     if not download_link:
-        print("Couldn't retrieve download link")
+        print(f"{gl.print} Couldn't retrieve download link")
         gl.download_fail = True
         return
     
@@ -218,7 +228,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
                 raise ValueError(f'Failed to start download: {data}')
         gid = data['result']
     except Exception as e:
-        print(f"Failed to start download: {e}")
+        print(f"{gl.print} Failed to start download: {e}")
         gl.download_fail = True
         return
         
@@ -263,7 +273,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
                 progress(progress_percent / 100, desc=f"Downloading: {file_name} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted}")
             
             if status_info['status'] == 'complete':
-                print(f"Model saved to: {file_path}")
+                print(f"{gl.print} Model saved to: {file_path}")
                 if progress != None:
                     progress(1, desc=f"Model saved to: {file_path}")
                 time.sleep(2)
@@ -280,7 +290,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
             time.sleep(0.25)
 
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"{gl.print} Error occurred during Aria2 status update: {e}")
             max_retries -= 1
             if max_retries == 0:
                 if progress != None:
@@ -297,7 +307,7 @@ def info_to_json(install_path, unpackList=None):
             with open(json_file, 'r') as f:
                 data = json.load(f)
         except Exception as e:
-            print(f"Failed to open {json_file}: {e}")
+            print(f"{gl.print} Failed to open {json_file}: {e}")
     else:
         data = {}
 
@@ -324,7 +334,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
     
     download_link = get_download_link(url)
     if not download_link:
-        print("Couldn't retrieve download link")
+        print(f"{gl.print} Couldn't retrieve download link")
         gl.download_fail = True
         return
     
@@ -413,7 +423,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
         downloaded_size = os.path.getsize(file_path)
         if downloaded_size >= total_size:
             if not gl.cancel_status:
-                print(f"Model saved to: {file_path}")
+                print(f"{gl.print} Model saved to: {file_path}")
                 if progress != None:
                     progress(1, desc=f"Model saved to: {file_path}")
                 time.sleep(2)
@@ -423,7 +433,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
         else:
             if progress != None:
                 progress(0, desc="Download failed, please try again.")
-            print(f"Error: File download failed: {file_name_display}")
+            print(f"{gl.print} File download failed: {file_name_display}")
             gl.download_fail = True
             time.sleep(2)
             if os.path.exists(file_path):
@@ -470,29 +480,31 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
                         zip_handler.extract_all(directory)
                         zip_handler.zip_ref.close()
                         
-                        print(f"Successfully extracted {file_name} to {directory}")
+                        print(f"{gl.print} Successfully extracted {file_name} to {directory}")
                         os.remove(path_to_new_file)
                 except Exception as e:
-                    print(f"Failed to extract {file_name} with error: {e}")
+                    print(f"{gl.print} Failed to extract {file_name} with error: {e}")
             if create_json:
                 _file.save_json(file_name, install_path, trained_tags)
-            info_to_json(path_to_new_file, unpackList)
-            _file.save_preview(file_name, install_path, preview_html)
+            if not gl.cancel_status:
+                info_to_json(path_to_new_file, unpackList)
+                _file.save_preview(file_name, install_path, preview_html)
 
                 
     base_name = os.path.splitext(file_name)[0]
     base_name_preview = base_name + '.preview'
 
     if gl.download_fail:
-        if not gl.cancel_status:
-            print(f'Error occured during download of "{path_to_new_file}".')
         for root, dirs, files in os.walk(install_path):
             for file in files:
                 file_base_name = os.path.splitext(file)[0]
                 if file_base_name == base_name or file_base_name == base_name_preview:
                     path_file = os.path.join(root, file)
                     os.remove(path_file)
-                    print(f"Removed: {path_file}")
+        if gl.cancel_status:
+            print(f'{gl.print} Cancelled download of "{file_name}"')
+        else:
+            print(f'{gl.print} Error occured during download of "{file_name}"')
                     
     if gl.isDownloading:
         gl.isDownloading = False
@@ -503,6 +515,8 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
         modelName = model
     else:
         modelName = None
+    
+    gl.cancel_status = False
     
     return  (
             gr.HTML.update(), # Download Progress HTML

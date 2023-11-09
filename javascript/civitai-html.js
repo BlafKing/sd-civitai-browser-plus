@@ -1,15 +1,20 @@
 "use strict";
 
+// Selects a model by pressing on card
 function select_model(model_name) {
+    var civitaiDiv = document.getElementById('civitai_preview_html');
 	let model_dropdown = gradioApp().querySelector('#eventtext1 textarea');
 	if (model_dropdown && model_name) {
 		let randomNumber = Math.floor(Math.random() * 1000);
 		let paddedNumber = String(randomNumber).padStart(3, '0');
 		model_dropdown.value = model_name + "." + paddedNumber;
-		updateInput(model_dropdown)
+		updateInput(model_dropdown);
+        observer.unobserve(civitaiDiv);
+        observer.observe(civitaiDiv);
 	}
 }
 
+// Changes the card size
 function updateCardSize(width, height) {
     var styleSheet = document.styleSheets[0];
     var dimensionsKeyframes = `width: ${width}em !important; height: ${height}em !important;`;
@@ -22,31 +27,25 @@ function updateCardSize(width, height) {
     addOrUpdateRule(styleSheet, '.civmodelcard figcaption', textKeyframes);
 }
 
+// Toggles NSFW display
 function toggleNSFWContent(hideAndBlur) {
     const sheet = document.styleSheets[0];
 
-    if (!hideAndBlur) {
-        addOrUpdateRule(sheet, '.civcardnsfw', 'display: none;');
-        addOrUpdateRule(sheet, '.civnsfw img', 'filter: blur(10px);');
-    }
-    else {
-        addOrUpdateRule(sheet, '.civcardnsfw', 'display: block;');
-        addOrUpdateRule(sheet, '.civnsfw img', 'filter: none;');
-    }
+    const toggleRule = (selector, rules) => addOrUpdateRule(sheet, selector, rules);
+
+    toggleRule('.civcardnsfw', hideAndBlur ? 'display: block;' : 'display: none;');
+    toggleRule('.civnsfw img', hideAndBlur ? 'filter: none;' : 'filter: blur(10px);');
 
     const dateSections = document.querySelectorAll('.date-section');
     dateSections.forEach((section) => {
         const cards = section.querySelectorAll('.civmodelcard');
         const nsfwCards = section.querySelectorAll('.civmodelcard.civcardnsfw');
-
-        if (!hideAndBlur && cards.length === nsfwCards.length) {
-            section.style.display = 'none';
-        } else {
-            section.style.display = 'block';
-        }
+        section.style.display = !hideAndBlur && cards.length === nsfwCards.length ? 'none' : 'block';
     });
+
 }
 
+// Updates site with css insertions
 function addOrUpdateRule(styleSheet, selector, newRules) {
     for (let i = 0; i < styleSheet.cssRules.length; i++) {
         let rule = styleSheet.cssRules[i];
@@ -58,6 +57,7 @@ function addOrUpdateRule(styleSheet, selector, newRules) {
     styleSheet.insertRule(`${selector} { ${newRules} }`, styleSheet.cssRules.length);
 }
 
+// Updates card border
 function updateCard(modelNameWithSuffix) {
     const lastDotIndex = modelNameWithSuffix.lastIndexOf('.');
     const modelName = modelNameWithSuffix.slice(0, lastDotIndex);
@@ -89,10 +89,10 @@ function updateCard(modelNameWithSuffix) {
     }
 }
 
+// Enables refresh with alt+enter and ctrl+enter
 document.addEventListener('keydown', function(e) {
     var handled = false;
 
-    // Check for the combination of "Enter" key along with Ctrl, Alt, or Meta (Cmd on Mac)
     if (e.key !== undefined) {
         if ((e.key == "Enter" && (e.metaKey || e.ctrlKey || e.altKey))) handled = true;
     } else if (e.keyCode !== undefined) {
@@ -100,11 +100,9 @@ document.addEventListener('keydown', function(e) {
     }
 
     if (handled) {
-        // Check if the extension's tab is the currently active tab
         var currentTabContent = get_uiCurrentTabContent();
         if (currentTabContent && currentTabContent.id === "tab_civitai_interface") {
 
-            // Find the refresh button within the current tab content and click it
             var refreshButton = currentTabContent.querySelector('#refreshBtn');
             if (!refreshButton) {
                 refreshButton = currentTabContent.querySelector('#refreshBtnL');
@@ -130,57 +128,49 @@ function BackToTop() {
 // Function to adjust alignment of Filter Accordion
 function adjustFilterBoxAndButtons() {
     const element = document.querySelector("#filterBox") || document.querySelector("#filterBoxL");
-    if (!element) {
-        return;
-    }
+    if (!element) return;
 
     const childDiv = element.querySelector("div:nth-child(3)");
-    if (!childDiv) {
-        return;
+    if (!childDiv) return;
+
+    const isLargeScreen = window.innerWidth >= 1250;
+    const isMediumScreen = window.innerWidth < 1250 && window.innerWidth > 915;
+    const isNarrowScreen = window.innerWidth < 800;
+    const modelBlocks = document.querySelectorAll("#civitai_preview_html .model-block");
+    
+    if (modelBlocks) {
+        modelBlocks.forEach(modelBlock => {
+            if (isNarrowScreen) {
+                modelBlock.style.flexWrap = "wrap";
+                modelBlock.style.justifyContent = "center";
+            } else {
+                modelBlock.style.flexWrap = "nowrap";
+                modelBlock.style.justifyContent = "flex-start";
+            }
+        });
     }
 
-    if (window.innerWidth >= 1250) {
-        childDiv.style.marginLeft = "0px";  // Reset margin-left when width is >= 1250
-        element.style.justifyContent = "center";
-    } else if (window.innerWidth < 1250 && window.innerWidth > 915) {
-        const marginLeftValue = 1250 - window.innerWidth;
-        childDiv.style.marginLeft = `${marginLeftValue}px`;
-        element.style.justifyContent = "center";
-    } else if (window.innerWidth <= 915) {
-        childDiv.style.marginLeft = "0px";  // Reset margin-left when width is <= 915
-        element.style.justifyContent = "flex-start";
-    }
+    childDiv.style.marginLeft = isLargeScreen ? "0px" : isMediumScreen ? `${1250 - window.innerWidth}px` : "0px";
+    element.style.justifyContent = isLargeScreen || isMediumScreen ? "center" : "flex-start";
 
-    // Reference to the buttons and divs
     const pageBtn1 = document.querySelector("#pageBtn1");
     const pageBtn2 = document.querySelector("#pageBtn2");
     const pageBox = document.querySelector("#pageBox");
     const pageBoxMobile = document.querySelector("#pageBoxMobile");
-    
-    // Move the buttons based solely on viewport width
-    if (window.innerWidth < 500) {
+
+    if (window.innerWidth < 530) {
         childDiv.style.width = "300px";
-        // Move the buttons to pageBoxMobile
         if (pageBoxMobile) {
-            if (pageBtn1) {
-                pageBoxMobile.appendChild(pageBtn1);
-            }
-            if (pageBtn2) {
-                pageBoxMobile.appendChild(pageBtn2);
-            }
+            pageBtn1 && pageBoxMobile.appendChild(pageBtn1);
+            pageBtn2 && pageBoxMobile.appendChild(pageBtn2);
+            pageBoxMobile.style.paddingBottom = "15px";
         }
     } else {
-        childDiv.style.width = "375px";
-        // Move the buttons back to pageBox
+        childDiv.style.width = "400px";
         if (pageBox) {
-            // Ensure pageBtn1 is the first child
-            if (pageBtn1) {
-                pageBox.insertBefore(pageBtn1, pageBox.firstChild);
-            }
-            // Append pageBtn2 to ensure it's the last child
-            if (pageBtn2) {
-                pageBox.appendChild(pageBtn2);
-            }
+            pageBtn1 && pageBox.insertBefore(pageBtn1, pageBox.firstChild);
+            pageBtn2 && pageBox.appendChild(pageBtn2);
+            pageBoxMobile.style.paddingBottom = "0px";
         }
     }
 }
@@ -191,23 +181,18 @@ window.addEventListener("resize", adjustFilterBoxAndButtons);
 // Function to trigger refresh button with extra checks for page slider
 function pressRefresh() {
     setTimeout(() => {
-        // Check if the user is currently typing in the specified input
         const input = document.querySelector("#pageSlider > div:nth-child(2) > div > input");
         if (document.activeElement === input) {
-            // Attach an event listener to detect the 'Enter' key press
             input.addEventListener('keydown', function(event) {
                 if (event.key === 'Enter' || event.keyCode === 13) {
-                    // If 'Enter' key is detected, blur the input to make it inactive
                     input.blur();
                 }
             });
-
-            // Attach an event listener to detect if the input gets blurred
             input.addEventListener('blur', function() {
-                return; // If input is blurred (either by user or programmatically), return from the function
+                return;
             });
 
-            return; // Exit the function if the user is typing
+            return;
         }
 
         let button = document.querySelector("#refreshBtn");
@@ -219,28 +204,25 @@ function pressRefresh() {
         } else {
             console.error("Both buttons with IDs #refreshBtn and #refreshBtnL not found.");
         }
-    }, 200); // Delay of 200 milliseconds
+    }, 200);
 }
 
 // Update SVG Icons based on dark theme or light theme
 function updateSVGIcons() {
-    // Check if body has class "dark" and set appropriate SVG Icons
     const isDark = document.body.classList.contains('dark');
     const filterIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/a20124cedafad23d4eecc1367ec22896/raw/04a4dae0771353377747dadf57c91d55bf841bed/filter-light.svg" : "https://gistcdn.githack.com/BlafKing/686c3438f5d0d13e7e47135f25445ef3/raw/46477777faac7209d001829a171462d9a2ff1467/filter-dark.svg";
     const searchIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/3f95619089bac3b4fd5470a986e1b3bb/raw/ebaa9cceee3436711eb560a7a65e151f1d651c6a/search-light.svg" : "https://gistcdn.githack.com/BlafKing/57573592d5857e102a4bfde852f62639/raw/aa213e9e82d705651603507e26545eb0ffe60c90/search-dark.svg";
 
-    const element = document.querySelector("#filterBox") || document.querySelector("#filterBoxL");
-    const childDiv = element.querySelector("div:nth-child(3)");
+    const element = document.querySelector("#filterBox, #filterBoxL");
+    const childDiv = element?.querySelector("div:nth-child(3)");
 
     if (childDiv) {
-        const boxShadowValue = isDark ? 'box-shadow: #ffffff 0px 0px 2px 0px; display: none;' : 'box-shadow: #000000 0px 0px 2px 0px; display: none;';
-        childDiv.style.cssText = boxShadowValue;
+        childDiv.style.cssText = `box-shadow: ${isDark ? '#ffffff' : '#000000'} 0px 0px 2px 0px; display: none;`;
     }
 
-    // Update filter SVG
     const style = document.createElement('style');
     style.innerHTML = `
-        #filterBox > div:nth-child(2) > span:nth-child(2)::before, 
+        #filterBox > div:nth-child(2) > span:nth-child(2)::before,
         #filterBoxL > div:nth-child(2) > span:nth-child(2)::before {
             background: url('${filterIconUrl}') no-repeat center center;
             background-size: contain;
@@ -248,36 +230,135 @@ function updateSVGIcons() {
     `;
     document.head.appendChild(style);
 
-    // Update search SVG
-    const refreshBtn = document.querySelector("#refreshBtn");
-    const refreshBtnL = document.querySelector("#refreshBtnL");
-    let targetSearchElement;
+    const refreshBtn = document.querySelector("#refreshBtn, #refreshBtnL");
+    const targetSearchElement = refreshBtn?.firstChild || refreshBtnL?.firstChild;
 
-    if (refreshBtn && refreshBtn.firstChild) {
-        targetSearchElement = refreshBtn.firstChild;
-    } else if (refreshBtnL && refreshBtnL.firstChild) {
-        targetSearchElement = refreshBtnL.firstChild;
-    }
     if (targetSearchElement) {
         targetSearchElement.src = searchIconUrl;
     }
 }
 
-function onPageLoad() {
-    // The tab element which exists if page is done loading
-    const targetButton = document.querySelector("#tab_civitai_interface");
+// Creates a tooltip if the user wants to filter liked models without a personal API key
+function createTooltipOnHover() {
+    const toggle4L = document.getElementById('toggle4L');
+    const toggle4 = document.getElementById('toggle4');
 
-    // If the target tab doesn't exist yet, retry after 1 second
-    if (!targetButton) {
+    if (toggle4L || toggle4) {
+        const targetElement = toggle4L || toggle4;
+
+        const tooltip = document.createElement('div');
+        tooltip.className = 'tooltip';
+        tooltip.textContent = 'Requires an API Key\nConfigurable in CivitAI settings tab';
+        tooltip.style.cssText = 'display: none; text-align: center; white-space: pre;';
+
+        targetElement.addEventListener('mouseover', () => {
+            tooltip.style.display = 'block';
+        });
+
+        targetElement.addEventListener('mouseout', () => {
+            tooltip.style.display = 'none';
+        });
+
+        targetElement.appendChild(tooltip);
+    }
+}
+
+// Changes the Tab title
+function changeTabTitle() {
+    const tabElement = document.getElementById('rc-tabs-0-tab-tab_civitai_interface');
+    if (tabElement) {
+        tabElement.textContent = 'CivitAI Browser+';
+    }
+  }
+
+// Function that closes filter dropdown if clicked outside the dropdown
+function setupClickOutsideListener() {
+    var filterBox = document.getElementById("filterBoxL") || document.getElementById("filterBox");
+    var filterButton = filterBox.getElementsByTagName("div")[1];
+    var dropDown = filterBox.getElementsByTagName("div")[2];
+
+    function clickOutsideHandler(event) {
+        var target = event.target;
+        if (!filterBox.contains(target)) {
+            if (!dropDown.contains(target)) {
+                if (filterButton.className.endsWith("open")) {
+                    filterButton.click();
+                }
+            }
+        }
+    }
+    document.addEventListener("click", clickOutsideHandler);
+}
+
+// Create hyperlink in settings to CivitAI account settings
+function createLink(infoElement) {
+
+    const existingText = "(You can create your own API key in your CivitAI account settings, Requires UI reload)";
+    const linkText = "CivitAI account settings";
+    
+    const [textBefore, textAfter] = existingText.split(linkText);
+    
+    const link = document.createElement('a');
+    link.textContent = linkText;
+    link.href = 'https://civitai.com/user/account';
+    link.target = '_blank';
+    
+    while (infoElement.firstChild) infoElement.removeChild(infoElement.firstChild);
+    
+    infoElement.appendChild(document.createTextNode(textBefore));
+    infoElement.appendChild(link);
+    infoElement.appendChild(document.createTextNode(textAfter));
+}
+
+// Function to update the visibility of backToTopDiv based on the intersection with civitaiDiv
+function updateBackToTopVisibility(entries) {
+    var backToTopDiv = document.getElementById('backToTopContainer');
+    var civitaiDiv = document.getElementById('civitai_preview_html');
+    
+    if (civitaiDiv.clientHeight > 0 && entries[0].isIntersecting) {
+        backToTopDiv.style.visibility = 'visible';
+    } else {
+        backToTopDiv.style.visibility = 'hidden';
+    }
+}
+
+// Options for the Intersection Observer
+var options = {
+    root: null,
+    rootMargin: '0px 0px -60px 0px',
+    threshold: 0
+};
+
+// Create an Intersection Observer instance
+const observer = new IntersectionObserver(updateBackToTopVisibility, options);
+
+function handleCivitaiDivChanges() {
+    var civitaiDiv = document.getElementById('civitai_preview_html');
+    observer.unobserve(civitaiDiv);
+    observer.observe(civitaiDiv);
+}
+
+document.addEventListener("scroll", handleCivitaiDivChanges)
+
+// Runs all functions when the page is fully loaded
+function onPageLoad() {
+    const divElement = document.getElementById('setting_custom_api_key');
+    var civitaiDiv = document.getElementById('civitai_preview_html');
+    const infoElement = divElement?.querySelector('.info');
+    if (!infoElement) {
         return;
     }
 
-    // If the tab is found, clear the interval
+    observer.observe(civitaiDiv);
     clearInterval(intervalID);
-
     updateSVGIcons();
     adjustFilterBoxAndButtons();
+    createTooltipOnHover();
+    changeTabTitle();
+    setupClickOutsideListener();
+    createLink(infoElement);
+    updateBackToTopVisibility([{isIntersecting: false}]);
 }
 
-// Start the observer on page load and retry every second until successful
+// Checks every second if the page is fully loaded
 let intervalID = setInterval(onPageLoad, 1000);

@@ -10,7 +10,6 @@ import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
 import scripts.civitai_api as _api
-from time import sleep
 
 gl.init()
 
@@ -29,7 +28,7 @@ def insert_sub(model_name, version_name):
                 if item['name'] == model_name:
                     selected_content_type = item['type']
                     desc = item['description']
-             
+            
             model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
             for root, dirs, _ in os.walk(model_folder):
                 for d in dirs:
@@ -51,7 +50,7 @@ def insert_sub(model_name, version_name):
     except:
         return gr.Dropdown.update(choices=None)
 
-def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
+def saveSettings(ust, ct, pt, st, bf, cj, td, ol, sn, ss, ts):
     config = cmd_opts.ui_config_file
 
     # Create a dictionary to map the settings to their respective variables
@@ -63,6 +62,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
         "civitai_interface/Base model:/value": bf,
         "civitai_interface/Save tags after download/value": cj,
         "civitai_interface/Divide cards by date/value": td,
+        "civitai_interface/Liked models only/value": ol,
         "civitai_interface/NSFW content/value": sn,
         "civitai_interface/Tile size:/value": ss,
         "civitai_interface/Tile count:/value": ts
@@ -73,7 +73,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
         with open(config, 'r') as file:
             data = json.load(file)
     except:
-        print(f"Cannot save settings, failed to open \"{file}\"")
+        print(f"{gl.print} Cannot save settings, failed to open \"{file}\"")
         print("Please try to manually repair the file or remove it to reset settings.")
         return
 
@@ -88,10 +88,11 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, sn, ss, ts):
     # Save the modified content back to the file
     with open(config, 'w') as file:
         json.dump(data, file, indent=4)
-        print(f"Updated settings to: {config}")
+        print(f"{gl.print} Updated settings to: {config}")
         
 def on_ui_tabs():    
     use_LORA = getattr(opts, "use_LORA", False)
+    page_header = getattr(opts, "page_header", False)
     lobe_directory = None
     
     for root, dirs, files in os.walk(extensions_dir):
@@ -99,12 +100,25 @@ def on_ui_tabs():
             lobe_directory = os.path.join(root, dir_name)
             break
 
+    # Different ID's for Lobe Theme
     component_id = "togglesL" if lobe_directory else "toggles"
     toggle1 = "toggle1L" if lobe_directory else "toggle1"
     toggle2 = "toggle2L" if lobe_directory else "toggle2"
     toggle3 = "toggle3L" if lobe_directory else "toggle3"
     refreshbtn = "refreshBtnL" if lobe_directory else "refreshBtn"
     filterBox = "filterBoxL" if lobe_directory else "filterBox"
+    if page_header:
+        header = "headerL" if lobe_directory else "header"
+    else:
+        header = "header_off"
+    
+    api_key = getattr(opts, "custom_api_key", "")
+    if api_key:
+        toggle4 = "toggle4L_api" if lobe_directory else "toggle4_api"
+        show_only_liked = True
+    else:
+        toggle4 = "toggle4L" if lobe_directory else "toggle4"
+        show_only_liked = False
     
     if use_LORA:
         content_choices = ["Checkpoint", "TextualInversion", "LORA & LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"] 
@@ -116,7 +130,7 @@ def on_ui_tabs():
             with gr.Row(elem_id="searchRow"):
                 with gr.Accordion(label="", open=False, elem_id=filterBox):
                     with gr.Row():
-                        use_search_term = gr.Radio(label="Search type:", choices=["Model name", "User name", "Tag"],value="Model name", elem_id="searchType")
+                        use_search_term = gr.Radio(label="Search type:", choices=["Model name", "User name", "Tag"], value="Model name", elem_id="searchType")
                     with gr.Row():
                         content_type = gr.Dropdown(label='Content type:', choices=content_choices, value=None, type="value", multiselect=True, elem_id="centerText")
                     with gr.Row():
@@ -125,9 +139,10 @@ def on_ui_tabs():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
                         sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value", elem_id="centerText")
                     with gr.Row(elem_id=component_id):
-                        create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1, min_width=200)
-                        toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle2, min_width=200)
-                        show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle3, min_width=200)
+                        create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1, min_width=171)
+                        show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle2, min_width=107)
+                        toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle3, min_width=142)
+                        only_liked = gr.Checkbox(label="Liked models only", value=False, interactive=show_only_liked, elem_id=toggle4, min_width=163)
                     with gr.Row():
                         size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
                         tile_slider = gr.Slider(label="Tile count:", minimum=1, maximum=100, value=15, step=1, max_width=100)
@@ -135,12 +150,13 @@ def on_ui_tabs():
                         save_settings = gr.Button(value="Save settings as default", elem_id="save_set_btn")
                 search_term = gr.Textbox(label="", placeholder="Search CivitAI", elem_id="searchBox")
                 refresh = gr.Button(label="", value="", elem_id=refreshbtn, icon="placeholder")
-            with gr.Row(elem_id="pageBox"):
-                get_prev_page = gr.Button(value="Prev page", interactive=False, elem_id="pageBtn1")
-                page_slider = gr.Slider(label='Current page', step=1, minimum=1, maximum=1, value=1, min_width=80, elem_id="pageSlider")
-                get_next_page = gr.Button(value="Next page", interactive=False, elem_id="pageBtn2")
-            with gr.Row(elem_id="pageBoxMobile"):
-                pass # Row used for button placement on mobile
+            with gr.Row(elem_id=header):
+                with gr.Row(elem_id="pageBox"):
+                    get_prev_page = gr.Button(value="Prev page", interactive=False, elem_id="pageBtn1")
+                    page_slider = gr.Slider(label='Current page', step=1, minimum=1, maximum=1, value=1, min_width=80, elem_id="pageSlider")
+                    get_next_page = gr.Button(value="Next page", interactive=False, elem_id="pageBtn2")
+                with gr.Row(elem_id="pageBoxMobile"):
+                    pass # Row used for button placement on mobile
             with gr.Row():
                 list_html = gr.HTML(value='<div style="font-size: 24px; text-align: center; margin: 50px;">Click the search icon to load models.<br>Use the filter icon to filter results.</div>')
             with gr.Row():
@@ -168,8 +184,8 @@ def on_ui_tabs():
                 delete_model = gr.Button(value="Delete model", interactive=False, visible=False)
             with gr.Row():
                 preview_html = gr.HTML(elem_id="civitai_preview_html")
-            with gr.Row():
-                back_to_top = gr.Button(value="Back to top", interactive=True, visible=False)
+            with gr.Row(elem_id="backToTopContainer"):
+                back_to_top = gr.Button(value="↑", elem_id="backToTop")
         with gr.Tab("Update Models"):
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=content_choices)
@@ -295,6 +311,7 @@ def on_ui_tabs():
                 base_filter,
                 create_json,
                 toggle_date,
+                only_liked,
                 show_nsfw,
                 size_slider,
                 tile_slider
@@ -423,7 +440,6 @@ def on_ui_tabs():
                 install_path,
                 sub_folder,
                 file_list,
-                back_to_top,
                 installed_progress
             ]
         )
@@ -448,7 +464,6 @@ def on_ui_tabs():
                 install_path,
                 sub_folder,
                 file_list,
-                back_to_top,
                 version_progress
             ]
         )
@@ -618,8 +633,7 @@ def on_ui_tabs():
                 list_models
             ],
             outputs=[
-                list_versions,
-                back_to_top
+                list_versions
             ]
         )
         
@@ -686,7 +700,8 @@ def on_ui_tabs():
             use_search_term,
             search_term,
             page_slider,
-            base_filter
+            base_filter,
+            only_liked
         ]
         
         # Define common page load outputs
@@ -702,8 +717,7 @@ def on_ui_tabs():
             download_model,
             install_path,
             sub_folder,
-            file_list,
-            back_to_top
+            file_list
         ]
 
         # Map triggers to their corresponding functions
@@ -720,10 +734,10 @@ def on_ui_tabs():
         
         def update_models_dropdown(model_name):
             model_name = re.sub(r'\.\d{3}$', '', model_name)
-            (ret_versions, back_to_top) = _api.update_model_versions(model_name)
+            ret_versions = _api.update_model_versions(model_name)
             (html, tags, _, DwnButton, _, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
             (dl_url, _, _, _) = _api.update_dl_url(tags, id['value'], model_name, ret_versions['value'])
-            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url,tags,filename,install_path,sub_folder,DwnButton,filelist,id,current_sha256,back_to_top
+            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url,tags,filename,install_path,sub_folder,DwnButton,filelist,id,current_sha256
         
         event_text.change(
             fn=update_models_dropdown,
@@ -742,15 +756,14 @@ def on_ui_tabs():
                 download_model,
                 file_list,
                 model_id,
-                current_sha256,
-                back_to_top
+                current_sha256
             ]
         )
 
-    return (civitai_interface, "Civit AI", "civitai_interface"),
+    return (civitai_interface, "Civitai Browser+", "civitai_interface"),
 
 def on_ui_settings():
-    section = ("civitai_browser_plus", "Civit AI")
+    section = ("civitai_browser_plus", "CivitAI Browser+")
 
     if not (hasattr(shared.OptionInfo, "info") and callable(getattr(shared.OptionInfo, "info"))):
         def info(self, info):
@@ -760,14 +773,15 @@ def on_ui_settings():
     
     shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=section).info("Disable to use the old download method"))
     shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=section).info("Useful for users who use PortMaster or other software that controls the DNS"))
-    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in CMD", section=section).info("Requires Web-UI restart"))
+    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in CMD", section=section).info("Requires UI reload"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
-    shared.opts.add_option("aria2_flags", shared.OptionInfo("", "Custom Aria2 command line flags", section=section).info("Requires Web-UI restart"))
+    shared.opts.add_option("aria2_flags", shared.OptionInfo("", "Custom Aria2 command line flags", section=section).info("Requires UI reload"))
     shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
-    shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Treat LoCon's as LORA's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, so they can be placed in the LORA folder."))
+    shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Treat LoCon's as LORA's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload"))
     shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip after downloading", section=section))
-    shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=section).info("Early access models are only downloadable for supporter tier members"))
-    shared.opts.add_option("custom_api_key", shared.OptionInfo("", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, this allows downloading early access models if you're a supporter"))
+    shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=section).info("Early access models are only downloadable for supporter tier members, Requires API key"))
+    shared.opts.add_option("custom_api_key", shared.OptionInfo("", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
+    shared.opts.add_option("page_header", shared.OptionInfo(False, "Page navigation as header", section=section).info("Keeps the page navigation always visible at the top, Requires UI reload"))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)

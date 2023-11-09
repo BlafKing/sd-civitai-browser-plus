@@ -149,7 +149,7 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
     
     return folder
 
-def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, search_term=None, timeOut=None, isNext=None):
+def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term=None, timeOut=None, isNext=None):
     if current_page in [0, None, ""]:
         current_page = 1
     if search_term != gl.previous_search_term or gl.tile_count != gl.previous_tile_count or gl.inputs_changed or gl.contentChange:
@@ -199,6 +199,9 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
         for base in base_filter:
             query_str += f"&baseModels={urllib.parse.quote(base)}"
     
+    if only_liked:
+        query_str += f"&favorites=true"
+    
     full_url = f"{api_url}&{query_str}"
     
     if gl.file_scan:
@@ -219,11 +222,11 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     return data
 
 def model_list_html(json_data, model_dict):
-    hide_ea = getattr(opts, "hide_early_access", True)
+    hide_early_access = getattr(opts, "hide_early_access", True)
     filtered_items = []
     current_time = datetime.datetime.utcnow()
     
-    if hide_ea:
+    if hide_early_access:
         for item in json_data['items']:
             # Initialize a list to store versions for the current model
             versions_to_keep = []
@@ -235,8 +238,8 @@ def model_list_html(json_data, model_dict):
                     # If it's not early access at all, add the version to the list
                     versions_to_keep.append(version)
                 else:
-                    # Convert the "updatedAt" field to a datetime object
-                    updated_at = datetime.datetime.strptime(version['updatedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    # Convert the "publishedAt" field to a datetime object
+                    updated_at = datetime.datetime.strptime(version['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
 
                     # Calculate the adjusted date by adding the early_access_days
                     adjusted_date = updated_at + datetime.timedelta(days=early_access_days)
@@ -317,9 +320,9 @@ def model_list_html(json_data, model_dict):
                                             if sha256:
                                                 existing_files_sha256.append(sha256.upper())
                                         else:
-                                            print(f"Invalid JSON data in {json_path}. Expected a dictionary.")
+                                            print(f"{gl.print} Invalid JSON data in {json_path}. Expected a dictionary.")
                                     except Exception as e:
-                                        print(f"Error decoding JSON in {json_path}: {e}")
+                                        print(f"{gl.print} Error decoding JSON in {json_path}: {e}")
                     
                     installstatus = None
                     
@@ -355,10 +358,10 @@ def model_list_html(json_data, model_dict):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter):
-    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, isNext=False)
+def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked):
+    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, isNext=False)
 
-def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, isNext=True):
+def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, isNext=True):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -371,7 +374,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, timeOut, isNext)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, timeOut, isNext)
         timeOut = False
         
         return return_values
@@ -389,7 +392,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
 
     if not gl.file_scan:
         if gl.inputs_changed or gl.contentChange:
-            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter)
+            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked)
             return return_values
     
         if isNext:
@@ -472,8 +475,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             gr.Button.update(interactive=False), # Download Button
             gr.Textbox.update(interactive=False, value=None), # Install Path
             gr.Dropdown.update(choices=[], value="", interactive=False), # Sub Folder List
-            gr.Dropdown.update(choices=[], value="", interactive=False), # File List
-            gr.Button.update(visible=False)
+            gr.Dropdown.update(choices=[], value="", interactive=False) # File List
     )
 
 def pagecontrol(json_data):
@@ -487,7 +489,7 @@ def pagecontrol(json_data):
         hasPrev = True
     return hasPrev, hasNext, current_page, total_pages
 
-def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -511,7 +513,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             
             gl.previous_inputs = current_inputs
         
-        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, search_term, timeOut, isNext)
+        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term, timeOut, isNext)
         if gl.json_data == "timeout":
             HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
             hasPrev = current_page not in [0, 1]
@@ -560,8 +562,7 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             gr.Button.update(interactive=False), # Download Button
             gr.Textbox.update(interactive=False, value=None), # Install Path
             gr.Dropdown.update(choices=[], value="", interactive=False), # Sub Folder List
-            gr.Dropdown.update(choices=[], value="", interactive=False), # File List
-            gr.Button.update(visible=False)
+            gr.Dropdown.update(choices=[], value="", interactive=False) # File List
     )
 
 def update_model_versions(model_name):
@@ -574,7 +575,7 @@ def update_model_versions(model_name):
                 break
         
         if selected_content_type is None:
-            print("Model name not found in json_data. (update_model_versions)")
+            print(f"{gl.print} Model name not found in json_data. (update_model_versions)")
             return
 
         versions_dict = defaultdict(list)
@@ -600,10 +601,10 @@ def update_model_versions(model_name):
                                             if isinstance(json_data, dict):
                                                 if 'sha256' in json_data:
                                                     sha256 = json_data.get('sha256', "").upper()
-                                                if sha256 == file_sha256:
-                                                    installed_versions.append(version['name'])
+                                                    if sha256 == file_sha256:
+                                                        installed_versions.append(version['name'])
                                     except Exception as e:
-                                        print(f"failed to read: \"{file}\": {e}")
+                                        print(f"{gl.print} failed to read: \"{file}\": {e}")
                                 
                                 if version_filename == file:
                                     installed_versions.append(version['name'])
@@ -614,13 +615,11 @@ def update_model_versions(model_name):
         default_value = default_installed or next(iter(version_names), None)
         
         return  (
-                gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True), # Version List
-                gr.Button.update(visible=True) # Back to top
+                gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True) # Version List
         )
     else:
         return  (
-                gr.Dropdown.update(choices=[], value=None, interactive=False), # Version List
-                gr.Button.update(visible=True) # Back to top
+                gr.Dropdown.update(choices=[], value=None, interactive=False) # Version List
         )
 
 def update_model_info(model_name=None, model_version=None):
@@ -808,7 +807,7 @@ def update_model_info(model_name=None, model_version=None):
                                 BtnDel = True
                                 break
                         except Exception as e:
-                            print(f"Error decoding JSON: {str(e)}")
+                            print(f"{gl.print} Error decoding JSON: {str(e)}")
             else:
                 for filename in files:
                     if filename == model_filename:
@@ -903,7 +902,7 @@ def update_file_info(model_name, model_version, file_metadata):
                                                                 installed = True
                                                                 break
                                                     except Exception as e:
-                                                        print(f"Error decoding JSON: {str(e)}")
+                                                        print(f"{gl.print} Error decoding JSON: {str(e)}")
                                 if folder_location == "None":
                                     folder_location = model_folder
                                 relative_path = os.path.relpath(folder_location, model_folder)
@@ -930,11 +929,18 @@ def update_file_info(model_name, model_version, file_metadata):
     )
 
 def request_civit_api(api_url=None):
+    api_key = getattr(opts, "custom_api_key", "")
+    if not api_key:
+        api_key = "eaee11648ef4c72efb2333d5ebc68b98"
+    headers = {
+        'Authorization': f'Bearer {api_key}'
+    }
+    
     try:
-        response = requests.get(api_url, timeout=(10,30))
+        response = requests.get(api_url, headers=headers, timeout=(10,30))
         response.raise_for_status()
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"{gl.print} Error: {e}")
         return "timeout"
     else:
         response.encoding = "utf-8"

@@ -65,13 +65,53 @@
 	margin-top: -10px;
 }
 
-#toggle1, #toggle2, #toggle3{
+#backToTopContainer {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    display: flex;
+    justify-content: flex-end;
+    z-index: 150;
+    pointer-events: none;
+    margin: 20px 51px 20px 20px;
+}
+
+#backToTop {
+    margin: 0;
+    max-width: 60px;
+    min-width: unset;
+    z-index: 200;
+    pointer-events: auto;
+}
+
+#browserTab {
+    position: relative;
+}
+
+#browserTab > div > #header {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    background-color: var(--neutral-950);
+    z-index: 60;
+}
+
+#browserTab > div > #header, #browserTab > div > #header_off {
+    display: flex;
+    flex-direction: column;
+    padding-top: 15px;
+    margin-top: -15px;
+}
+
+#toggle1, #toggle2, #toggle3, #toggle4, #toggle4_api{
 	margin-top: 5px;
+    margin-right: 0px;
+    margin-left: 0px;
     display: flex;
     justify-content: center;
 }
 
-#toggle1L, #toggle2L, #toggle3L{
+#toggle1L, #toggle2L, #toggle3L, #toggle4L, #toggle4L_api{
     display: flex;
 	justify-content: center;
 }
@@ -107,8 +147,6 @@
     flex-wrap: nowrap;
 }
 
-#pageSlider > div:nth-child(2) > div > input
-
 .gradio-container-3-32-0 .prose :last-child {
     margin-bottom: auto !important;
 }
@@ -133,8 +171,14 @@
 #pageBtn1, #pageBtn2 {
     max-width: 120px !important;
     min-width: 50px !important;
-    height: 50px !important;
-    max-height: 50px !important;
+}
+
+#pageSlider {
+    max-height: 44px;
+}
+
+#pageSlider > div:nth-child(2) {
+    max-height: 25px;
 }
 
 #pageBoxMobile {
@@ -183,6 +227,9 @@
     max-width: 220px !important;
     min-width: 220px !important;
     margin-bottom: -6px;
+    padding: 5px;
+    height: unset !important;
+    min-height: 35px !important;
 }
 
 #searchType > div:nth-child(3) {
@@ -233,11 +280,25 @@
     margin-top: 55px;
 }
 
-#filterBox > div:nth-child(3) {
+#toggle4 > div:nth-child(3), #toggle4L > div:nth-child(3) {
+    box-shadow: var(--body-text-color) 0px 0px 2px 0px;
+    color: var(--body-text-color);
+    border-radius: 3px;
+    padding: 10px;
+    position: absolute;
+    z-index: 50;
+    margin-top: 30px;
+}
+
+#toggle4 > label > span, #toggle4L > label > span {
+    color: var(--neutral-400);
+}
+
+#filterBox > div:nth-child(3), #toggle4 > div:nth-child(3) {
     background: var(--background-fill-primary);
 }
 
-#filterBoxL > div:nth-child(3) {
+#filterBoxL > div:nth-child(3), #toggle4L > div:nth-child(3) {
     background: var(--neutral-950);
 }
 
@@ -293,6 +354,7 @@
     border-radius: 10px;
     padding: 1px 20px 10px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 #civitai_preview_html .model-block code {
