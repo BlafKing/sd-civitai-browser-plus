@@ -55,7 +55,7 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
 
     # Delete based on provided SHA-256 hash
     if sha256:
-        sha256_upper = sha256.upper()  # Convert to upper case for case-insensitive matching
+        sha256_upper = sha256.upper()
         for root, _, files in os.walk(model_folder):
             for file in files:
                 if file.endswith('.json'):

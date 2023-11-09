@@ -93,11 +93,6 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
-<h3>v1.15.1</h3>
-
-* Bug fix: Second download was broken after update.
-
----
 <h3>v1.15</h3>
 
 * Feature: Filter option to show favorited models. (requires personal API key)
