@@ -235,7 +235,7 @@ def save_json(file_name, install_path, trained_tags):
     return trained_tags
 
 def card_update(gr_components, model_name, list_versions, is_install):
-    version_choices = gr_components[0]['choices']
+    version_choices = gr_components['choices']
     
     if is_install and not gl.download_fail and not gl.cancel_status:
         version_value_clean = list_versions + " [Installed]"

@@ -119,7 +119,7 @@ def download_start(download_start, model_name, model_filename, version, sha256):
 def download_finish(model_filename, version, model_name):
     gr_components = _api.update_model_versions(model_name)
     if gr_components:
-        version_choices = gr_components[0]['choices']
+        version_choices = gr_components['choices']
     else:
         version_choices = []
     prev_version = gl.last_version + " [Installed]"

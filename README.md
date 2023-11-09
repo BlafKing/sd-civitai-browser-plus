@@ -93,12 +93,17 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.15.1</h3>
+
+* Bug fix: Second download was broken after update.
+
+---
 <h3>v1.15</h3>
 
 * Feature: Filter option to show favorited models. (requires personal API key)
-* Feature: Back to top button when viewing model details
+* Feature: Back to top button when viewing model details.
 * New setting: Page navigation as header. (keeps page navigation always visible at the top)
-* Bug fix: Aria2 now restarts when UI is reloaded
+* Bug fix: Aria2 now restarts when UI is reloaded.
 * Bug fix: SHA256 error fixed if .json files don't contain it.
 * Bug fix: Cleaned up javascript code.
 
