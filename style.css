@@ -354,7 +354,6 @@
     border-radius: 10px;
     padding: 1px 20px 10px;
     margin-bottom: 20px;
-    flex-wrap: wrap;
 }
 
 #civitai_preview_html .model-block code {
