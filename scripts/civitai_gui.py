@@ -13,43 +13,6 @@ import scripts.civitai_api as _api
 
 gl.init()
 
-def insert_sub(model_name, version_name):
-    insert_sub = getattr(opts, "insert_sub", True)
-    try:
-        sub_folders = ["None"]
-        try:
-            version = version_name.replace(" [Installed]", "")
-        except:
-            version = version_name
-        
-        if model_name is not None:
-            selected_content_type = None
-            for item in gl.json_data['items']:
-                if item['name'] == model_name:
-                    selected_content_type = item['type']
-                    desc = item['description']
-            
-            model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
-            for root, dirs, _ in os.walk(model_folder):
-                for d in dirs:
-                    sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
-                    if sub_folder:
-                        sub_folders.append(f'{os.sep}{sub_folder}')
-        
-        sub_folders.remove("None")
-        sub_folders = sorted(sub_folders)
-        sub_folders.insert(0, "None")
-        if insert_sub:
-            sub_folders.insert(1, os.path.join(os.sep, model_name))
-            sub_folders.insert(2, os.path.join(os.sep, model_name, version))
-        
-        list = set()
-        sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
-        
-        return gr.Dropdown.update(choices=sub_folders)
-    except:
-        return gr.Dropdown.update(choices=None)
-
 def saveSettings(ust, ct, pt, st, bf, cj, td, ol, sn, ss, ts):
     config = cmd_opts.ui_config_file
 
@@ -246,6 +209,13 @@ def on_ui_tabs():
             return gr.Textbox.update(value=newpath)
 
         # Javascript Functions #
+        
+        list_models.select(
+            fn=None,
+            inputs=[list_models],
+            _js="(list_models) => select_model(list_models)"
+        )
+        
         back_to_top.click(
             fn=None,
             inputs=[],
@@ -509,15 +479,6 @@ def on_ui_tabs():
             fn=_file.cancel_scan
         )
         
-        model_filename.change(
-            fn=insert_sub,
-            inputs=[
-                list_models,
-                list_versions
-                ],
-            outputs=[sub_folder]
-        )
-        
         download_model.click(
             fn=_download.download_start,
             inputs=[
@@ -627,17 +588,7 @@ def on_ui_tabs():
             outputs=[]
         )
         
-        list_models.select(
-            fn=_api.update_model_versions,
-            inputs=[
-                list_models
-            ],
-            outputs=[
-                list_versions
-            ]
-        )
-        
-        list_versions.change(
+        list_versions.select(
             fn=_api.update_model_info,
             inputs=[
                 list_models,
@@ -735,9 +686,8 @@ def on_ui_tabs():
         def update_models_dropdown(model_name):
             model_name = re.sub(r'\.\d{3}$', '', model_name)
             ret_versions = _api.update_model_versions(model_name)
-            (html, tags, _, DwnButton, _, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
-            (dl_url, _, _, _) = _api.update_dl_url(tags, id['value'], model_name, ret_versions['value'])
-            return  gr.Dropdown.update(value=model_name),ret_versions,html,dl_url,tags,filename,install_path,sub_folder,DwnButton,filelist,id,current_sha256
+            (html, tags, base_mdl, DwnButton, DelButton, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
+            return gr.Dropdown.update(value=model_name),ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,DelButton,filelist,id,current_sha256,
         
         event_text.change(
             fn=update_models_dropdown,
@@ -748,12 +698,13 @@ def on_ui_tabs():
                 list_models,
                 list_versions,
                 preview_html,
-                dl_url,
                 trained_tags,
+                base_model,
                 model_filename,
                 install_path,
                 sub_folder,
                 download_model,
+                delete_model,
                 file_list,
                 model_id,
                 current_sha256
@@ -773,7 +724,7 @@ def on_ui_settings():
     
     shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=section).info("Disable to use the old download method"))
     shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=section).info("Useful for users who use PortMaster or other software that controls the DNS"))
-    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in CMD", section=section).info("Requires UI reload"))
+    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in console", section=section).info("Requires UI reload"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
     shared.opts.add_option("aria2_flags", shared.OptionInfo("", "Custom Aria2 command line flags", section=section).info("Requires UI reload"))
     shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
@@ -782,6 +733,7 @@ def on_ui_settings():
     shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=section).info("Early access models are only downloadable for supporter tier members, Requires API key"))
     shared.opts.add_option("custom_api_key", shared.OptionInfo("", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
     shared.opts.add_option("page_header", shared.OptionInfo(False, "Page navigation as header", section=section).info("Keeps the page navigation always visible at the top, Requires UI reload"))
+    shared.opts.add_option("update_log", shared.OptionInfo(True, 'Show console logs during update scanning', section=section).info('Shows the "is currently outdated" messages in the console when scanning models for available updates"'))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)

@@ -257,18 +257,38 @@ def model_list_html(json_data, model_dict):
     gl.contentChange = False
     HTML = '<div class="column civmodellist">'
     sorted_models = {}
-        
+    existing_files = set()
+    existing_files_sha256 = set()
+    model_folders = set()
+    
+    for item in json_data['items']:
+        item_type = item['type']
+        item_description = item['description']
+        model_folder = os.path.join(contenttype_folder(item_type, item_description))
+        model_folders.add(model_folder)
+    
+    for folder in model_folders:
+        for root, dirs, files in os.walk(folder):
+            for file in files:
+                existing_files.add(file)
+                if file.endswith('.json'):
+                    json_path = os.path.join(root, file)
+                    with open(json_path, 'r') as f:
+                        try:
+                            json_file = json.load(f)
+                            if isinstance(json_file, dict):
+                                sha256 = json_file.get('sha256')
+                                if sha256:
+                                    existing_files_sha256.add(sha256.upper())
+                            else:
+                                print(f"{gl.print} Invalid JSON data in {json_path}. Expected a dictionary.")
+                        except Exception as e:
+                            print(f"{gl.print} Error decoding JSON in {json_path}: {e}")
+    
     for item in json_data['items']:
         for k, model in model_dict.items():
             if model_dict[k].lower() == item['name'].lower():
                 model_name = escape(item["name"].replace("\\", "\\\\").replace("'", "\\'"), quote=True)
-                
-                if model_name:
-                    selected_content_type = item['type']
-                    desc = item['description']
-                        
-                if not selected_content_type:
-                    return
                 
                 nsfw = ""
                 installstatus = ""
@@ -302,27 +322,6 @@ def model_list_html(json_data, model_dict):
                             imgtag = f'<img src="{image}"></img>'
                     else:
                         imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
-
-                    model_folder = os.path.join(contenttype_folder(selected_content_type, desc))
-                    existing_files = []
-                    existing_files_sha256 = []
-                    
-                    for root, dirs, files in os.walk(model_folder):
-                        for file in files:
-                            existing_files.append(file)
-                            if file.endswith('.json'):
-                                json_path = os.path.join(root, file)
-                                with open(json_path, 'r') as f:
-                                    try:
-                                        json_data = json.load(f)
-                                        if isinstance(json_data, dict):
-                                            sha256 = json_data.get('sha256')
-                                            if sha256:
-                                                existing_files_sha256.append(sha256.upper())
-                                        else:
-                                            print(f"{gl.print} Invalid JSON data in {json_path}. Expected a dictionary.")
-                                    except Exception as e:
-                                        print(f"{gl.print} Error decoding JSON in {json_path}: {e}")
                     
                     installstatus = None
                     
@@ -566,48 +565,57 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
     )
 
 def update_model_versions(model_name):
+    # Use a dictionary to store the item names and types
+    item_names_and_types = {item['name']: (item['type'], item['description']) for item in gl.json_data['items']}
+
     if model_name is not None:
-        selected_content_type = None
-        for item in gl.json_data['items']:
-            if item['name'] == model_name:
-                selected_content_type = item['type']
-                desc = item['description']
-                break
+        # Lookup the selected content type and description from the dictionary
+        selected_content_type, desc = item_names_and_types.get(model_name, (None, None))
         
         if selected_content_type is None:
             print(f"{gl.print} Model name not found in json_data. (update_model_versions)")
             return
 
         versions_dict = defaultdict(list)
-        installed_versions = []
+        installed_versions = set()
 
         model_folder = os.path.join(contenttype_folder(selected_content_type, desc))
         gl.main_folder = model_folder
 
-        for item in gl.json_data['items']:
-            if item['name'] == model_name:
-                for version in item['modelVersions']:
-                    versions_dict[version['name']].append(item["name"])
-                    for version_file in version['files']:
-                        file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
-                        version_filename = version_file['name']
-                        for root, _, files in os.walk(model_folder):
-                            for file in files:
-                                if file.endswith('.json'):
-                                    try:
-                                        json_path = os.path.join(root, file)
-                                        with open(json_path, 'r') as f:
-                                            json_data = json.load(f)
-                                            if isinstance(json_data, dict):
-                                                if 'sha256' in json_data:
-                                                    sha256 = json_data.get('sha256', "").upper()
-                                                    if sha256 == file_sha256:
-                                                        installed_versions.append(version['name'])
-                                    except Exception as e:
-                                        print(f"{gl.print} failed to read: \"{file}\": {e}")
-                                
-                                if version_filename == file:
-                                    installed_versions.append(version['name'])
+        item = next((item for item in gl.json_data['items'] if item['name'] == model_name), None)
+        if item is None:
+            return
+        versions = item['modelVersions']
+
+        version_files = set()
+        for version in versions:
+            versions_dict[version['name']].append(item["name"])
+            for version_file in version['files']:
+                file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
+                version_filename = version_file['name']
+                version_files.add((version['name'], version_filename, file_sha256))
+
+        for root, _, files in os.walk(model_folder):
+            for file in files:
+                if file.endswith('.json'):
+                    try:
+                        json_path = os.path.join(root, file)
+                        with open(json_path, 'r') as f:
+                            json_data = json.load(f)
+                            if isinstance(json_data, dict):
+                                if 'sha256' in json_data:
+                                    sha256 = json_data.get('sha256', "").upper()
+                                    for version_name, _, file_sha256 in version_files:
+                                        if sha256 == file_sha256:
+                                            installed_versions.add(version_name)
+                                            break
+                    except Exception as e:
+                        print(f"{gl.print} failed to read: \"{file}\": {e}")
+
+                for version_name, version_filename, _ in version_files:
+                    if file == version_filename:
+                        installed_versions.add(version_name)
+                        break
 
         version_names = list(versions_dict.keys())
         display_version_names = [f"{v} [Installed]" if v in installed_versions else v for v in version_names]
@@ -625,13 +633,11 @@ def update_model_versions(model_name):
 def update_model_info(model_name=None, model_version=None):
     BtnDown = True
     BtnDel = False
-    file_checked = False
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
     if gl.isDownloading:
         BtnDown = False
         BtnDel = False
-        file_checked = True
     if model_name and model_version:
         output_html = ""
         output_training = ""
@@ -819,12 +825,27 @@ def update_model_info(model_name=None, model_version=None):
             if folder_location != "None":
                 break
 
-        for root, dirs, _ in os.walk(model_folder):
-            for d in dirs:
-                sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
-                if sub_folder:
-                    sub_folders.append(f'{os.sep}{sub_folder}')
-        
+        insert_sub = getattr(opts, "insert_sub", True)
+        try:
+            sub_folders = ["None"]
+            for root, dirs, _ in os.walk(model_folder):
+                for d in dirs:
+                    sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+                    if sub_folder:
+                        sub_folders.append(f'{os.sep}{sub_folder}')
+            
+            sub_folders.remove("None")
+            sub_folders = sorted(sub_folders)
+            sub_folders.insert(0, "None")
+            if insert_sub:
+                sub_folders.insert(1, os.path.join(os.sep, model_name))
+                sub_folders.insert(2, os.path.join(os.sep, model_name, model_version))
+            
+            list = set()
+            sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
+        except:
+            sub_folders = ["None"]
+            
         if folder_location == "None":
             folder_location = model_folder
         relative_path = os.path.relpath(folder_location, model_folder)

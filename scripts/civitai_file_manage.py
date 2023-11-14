@@ -10,7 +10,7 @@ import time
 import shutil
 import requests
 import hashlib
-from modules.shared import cmd_opts
+from modules.shared import cmd_opts, opts
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
@@ -88,7 +88,6 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                             except:
                                 os.remove(file_path)
                                 print(f"{gl.print} Model deleted based on SHA-256: {file_path}")
-                            # Delete associated files
                             delete_associated_files(root, base_name)
                             deleted = True
 
@@ -107,13 +106,12 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                         except:
                             os.remove(path_file)
                             print(f"{gl.print} Model deleted based on filename: {path_file}")
-                        # Delete associated files
                         delete_associated_files(root, current_file)
 
     number = _download.random_number(delete_finish)
     
     return (
-            gr.Button.update(interactive=False, visible=True),  # Download Button
+            gr.Button.update(interactive=True, visible=True),  # Download Button
             gr.Button.update(interactive=False, visible=False),  # Cancel Button
             gr.Button.update(interactive=False, visible=False),  # Delete Button
             gr.Textbox.update(value=number),  # Delete Finish Trigger
@@ -426,40 +424,43 @@ def version_match(file_paths, api_response):
                         sha256_hashes[os.path.basename(file_path)] = sha256.upper()
                 except Exception as e:
                     print(f"{gl.print} Failed to open {json_path}: {e}")
+        
+    file_names_and_hashes = set()
+    for file_path in file_paths:
+        file_name = os.path.basename(file_path)
+        file_name_without_ext = os.path.splitext(file_name)[0]
+        file_sha256 = sha256_hashes.get(file_name, "").upper()
+        file_names_and_hashes.add((file_name_without_ext, file_sha256))
     
     for item in api_response.get('items', []):
         model_versions = item.get('modelVersions', [])
         
         if not model_versions:
-            continue  
-            
-        for file_path in file_paths:
-            file_name = os.path.basename(file_path)
-            file_name_without_ext = os.path.splitext(file_name)[0]
-            file_sha256 = sha256_hashes.get(file_name, "").upper()
-            
-            for idx, model_version in enumerate(model_versions):
-                files = model_version.get('files', [])
+            continue
+        
+        for idx, model_version in enumerate(model_versions):
+            files = model_version.get('files', [])
+            match_found = False
+            for file_entry in files:
+                entry_name = os.path.splitext(file_entry.get('name', ''))[0]
+                entry_sha256 = file_entry.get('hashes', {}).get('SHA256', "").upper()
                 
-                for file_entry in files:
-                    entry_name = os.path.splitext(file_entry.get('name', ''))[0]
-                    entry_sha256 = file_entry.get('hashes', {}).get('SHA256', "").upper()
-                    
-                    if entry_name == file_name_without_ext or entry_sha256 == file_sha256:
-                        if idx == 0:
-                            updated_models.append(f"&ids={item['id']}")
-                        else:
-                            print(f"{gl.print} {file_name} has an available update!")
-                            outdated_models.append(f"&ids={item['id']}")
-                        break 
+                if (entry_name, entry_sha256) in file_names_and_hashes:
+                    match_found = True
+                    break
+            
+            if match_found:
+                if idx == 0:
+                    updated_models.append((f"&ids={item['id']}", item["name"]))
                 else:
-                    continue
+                    outdated_models.append((f"&ids={item['id']}", item["name"]))
                 break
                 
     return updated_models, outdated_models
 
 def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Progress() if queue else None):
     global from_ver, from_installed, no_update
+    update_log = getattr(opts, "update_log", True)
     gl.scan_files = True
     no_update = False
     if from_ver:
@@ -572,7 +573,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
                     api_response = response.json()
 
                     all_items.extend(api_response['items'])
-
                     metadata = api_response.get('metadata', {})
                     url = metadata.get('nextPage', None)
                 else:
@@ -583,16 +583,18 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, progress=gr.Pro
         api_response['items'] = all_items
     
     if from_ver:
-        # return a list of outdated and updated models by ID
         updated_models, outdated_models = version_match(file_paths, api_response)
         
-        # Convert the lists to sets
         updated_set = set(updated_models)
         outdated_set = set(outdated_models)
-
-        # Remove IDs from outdated_models that are in updated_models
-        outdated_set = outdated_set - updated_set
-        all_model_ids = list(outdated_set)
+        outdated_set = {model for model in outdated_set if model[0] not in {updated_model[0] for updated_model in updated_set}}
+        
+        all_model_ids = [model[0] for model in outdated_set]
+        all_model_names = [model[1] for model in outdated_set]
+        
+        if update_log:
+            for model_name in all_model_names:
+                print(f'{gl.print} "{model_name}" is currently outdated.')
         
         if len(all_model_ids) == 0:
             no_update = True

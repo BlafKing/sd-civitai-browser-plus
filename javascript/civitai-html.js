@@ -315,7 +315,7 @@ function updateBackToTopVisibility(entries) {
     var backToTopDiv = document.getElementById('backToTopContainer');
     var civitaiDiv = document.getElementById('civitai_preview_html');
     
-    if (civitaiDiv.clientHeight > 0 && entries[0].isIntersecting) {
+    if (civitaiDiv.clientHeight > 0 && entries[0].isIntersecting && window.scrollY !== 0) {
         backToTopDiv.style.visibility = 'visible';
     } else {
         backToTopDiv.style.visibility = 'hidden';
