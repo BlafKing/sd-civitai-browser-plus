@@ -95,6 +95,7 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 <h3>v1.15.1</h3>
 
+* New setting: Show console logs during update scanning.
 * Bug fix: Scan for update no longer prints incorrect info about outdated models.
 * Bug fix: Removed bad logic which triggered the same function multiple times.
 * Cleanup: Optimized functions and improved the speed of selecting models.
