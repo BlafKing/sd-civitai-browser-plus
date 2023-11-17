@@ -343,6 +343,21 @@
 
 /* End of Custom Accordion */
 
+/* Custom settings Accordion */
+#settings-accordion {
+    border: 1px solid var(--block-border-color);
+    border-radius: 8px;
+    margin: 15px 0px 2px 0px;
+    padding: 8px 8px;
+}
+
+#accordionToggle {
+    width: 100%;
+    display: flex;
+    font-size: 12pt;
+    justify-content: space-between;
+}
+
 #selected_tags > div {
     justify-content: center;
 	padding-top: 10px;

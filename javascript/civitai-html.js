@@ -340,6 +340,32 @@ function handleCivitaiDivChanges() {
 
 document.addEventListener("scroll", handleCivitaiDivChanges)
 
+// Create the accordion dropdown inside the settings tab
+function createAccordion() {
+    var containerDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
+    var subfolders = containerDiv.querySelectorAll("[id$='subfolder']");
+    if (containerDiv == null || subfolders.length == 0) {
+        return;
+    }
+    var accordionContainer = document.createElement('div'); 
+    accordionContainer.id = 'settings-accordion';
+    var toggleButton = document.createElement('button');
+    toggleButton.id = 'accordionToggle';
+    toggleButton.innerHTML = 'Default sub folders<div style="transition: transform 0.15s; transform: rotate(90deg)">▼</div>';
+    toggleButton.onclick = function () {
+        accordionDiv.style.display = (accordionDiv.style.display === 'none') ? 'block' : 'none';
+        toggleButton.lastChild.style.transform = accordionDiv.style.display === 'none' ? 'rotate(90deg)' : 'rotate(0)';
+    };
+    
+    accordionContainer.appendChild(toggleButton);
+    var accordionDiv = document.createElement('div');
+    accordionDiv.classList.add('accordion');
+    accordionDiv.append(...subfolders);
+    accordionDiv.style.display = 'none';
+    accordionContainer.appendChild(accordionDiv);
+    containerDiv.appendChild(accordionContainer);
+}
+
 // Runs all functions when the page is fully loaded
 function onPageLoad() {
     const divElement = document.getElementById('setting_custom_api_key');
@@ -358,6 +384,7 @@ function onPageLoad() {
     setupClickOutsideListener();
     createLink(infoElement);
     updateBackToTopVisibility([{isIntersecting: false}]);
+    createAccordion();
 }
 
 // Checks every second if the page is fully loaded

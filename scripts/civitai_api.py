@@ -226,32 +226,27 @@ def model_list_html(json_data, model_dict):
     filtered_items = []
     current_time = datetime.datetime.utcnow()
     
-    if hide_early_access:
-        for item in json_data['items']:
-            # Initialize a list to store versions for the current model
-            versions_to_keep = []
+    for item in json_data['items']:
+        versions_to_keep = []
 
-            for version in item['modelVersions']:
+        for version in item['modelVersions']:
+            if not version['publishedAt']:
+                continue
+            if hide_early_access:
                 early_access_days = version['earlyAccessTimeFrame']
-
-                if early_access_days == 0:
-                    # If it's not early access at all, add the version to the list
-                    versions_to_keep.append(version)
+                if not early_access_days == 0:
+                    continue
                 else:
-                    # Convert the "publishedAt" field to a datetime object
-                    updated_at = datetime.datetime.strptime(version['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    published_at = datetime.datetime.strptime(version['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    adjusted_date = published_at + datetime.timedelta(days=early_access_days)
+                    if not current_time > adjusted_date:
+                        continue
+            versions_to_keep.append(version)
 
-                    # Calculate the adjusted date by adding the early_access_days
-                    adjusted_date = updated_at + datetime.timedelta(days=early_access_days)
-
-                    # Compare the adjusted date with the current UTC time
-                    if current_time > adjusted_date:
-                        versions_to_keep.append(version)
-
-            if versions_to_keep:
-                item['modelVersions'] = versions_to_keep
-                filtered_items.append(item)
-                
+        if versions_to_keep:
+            item['modelVersions'] = versions_to_keep
+            filtered_items.append(item)
+            
         json_data['items'] = filtered_items
     
     gl.contentChange = False
@@ -262,9 +257,7 @@ def model_list_html(json_data, model_dict):
     model_folders = set()
     
     for item in json_data['items']:
-        item_type = item['type']
-        item_description = item['description']
-        model_folder = os.path.join(contenttype_folder(item_type, item_description))
+        model_folder = os.path.join(contenttype_folder(item['type'], item['description']))
         model_folders.add(model_folder)
     
     for folder in model_folders:
@@ -838,6 +831,8 @@ def update_model_info(model_name=None, model_version=None):
             sub_folders = sorted(sub_folders)
             sub_folders.insert(0, "None")
             if insert_sub:
+                model_name = model_name.replace('/', '').replace('\\', '')
+                model_version = model_version.replace('/', '').replace('\\', '')
                 sub_folders.insert(1, os.path.join(os.sep, model_name))
                 sub_folders.insert(2, os.path.join(os.sep, model_name, model_version))
             
@@ -846,10 +841,17 @@ def update_model_info(model_name=None, model_version=None):
         except:
             sub_folders = ["None"]
             
+        default_sub = sub_folder_value(content_type, desc)
         if folder_location == "None":
             folder_location = model_folder
+            if default_sub != "None":
+                folder_path = folder_location + default_sub
+            else:
+                folder_path = folder_location
+        else:
+            folder_path = folder_location
         relative_path = os.path.relpath(folder_location, model_folder)
-        default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else "None"
+        default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if BtnDel == False else "None"
                 
         return  (
                 gr.HTML.update(value=output_html), # Model Preview
@@ -861,7 +863,7 @@ def update_model_info(model_name=None, model_version=None):
                 gr.Textbox.update(value=model_filename),  # Model File Name
                 gr.Textbox.update(value=file_id_value),  # Model ID
                 gr.Textbox.update(value=sha256_value),  # SHA256
-                gr.Textbox.update(interactive=True, value=folder_location if model_name else None), # Install Path
+                gr.Textbox.update(interactive=True, value=folder_path if model_name else None), # Install Path
                 gr.Dropdown.update(choices=sub_folders, value=default_subfolder, interactive=True) # Sub Folder List
         )
     else:
@@ -878,6 +880,21 @@ def update_model_info(model_name=None, model_version=None):
                 gr.Textbox.update(interactive=False, value=None), # Install Path
                 gr.Dropdown.update(choices=None, value=None, interactive=False) # Sub Folder List
         )
+
+def sub_folder_value(content_type, desc=None):
+    use_LORA = getattr(opts, "use_LORA", False)
+    if content_type in ["LORA", "LoCon"] and use_LORA:
+        folder = getattr(opts, "LORA_LoCon_subfolder", "None")
+    elif content_type == "Upscaler":
+        for upscale_type in ["SWINIR", "REALESRGAN", "GFPGAN", "BSRGAN"]:
+            if upscale_type in desc:
+                folder = getattr(opts, f"{upscale_type}_subfolder", "None")
+        folder = getattr(opts, "ESRGAN_subfolder", "None")
+    else:
+        folder = getattr(opts, f"{content_type}_subfolder", "None")
+    if folder == None:
+        return "None"
+    return folder
 
 def update_file_info(model_name, model_version, file_metadata):
     if model_version and "[Installed]" in model_version:
@@ -924,10 +941,17 @@ def update_file_info(model_name, model_version, file_metadata):
                                                                 break
                                                     except Exception as e:
                                                         print(f"{gl.print} Error decoding JSON: {str(e)}")
+                                default_sub = sub_folder_value(content_type, desc)
                                 if folder_location == "None":
                                     folder_location = model_folder
+                                    if default_sub != "None":
+                                        folder_path = folder_location + default_sub
+                                    else:
+                                        folder_path = folder_location
+                                else:
+                                    folder_path = folder_location
                                 relative_path = os.path.relpath(folder_location, model_folder)
-                                default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else "None"
+                                default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if installed == False else "None"
                                 
                                 return  (
                                         gr.Textbox.update(value=file['name']),  # Update model_filename Textbox
@@ -935,7 +959,7 @@ def update_file_info(model_name, model_version, file_metadata):
                                         gr.Textbox.update(value=sha256), # sha256 textbox
                                         gr.Button.update(interactive=False if installed else True, visible=False if installed else True), # Download Button
                                         gr.Button.update(interactive=True if installed else False, visible=True if installed else False),  # Delete Button
-                                        gr.Textbox.update(interactive=True, value=folder_location if model_name else None), # Install Path
+                                        gr.Textbox.update(interactive=True, value=folder_path if model_name else None), # Install Path
                                         gr.Dropdown.update(value=default_subfolder, interactive=True) # Sub Folder List
                                 )
     
@@ -956,7 +980,6 @@ def request_civit_api(api_url=None):
     headers = {
         'Authorization': f'Bearer {api_key}'
     }
-    
     try:
         response = requests.get(api_url, headers=headers, timeout=(10,30))
         response.raise_for_status()
@@ -965,5 +988,9 @@ def request_civit_api(api_url=None):
         return "timeout"
     else:
         response.encoding = "utf-8"
-        data = json.loads(response.text)
+        try:
+            data = json.loads(response.text)
+        except json.JSONDecodeError:
+            print(f"{gl.print} The CivitAI servers are currently offline. Please try again later.")
+            return "timeout"
     return data

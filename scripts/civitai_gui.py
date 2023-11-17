@@ -1,5 +1,5 @@
 import gradio as gr
-from modules import script_callbacks, shared
+from modules import script_callbacks, shared, ui_settings
 import os
 import json
 import fnmatch
@@ -216,15 +216,18 @@ def on_ui_tabs():
             _js="(list_models) => select_model(list_models)"
         )
         
+        preview_html.change(
+            fn=None,
+            _js="() => adjustFilterBoxAndButtons()"
+        )
+        
         back_to_top.click(
             fn=None,
-            inputs=[],
             _js="() => BackToTop()"
         )
         
         page_slider.release(
             fn=None,
-            inputs=[],
             _js="() => pressRefresh()"
         )
         
@@ -713,6 +716,31 @@ def on_ui_tabs():
 
     return (civitai_interface, "Civitai Browser+", "civitai_interface"),
 
+def subfolder_list(folder, desc=None):
+    if folder == None:
+        return
+    try:
+        model_folder = _api.contenttype_folder(folder, desc)
+        sub_folders = ["None"]
+        for root, dirs, _ in os.walk(model_folder):
+            for d in dirs:
+                sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+                if sub_folder:
+                    sub_folders.append(f'{os.sep}{sub_folder}')
+        
+        sub_folders.remove("None")
+        sub_folders = sorted(sub_folders)
+        sub_folders.insert(0, "None")
+        
+        list = set()
+        sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
+    except:
+        return None
+    return sub_folders
+
+def make_lambda(folder, desc):
+        return lambda: {"choices": subfolder_list(folder, desc)}
+
 def on_ui_settings():
     section = ("civitai_browser_plus", "CivitAI Browser+")
 
@@ -726,14 +754,67 @@ def on_ui_settings():
     shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=section).info("Useful for users who use PortMaster or other software that controls the DNS"))
     shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in console", section=section).info("Requires UI reload"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
-    shared.opts.add_option("aria2_flags", shared.OptionInfo("", "Custom Aria2 command line flags", section=section).info("Requires UI reload"))
+    shared.opts.add_option("aria2_flags", shared.OptionInfo(r"", "Custom Aria2 command line flags", section=section).info("Requires UI reload"))
     shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
     shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Treat LoCon's as LORA's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload"))
     shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip after downloading", section=section))
     shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=section).info("Early access models are only downloadable for supporter tier members, Requires API key"))
-    shared.opts.add_option("custom_api_key", shared.OptionInfo("", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
+    shared.opts.add_option("custom_api_key", shared.OptionInfo(r"", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
     shared.opts.add_option("page_header", shared.OptionInfo(False, "Page navigation as header", section=section).info("Keeps the page navigation always visible at the top, Requires UI reload"))
     shared.opts.add_option("update_log", shared.OptionInfo(True, 'Show console logs during update scanning', section=section).info('Shows the "is currently outdated" messages in the console when scanning models for available updates"'))
+    shared.opts.add_option("image_location", shared.OptionInfo(r"", "Custom save images location", section=section).info("Overrides the download folder location when saving images."))
+    
+    use_LORA = getattr(opts, "use_LORA", False)
+    
+    def has_folders(input, desc=None):
+        if input == None:
+            return False
+        try:
+            path = any(entry.is_dir() for entry in os.scandir(_api.contenttype_folder(input, desc)))
+        except:
+            return False
+        return path
+    
+    # Default sub folders
+    folders = [
+        "Checkpoint",
+        "LORA & LoCon" if use_LORA else "LORA",
+        "LoCon" if not use_LORA else None,
+        "TextualInversion",
+        "Poses",
+        "Controlnet",
+        "Hypernetwork",
+        "MotionModule",
+        ("Upscaler", "SWINIR"),
+        ("Upscaler", "REALESRGAN"),
+        ("Upscaler", "GFPGAN"),
+        ("Upscaler", "BSRGAN"),
+        ("Upscaler", "ESRGAN"),
+        "VAE",
+        "AestheticGradient",
+        "Wildcards",
+        "Workflows",
+        "Other"
+    ]
+
+    for folder in folders:
+        if folder == None:
+            continue
+        desc = None
+        if isinstance(folder, tuple):
+            folder_name = " - ".join(folder)
+            setting_name = folder[1]
+            folder = folder[0]
+            desc = folder[1]
+        else:
+            folder_name = folder
+            setting_name = folder
+        if folder == "LORA & LoCon":
+            folder = "LORA"
+            setting_name = "LORA_LoCon"
+        
+        if has_folders(folder, desc):
+            shared.opts.add_option(f"{setting_name}_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=section))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)

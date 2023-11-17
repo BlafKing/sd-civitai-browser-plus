@@ -10,6 +10,7 @@ import time
 import shutil
 import requests
 import hashlib
+from pathlib import Path
 from modules.shared import cmd_opts, opts
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
@@ -158,6 +159,10 @@ def save_preview(file_name, install_path, preview_html):
         print(f'{gl.print} Error downloading preview image: {e}')
 
 def save_images(preview_html, model_filename, model_name, install_path):
+    image_location = getattr(opts, "image_location", r"")
+    if image_location:
+        install_path = Path(image_location)
+        
     if not os.path.exists(install_path):
         os.makedirs(install_path)
     img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)

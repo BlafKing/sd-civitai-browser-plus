@@ -93,6 +93,15 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+<h3>v1.15.2</h3>
+
+* New setting: Custom save images location
+* New setting: Default sub folders
+ - Any sub folders you have will be able to be selected as default, per content type.
+ - If a content type doesn't appear, then it means there are no subfolders in that type.
+* Bug fix: Unreleased models caused a crash, now hidden by default since they can't be used.
+
+---
 <h3>v1.15.1</h3>
 
 * New setting: Show console logs during update scanning.
