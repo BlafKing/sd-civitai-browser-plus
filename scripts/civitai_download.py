@@ -7,13 +7,11 @@ import os
 import re
 import random
 import platform
-import socket
 import stat
 import json
 import time
 from pathlib import Path
 from modules.shared import opts, cmd_opts
-from modules.paths import extensions_dir
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
@@ -440,7 +438,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-def download_create_thread(download_finish, url, file_name, preview_html, create_json, trained_tags, install_path, model_name, list_versions, progress=gr.Progress() if queue else None):
+def download_create_thread(download_finish, url, file_name, preview_html, create_json, install_path, model_name, list_versions, progress=gr.Progress() if queue else None):
     gr_components = _api.update_model_versions(model_name)
     gl.cancel_status = False
     use_aria2 = getattr(opts, "use_aria2", True)
@@ -486,11 +484,10 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
                 except Exception as e:
                     print(f"{gl.print} Failed to extract {file_name} with error: {e}")
             if create_json:
-                _file.save_json(file_name, install_path, trained_tags)
+                _file.save_model_info(install_path, file_name, current_sha256, gl.json_data)
             if not gl.cancel_status:
                 info_to_json(path_to_new_file, unpackList)
                 _file.save_preview(file_name, install_path, preview_html)
-
                 
     base_name = os.path.splitext(file_name)[0]
     base_name_preview = base_name + '.preview'

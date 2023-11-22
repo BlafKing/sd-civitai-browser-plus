@@ -23,7 +23,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, sn, ss, ts):
         "civitai_interface/Time period:/value": pt,
         "civitai_interface/Sort by:/value": st,
         "civitai_interface/Base model:/value": bf,
-        "civitai_interface/Save tags after download/value": cj,
+        "civitai_interface/Save info after download/value": cj,
         "civitai_interface/Divide cards by date/value": td,
         "civitai_interface/Liked models only/value": ol,
         "civitai_interface/NSFW content/value": sn,
@@ -102,7 +102,7 @@ def on_ui_tabs():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
                         sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value", elem_id="centerText")
                     with gr.Row(elem_id=component_id):
-                        create_json = gr.Checkbox(label=f"Save tags after download", value=False, elem_id=toggle1, min_width=171)
+                        create_json = gr.Checkbox(label=f"Save info after download", value=True, elem_id=toggle1, min_width=171)
                         show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle2, min_width=107)
                         toggle_date = gr.Checkbox(label="Divide cards by date", value=False, elem_id=toggle3, min_width=142)
                         only_liked = gr.Checkbox(label="Liked models only", value=False, interactive=show_only_liked, elem_id=toggle4, min_width=163)
@@ -140,7 +140,7 @@ def on_ui_tabs():
                     base_model = gr.Textbox(label='Base model: ', value='', interactive=False, lines=1, elem_id="baseMdl")
                     model_filename = gr.Textbox(label="Model filename:", interactive=False, value=None)
             with gr.Row():
-                save_tags = gr.Button(value="Save tags", interactive=False)
+                save_info = gr.Button(value="Save model info", interactive=False)
                 save_images = gr.Button(value="Save images", interactive=False)
                 download_model = gr.Button(value="Download model", interactive=False)
                 cancel_model = gr.Button(value="Cancel download", interactive=False, visible=False)
@@ -153,10 +153,15 @@ def on_ui_tabs():
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=content_choices)
             with gr.Row():
-                save_all_tags = gr.Button(value="Update assigned tags", interactive=True, visible=True)
-                cancel_all_tags = gr.Button(value="Cancel updating tags", interactive=False, visible=False)
+                save_all_tags = gr.Button(value="Update model info & tags", interactive=True, visible=True)
+                cancel_all_tags = gr.Button(value="Cancel updating model info & tags", interactive=False, visible=False)
             with gr.Row():
                 tag_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
+            with gr.Row():
+                update_preview = gr.Button(value="Update model preview", interactive=True, visible=True)
+                cancel_update_preview = gr.Button(value="Cancel updating model previews", interactive=False, visible=False)
+            with gr.Row():
+                preview_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
             with gr.Row():
                 ver_search = gr.Button(value="Scan for available updates", interactive=True, visible=True)
                 cancel_ver_search = gr.Button(value="Cancel updates scan", interactive=False, visible=False)
@@ -178,6 +183,8 @@ def on_ui_tabs():
         download_finish = gr.Textbox(value=None, visible=False)
         tag_start = gr.Textbox(value=None, visible=False)
         tag_finish = gr.Textbox(value=None, visible=False)
+        preview_start = gr.Textbox(value=None, visible=False)
+        preview_finish = gr.Textbox(value=None, visible=False)
         ver_start = gr.Textbox(value=None, visible=False)
         ver_finish = gr.Textbox(value=None, visible=False)
         installed_start = gr.Textbox(value=None, visible=None)
@@ -185,12 +192,6 @@ def on_ui_tabs():
         delete_finish = gr.Textbox(value=None, visible=False)
         current_model = gr.Textbox(value=None, visible=False)
         current_sha256 = gr.Textbox(value=None, visible=False)
-        
-        # Global variable to detect if content has changed.
-        def save_tags_btn(tags, file):
-            if tags and file: btn = True
-            else: btn = False
-            return gr.Button.update(interactive=btn)
         
         def changeInput():
             gl.contentChange = True
@@ -267,12 +268,7 @@ def on_ui_tabs():
             _js="(size) => updateCardSize(size, size * 1.5)"
         )
         
-        # Gradio components Logic #
-        trained_tags.input(
-            fn=save_tags_btn,
-            inputs=[trained_tags, model_filename],
-            outputs=[save_tags]
-        )
+        # Filter button Functions #
         
         save_settings.click(
             fn=saveSettings,
@@ -307,290 +303,43 @@ def on_ui_tabs():
             inputs=[]
         )
         
+        # Model Button Functions #
+        
+        def update_models_dropdown(model_name):
+            model_name = re.sub(r'\.\d{3}$', '', model_name)
+            ret_versions = _api.update_model_versions(model_name)
+            (html, tags, base_mdl, DwnButton, DelButton, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
+            return gr.Dropdown.update(value=model_name),ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,DelButton,filelist,id,current_sha256,gr.Button.update(interactive=True)
+        
+        event_text.change(
+            fn=update_models_dropdown,
+            inputs=[
+                event_text
+                ],
+            outputs=[
+                list_models,
+                list_versions,
+                preview_html,
+                trained_tags,
+                base_model,
+                model_filename,
+                install_path,
+                sub_folder,
+                download_model,
+                delete_model,
+                file_list,
+                model_id,
+                current_sha256,
+                save_info
+            ]
+        )
+        
         sub_folder.select(
             fn=select_subfolder,
             inputs=[sub_folder],
             outputs=[install_path]
         )
-        
-        ver_search.click(
-            fn=_file.start_ver_search,
-            inputs=[ver_start],
-            outputs=[
-                ver_start,
-                ver_search,
-                cancel_ver_search,
-                load_installed,
-                save_all_tags,
-                version_progress
-                ]
-        )
-        
-        ver_start.change(
-            fn=_file.file_scan,
-            inputs=[
-                selected_tags,
-                ver_finish,
-                tag_finish,
-                installed_finish
-                ],
-            outputs=[
-                version_progress,
-                ver_finish
-                ]
-        )
-        
-        ver_finish.change(
-            fn=_file.finish_ver_search,
-            outputs=[
-                ver_search,
-                save_all_tags,
-                load_installed,
-                cancel_ver_search,
-                load_to_browser
-            ]
-        )
-        
-        cancel_ver_search.click(
-            fn=_file.cancel_scan
-        )
-        
-        load_installed.click(
-            fn=_file.start_installed_models,
-            inputs=[installed_start],
-            outputs=[
-                installed_start,
-                load_installed,
-                cancel_installed,
-                ver_search,
-                save_all_tags,
-                installed_progress
-            ]
-        )
-        
-        installed_start.change(
-            fn=_file.file_scan,
-            inputs=[
-                selected_tags,
-                ver_finish,
-                tag_finish,
-                installed_finish
-                ],
-            outputs=[
-                installed_progress,
-                installed_finish
-            ]
-        )
-        
-        installed_finish.change(
-            fn=_file.finish_installed_models,
-            outputs=[
-                ver_search,
-                save_all_tags,
-                load_installed,
-                cancel_installed,
-                load_to_browser_installed
-            ]
-        )
-        
-        load_to_browser_installed.click(
-            fn=_file.load_to_browser,
-            outputs=[
-                ver_search,
-                save_all_tags,
-                load_installed,
-                cancel_installed,
-                load_to_browser_installed,
-                list_models,
-                list_versions,
-                list_html,
-                get_prev_page,
-                get_next_page,
-                page_slider,
-                save_tags,
-                save_images,
-                download_model,
-                install_path,
-                sub_folder,
-                file_list,
-                installed_progress
-            ]
-        )
-        
-        load_to_browser.click(
-            fn=_file.load_to_browser,
-            outputs=[
-                ver_search,
-                save_all_tags,
-                load_installed,
-                cancel_ver_search,
-                load_to_browser,
-                list_models,
-                list_versions,
-                list_html,
-                get_prev_page,
-                get_next_page,
-                page_slider,
-                save_tags,
-                save_images,
-                download_model,
-                install_path,
-                sub_folder,
-                file_list,
-                version_progress
-            ]
-        )
-        
-        save_all_tags.click(
-            fn=_file.save_tag_start,
-            inputs=[tag_start],
-            outputs=[
-                tag_start,
-                save_all_tags,
-                cancel_all_tags,
-                load_installed,
-                ver_search,
-                tag_progress
-            ]
-        )
-        
-        tag_start.change(
-            fn=_file.file_scan,
-            inputs=[
-                selected_tags,
-                ver_finish,
-                tag_finish,
-                installed_finish
-                ],
-            outputs=[
-                tag_progress,
-                tag_finish
-            ]
-        )
-        
-        tag_finish.change(
-            fn=_file.save_tag_finish,
-            outputs=[
-                ver_search,
-                save_all_tags,
-                load_installed,
-                cancel_all_tags
-            ]
-        )
-        
-        cancel_all_tags.click(
-            fn=_file.cancel_scan
-        )
-        
-        download_model.click(
-            fn=_download.download_start,
-            inputs=[
-                download_start,
-                list_models,
-                model_filename,
-                list_versions,
-                current_sha256
-                ],
-            outputs=[
-                download_model,
-                cancel_model,
-                download_start,
-                download_progress
-            ]
-        )
-        
-        download_start.change(
-            fn=_download.download_create_thread,
-            inputs=[
-                download_finish,
-                dl_url,
-                model_filename,
-                preview_html,
-                create_json,
-                trained_tags,
-                install_path,
-                list_models,
-                list_versions
-                ],
-            outputs=[
-                download_progress,
-                current_model,
-                download_finish
-            ]
-        )
-        
-        cancel_model.click(
-            fn=_download.download_cancel,
-            inputs=[
-                delete_finish,
-                list_models,
-                list_versions,
-                model_filename,
-                current_sha256
-                ],
-            outputs=[
-                download_model,
-                cancel_model,
-                download_progress
-            ]
-        )
-        
-        download_finish.change(
-            fn=_download.download_finish,
-            inputs=[
-                model_filename,
-                list_versions,
-                list_models
-                ],
-            outputs=[
-                download_model,
-                cancel_model,
-                delete_model,
-                download_progress,
-                list_versions
-            ]
-        )
-        
-        delete_model.click(
-            fn=_file.delete_model,
-            inputs=[
-                delete_finish,
-                model_filename,
-                list_models,
-                list_versions,
-                current_sha256
-                ],
-            outputs=[
-                download_model,
-                cancel_model,
-                delete_model,
-                delete_finish,
-                current_model,
-                list_versions
-            ]
-        )
-        
-        save_tags.click(
-            fn=_file.save_json,
-            inputs=[
-                model_filename,
-                install_path,
-                trained_tags
-                ],
-            outputs=[trained_tags]
-        )
-        
-        save_images.click(
-            fn=_file.save_images,
-            inputs=[
-                preview_html,
-                model_filename,
-                list_models,
-                install_path
-                ],
-            outputs=[]
-        )
-        
+
         list_versions.select(
             fn=_api.update_model_info,
             inputs=[
@@ -633,21 +382,130 @@ def on_ui_tabs():
         model_id.change(
             fn=_api.update_dl_url,
             inputs=[
-                trained_tags,
                 model_id,
                 list_models,
                 list_versions
                 ],
             outputs=[
                 dl_url,
-                save_tags,
                 save_images,
                 download_model
                 ]
         )
+
+        # Download/Save Model Button Functions #
+
+        download_model.click(
+            fn=_download.download_start,
+            inputs=[
+                download_start,
+                list_models,
+                model_filename,
+                list_versions,
+                current_sha256
+                ],
+            outputs=[
+                download_model,
+                cancel_model,
+                download_start,
+                download_progress
+            ]
+        )
         
-        # Define common page load inputs
-        common_inputs = [
+        download_start.change(
+            fn=_download.download_create_thread,
+            inputs=[
+                download_finish,
+                dl_url,
+                model_filename,
+                preview_html,
+                create_json,
+                install_path,
+                list_models,
+                list_versions
+                ],
+            outputs=[
+                download_progress,
+                current_model,
+                download_finish
+            ]
+        )
+
+        download_finish.change(
+            fn=_download.download_finish,
+            inputs=[
+                model_filename,
+                list_versions,
+                list_models
+                ],
+            outputs=[
+                download_model,
+                cancel_model,
+                delete_model,
+                download_progress,
+                list_versions
+            ]
+        )
+
+        cancel_model.click(
+            fn=_download.download_cancel,
+            inputs=[
+                delete_finish,
+                list_models,
+                list_versions,
+                model_filename,
+                current_sha256
+                ],
+            outputs=[
+                download_model,
+                cancel_model,
+                download_progress
+            ]
+        )
+        
+        delete_model.click(
+            fn=_file.delete_model,
+            inputs=[
+                delete_finish,
+                model_filename,
+                list_models,
+                list_versions,
+                current_sha256
+                ],
+            outputs=[
+                download_model,
+                cancel_model,
+                delete_model,
+                delete_finish,
+                current_model,
+                list_versions
+            ]
+        )
+        
+        save_info.click(
+            fn=_file.save_model_info,
+            inputs=[
+                install_path,
+                model_filename,
+                current_sha256
+                ],
+            outputs=[]
+        )
+        
+        save_images.click(
+            fn=_file.save_images,
+            inputs=[
+                preview_html,
+                model_filename,
+                list_models,
+                install_path
+                ],
+            outputs=[]
+        )
+        
+        # Page Button Functions #
+        
+        page_inputs = [
             content_type,
             sort_type,
             period_type,
@@ -658,15 +516,14 @@ def on_ui_tabs():
             only_liked
         ]
         
-        # Define common page load outputs
-        common_outputs = [
+        page_outputs = [
             list_models,
             list_versions,
             list_html,
             get_prev_page,
             get_next_page,
             page_slider,
-            save_tags,
+            save_info,
             save_images,
             download_model,
             install_path,
@@ -674,43 +531,236 @@ def on_ui_tabs():
             file_list
         ]
 
-        # Map triggers to their corresponding functions
-        trigger_function_map = {
+        page_btn_list = {
             refresh.click: _api.update_model_list,
             search_term.submit: _api.update_model_list,
             get_next_page.click: _api.update_next_page,
             get_prev_page.click: _api.update_prev_page
         }
 
-        # Loop through the dictionary and bind each trigger to its function
-        for trigger, function in trigger_function_map.items():
-            trigger(fn=function, inputs=common_inputs, outputs=common_outputs)
+        for trigger, function in page_btn_list.items():
+            trigger(fn=function, inputs=page_inputs, outputs=page_outputs)
         
-        def update_models_dropdown(model_name):
-            model_name = re.sub(r'\.\d{3}$', '', model_name)
-            ret_versions = _api.update_model_versions(model_name)
-            (html, tags, base_mdl, DwnButton, DelButton, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
-            return gr.Dropdown.update(value=model_name),ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,DelButton,filelist,id,current_sha256,
+        cancel_btn_list = [
+            cancel_all_tags,
+            cancel_ver_search,
+            cancel_installed,
+            cancel_update_preview]
         
-        event_text.change(
-            fn=update_models_dropdown,
+        for button in cancel_btn_list:
+            button.click(fn=_file.cancel_scan)
+            
+        # Update model Functions #
+        
+        ver_search.click(
+            fn=_file.start_ver_search,
+            inputs=[ver_start],
+            outputs=[
+                ver_start,
+                ver_search,
+                cancel_ver_search,
+                load_installed,
+                save_all_tags,
+                update_preview,
+                version_progress
+                ]
+        )
+        
+        ver_start.change(
+            fn=_file.file_scan,
             inputs=[
-                event_text
+                selected_tags,
+                ver_finish,
+                tag_finish,
+                installed_finish,
+                preview_finish
                 ],
             outputs=[
+                version_progress,
+                ver_finish
+                ]
+        )
+        
+        ver_finish.change(
+            fn=_file.finish_ver_search,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                update_preview,
+                cancel_ver_search,
+                load_to_browser
+            ]
+        )
+        
+        load_installed.click(
+            fn=_file.start_installed_models,
+            inputs=[installed_start],
+            outputs=[
+                installed_start,
+                load_installed,
+                cancel_installed,
+                ver_search,
+                save_all_tags,
+                update_preview,
+                installed_progress
+            ]
+        )
+        
+        installed_start.change(
+            fn=_file.file_scan,
+            inputs=[
+                selected_tags,
+                ver_finish,
+                tag_finish,
+                installed_finish,
+                preview_finish
+                ],
+            outputs=[
+                installed_progress,
+                installed_finish
+            ]
+        )
+        
+        installed_finish.change(
+            fn=_file.finish_installed_models,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                update_preview,
+                cancel_installed,
+                load_to_browser_installed
+            ]
+        )
+        
+        save_all_tags.click(
+            fn=_file.save_tag_start,
+            inputs=[tag_start],
+            outputs=[
+                tag_start,
+                save_all_tags,
+                cancel_all_tags,
+                load_installed,
+                ver_search,
+                update_preview,
+                tag_progress
+            ]
+        )
+        
+        tag_start.change(
+            fn=_file.file_scan,
+            inputs=[
+                selected_tags,
+                ver_finish,
+                tag_finish,
+                installed_finish,
+                preview_finish
+                ],
+            outputs=[
+                tag_progress,
+                tag_finish
+            ]
+        )
+        
+        tag_finish.change(
+            fn=_file.save_tag_finish,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                update_preview,
+                cancel_all_tags
+            ]
+        )
+        
+        update_preview.click(
+            fn=_file.save_preview_start,
+            inputs=[preview_start],
+            outputs=[
+                preview_start,
+                update_preview,
+                cancel_update_preview,
+                load_installed,
+                ver_search,
+                save_all_tags,
+                preview_progress
+            ]
+        )
+        
+        preview_start.change(
+            fn=_file.file_scan,
+            inputs=[
+                selected_tags,
+                ver_finish,
+                tag_finish,
+                installed_finish,
+                preview_finish
+                ],
+            outputs=[
+                preview_progress,
+                preview_finish
+            ]
+        )
+        
+        preview_finish.change(
+            fn=_file.save_preview_finish,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                update_preview,
+                cancel_update_preview
+            ]
+        )
+        
+        load_to_browser_installed.click(
+            fn=_file.load_to_browser,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                update_preview,
+                cancel_installed,
+                load_to_browser_installed,
                 list_models,
                 list_versions,
-                preview_html,
-                trained_tags,
-                base_model,
-                model_filename,
+                list_html,
+                get_prev_page,
+                get_next_page,
+                page_slider,
+                save_info,
+                save_images,
+                download_model,
                 install_path,
                 sub_folder,
-                download_model,
-                delete_model,
                 file_list,
-                model_id,
-                current_sha256
+                installed_progress
+            ]
+        )
+        
+        load_to_browser.click(
+            fn=_file.load_to_browser,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                update_preview,
+                cancel_ver_search,
+                load_to_browser,
+                list_models,
+                list_versions,
+                list_html,
+                get_prev_page,
+                get_next_page,
+                page_slider,
+                save_info,
+                save_images,
+                download_model,
+                install_path,
+                sub_folder,
+                file_list,
+                version_progress
             ]
         )
 

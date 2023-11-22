@@ -93,6 +93,16 @@ https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8
 
 # Changelog 📋
 
+
+<h3>v1.16</h3>
+
+* Feature: Ability to download/update model preview images in Update Models tab.
+* Feature: "Update model tags" changed to "Update model info & tags".
+ - The option now saves tags, description and base model version.
+ - This also applies to the browser, saved tags is changed to save model info.
+* Bug fix: Archived models are now hidden since they cannot be used.
+
+---
 <h3>v1.15.2</h3>
 
 * New setting: Custom save images location

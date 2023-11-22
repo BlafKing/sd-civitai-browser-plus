@@ -16,7 +16,7 @@ import scripts.civitai_download as _download
 
 gl.init()
 
-def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=None):    
+def update_dl_url(model_id=None, model_name=None, model_version=None):    
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
     
@@ -33,14 +33,12 @@ def update_dl_url(trained_tags, model_id=None, model_name=None, model_version=No
                                 
         return  (
                 gr.Textbox.update(value=dl_url), # Download URL
-                gr.Button.update(interactive=True if trained_tags else False), # Save Tags Button
                 gr.Button.update(interactive=True if model_version else False), # Save Images Button
                 gr.Button.update(interactive=True if model_version else False) # Download Button
         )
     else:
         return  (
                 gr.Textbox.update(value=None), # Download URL
-                gr.Button.update(interactive=True if trained_tags else False), # Save Tags Button
                 gr.Button.update(interactive=True if model_version else False), # Save Images Button
                 gr.Button.update(interactive=True if model_version else False) # Download Button
         )
@@ -230,7 +228,7 @@ def model_list_html(json_data, model_dict):
         versions_to_keep = []
 
         for version in item['modelVersions']:
-            if not version['publishedAt']:
+            if not version['publishedAt'] or not version['files']:
                 continue
             if hide_early_access:
                 early_access_days = version['earlyAccessTimeFrame']
