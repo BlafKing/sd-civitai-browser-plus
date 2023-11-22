@@ -10,7 +10,6 @@ import time
 import shutil
 import requests
 import hashlib
-from bs4 import BeautifulSoup
 from pathlib import Path
 from urllib.parse import urlparse
 from modules.shared import cmd_opts, opts
@@ -22,6 +21,10 @@ try:
     from send2trash import send2trash
 except:
     print(f"{gl.print} Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
+try:
+    from bs4 import BeautifulSoup
+except:
+    print(f"{gl.print} Python module 'BeautifulSoup' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
