@@ -197,9 +197,6 @@ def on_ui_tabs():
         current_model = gr.Textbox(value=None, visible=False)
         current_sha256 = gr.Textbox(value=None, visible=False)
         
-        def changeInput():
-            gl.contentChange = True
-        
         def ToggleDate(toggle_date):
             gl.sortNewest = toggle_date
         
@@ -305,11 +302,6 @@ def on_ui_tabs():
             fn=update_tile_count,
             inputs=[tile_slider],
             outputs=[]
-        )
-        
-        content_type.change(
-            fn=changeInput,
-            inputs=[]
         )
         
         # Model Button Functions #
@@ -526,7 +518,8 @@ def on_ui_tabs():
             search_term,
             page_slider,
             base_filter,
-            only_liked
+            only_liked,
+            show_nsfw
         ]
         
         page_outputs = [

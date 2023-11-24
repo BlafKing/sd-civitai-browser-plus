@@ -885,11 +885,10 @@ def finish_installed_models():
 
 def load_to_browser():
     global from_ver, from_installed
-    _ = None
     if from_ver:
-        (lm,lv,lh,pp,np,p,st,si,dm,_dm,ip,sf,fl,ph,tt,bm,mf) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,True)
+        model_list_return = _api.update_model_list(from_ver=True)
     if from_installed:
-        (lm,lv,lh,pp,np,p,st,si,dm,_dm,ip,sf,fl,ph,tt,bm,mf) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,False,True)
+        model_list_return = _api.update_model_list(from_installed=True)
     
     gl.file_scan = True
     from_ver, from_installed = False, False
@@ -900,7 +899,7 @@ def load_to_browser():
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=False, visible=False),
-        lm,lv,lh,pp,np,p,st,si,dm,_dm,ip,sf,fl,ph,tt,bm,mf,
+        *model_list_return,
         gr.HTML.update(value='<div style="min-height: 0px;"></div>')
     )
     

@@ -105,12 +105,14 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 </details>
 
+* Feature: NSFW toggle now properly impacts search results.
 * Feature: Ability to set [\Model Name] & [\Model Name\Version Name] as default sub folders.
 * New setting: Hide sub folders that start with a '.'
 * Bug fix: Preview HTML is now emptied when loading a new page.
 * Bug fix: Buttons now correctly display when loading new page.
 * Bug fix: Fixed compatibility with SD.Next. (again)
 * Bug fix: Emptied tags, base model, and filename upon loading new page.
+* Bug fix: Filter change detection fixed
 
 ---
 <h3>v1.16</h3>

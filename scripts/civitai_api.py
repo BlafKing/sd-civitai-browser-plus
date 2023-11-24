@@ -147,12 +147,10 @@ def contenttype_folder(content_type, desc=None, fromCheck=False):
     
     return folder
 
-def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term=None, timeOut=None, isNext=None):
+def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term=None, nsfw=None, timeOut=None, isNext=None):
     if current_page in [0, None, ""]:
         current_page = 1
-    if search_term != gl.previous_search_term or gl.tile_count != gl.previous_tile_count or gl.inputs_changed or gl.contentChange:
-        gl.previous_search_term = search_term
-        gl.previous_tile_count = gl.tile_count
+    if gl.inputs_changed:
         gl.file_scan = False
         api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page=1"
     else:
@@ -199,6 +197,9 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     
     if only_liked:
         query_str += f"&favorites=true"
+    
+    if nsfw == False:
+        query_str += f"&nsfw=false"
     
     full_url = f"{api_url}&{query_str}"
     
@@ -247,7 +248,6 @@ def model_list_html(json_data, model_dict):
             
         json_data['items'] = filtered_items
     
-    gl.contentChange = False
     HTML = '<div class="column civmodellist">'
     sorted_models = {}
     existing_files = set()
@@ -348,10 +348,10 @@ def model_list_html(json_data, model_dict):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked):
-    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, isNext=False)
+def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw):
+    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, isNext=False)
 
-def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, isNext=True):
+def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, isNext=True):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -364,25 +364,22 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             
     if gl.json_data is None or gl.json_data == "timeout":
         timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, timeOut, isNext)
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, timeOut=timeOut, isNext=isNext)
         timeOut = False
         
         return return_values
-        
-    gl.pageChange = True
     
-    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter)
-    if gl.previous_inputs and current_inputs != gl.previous_inputs:
+    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter, nsfw)
+    if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
         gl.inputs_changed = True
     else:
         gl.inputs_changed = False
     
-    
     gl.previous_inputs = current_inputs
 
     if not gl.file_scan:
-        if gl.inputs_changed or gl.contentChange:
-            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked)
+        if gl.inputs_changed:
+            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw)
             return return_values
     
         if isNext:
@@ -418,7 +415,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
                 currentPage = int(gl.json_data['metadata']['currentPage'])
                 nextPage = currentPage
                 prevPage = currentPage - 2
-                pageCount = currentPage -1
+                pageCount = currentPage - 1
                 gl.json_data = request_civit_api(gl.json_data['metadata']['prevPage'])
                 
                 gl.json_data["metadata"]["totalPages"] = highest_number
@@ -484,7 +481,7 @@ def pagecontrol(json_data):
         hasPrev = True
     return hasPrev, hasNext, current_page, total_pages
 
-def update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+def update_model_list(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -497,18 +494,18 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             
     if not from_ver and not from_installed:
         gl.ver_json = None
-        if not gl.pageChange and not gl.file_scan:
+        if not not gl.file_scan:
         
-            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter)
+            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter, nsfw)
             
-            if gl.previous_inputs and current_inputs != gl.previous_inputs:
+            if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
                 gl.inputs_changed = True
             else:
                 gl.inputs_changed = False
             
             gl.previous_inputs = current_inputs
         
-        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term, timeOut, isNext)
+        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term, nsfw, timeOut, isNext)
         if gl.json_data == "timeout":
             HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
             hasPrev = current_page not in [0, 1]
@@ -517,11 +514,6 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
         
         if gl.json_data is None:
             return
-        
-        if gl.pageChange:
-            gl.pageChange = False
-        
-        gl.contentChange = False
     
     if from_installed or from_ver:
         gl.json_data = gl.ver_json
