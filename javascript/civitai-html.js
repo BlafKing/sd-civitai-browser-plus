@@ -1,17 +1,23 @@
 "use strict";
 
 // Selects a model by pressing on card
-function select_model(model_name) {
-    var civitaiDiv = document.getElementById('civitai_preview_html');
-	let model_dropdown = gradioApp().querySelector('#eventtext1 textarea');
-	if (model_dropdown && model_name) {
-		let randomNumber = Math.floor(Math.random() * 1000);
-		let paddedNumber = String(randomNumber).padStart(3, '0');
-		model_dropdown.value = model_name + "." + paddedNumber;
-		updateInput(model_dropdown);
-        observer.unobserve(civitaiDiv);
-        observer.observe(civitaiDiv);
-	}
+function select_model(model_name, bool = false, content_type = null) {
+    const output = bool ? gradioApp().querySelector('#model_sent textarea') : gradioApp().querySelector('#model_select textarea');
+
+    if (output && model_name) {
+        const randomNumber = Math.floor(Math.random() * 1000);
+        const paddedNumber = String(randomNumber).padStart(3, '0');
+        output.value = model_name + "." + paddedNumber;
+        updateInput(output);
+    }
+
+    if (content_type) {
+        const outputType = gradioApp().querySelector('#type_sent textarea');
+        const randomNumber = Math.floor(Math.random() * 1000);
+        const paddedNumber = String(randomNumber).padStart(3, '0');
+        outputType.value = content_type + "." + paddedNumber;
+        updateInput(outputType);
+    }
 }
 
 // Changes the card size
@@ -341,9 +347,7 @@ function handleCivitaiDivChanges() {
 document.addEventListener("scroll", handleCivitaiDivChanges)
 
 // Create the accordion dropdown inside the settings tab
-function createAccordion() {
-    var containerDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
-    var subfolders = containerDiv.querySelectorAll("[id$='subfolder']");
+function createAccordion(containerDiv, subfolders, name) {
     if (containerDiv == null || subfolders.length == 0) {
         return;
     }
@@ -351,7 +355,7 @@ function createAccordion() {
     accordionContainer.id = 'settings-accordion';
     var toggleButton = document.createElement('button');
     toggleButton.id = 'accordionToggle';
-    toggleButton.innerHTML = 'Default sub folders<div style="transition: transform 0.15s; transform: rotate(90deg)">▼</div>';
+    toggleButton.innerHTML = name + '<div style="transition: transform 0.15s; transform: rotate(90deg)">▼</div>';
     toggleButton.onclick = function () {
         accordionDiv.style.display = (accordionDiv.style.display === 'none') ? 'block' : 'none';
         toggleButton.lastChild.style.transform = accordionDiv.style.display === 'none' ? 'rotate(90deg)' : 'rotate(0)';
@@ -366,6 +370,122 @@ function createAccordion() {
     containerDiv.appendChild(accordionContainer);
 }
 
+// Adds a button to the cards in txt2img and img2img
+function createCardButtons(event) {
+    const clickedElement = event.target;
+    const validButtonNames = ['Textual Inversion', 'Hypernetworks', 'Checkpoints', 'Lora'];
+    const validParentIds = ['txt2img_textual_inversion_cards_html', 'txt2img_hypernetworks_cards_html', 'txt2img_checkpoints_cards_html', 'txt2img_lora_cards_html'];
+
+    const hasMatchingButtonName = validButtonNames.some(buttonName =>
+        clickedElement.innerText.trim() === buttonName
+    );
+
+    const flexboxDivs = document.querySelectorAll('.layoutkit-flexbox');
+    let isLobeTheme = false;
+    flexboxDivs.forEach(div => {
+        const anchorElements = div.querySelectorAll('a');
+        const hasGitHubLink = Array.from(anchorElements).some(anchor => anchor.href === 'https://github.com/lobehub/sd-webui-lobe-theme/releases');
+        if (hasGitHubLink) {
+            isLobeTheme = true;
+        }
+    });
+
+    if (hasMatchingButtonName || isLobeTheme) {
+        const checkForCardDivs = setInterval(() => {
+            const cardDivs = document.querySelectorAll('.card');
+
+            if (cardDivs.length > 0) {
+                clearInterval(checkForCardDivs);
+
+                cardDivs.forEach(cardDiv => {
+                    const buttonRow = cardDiv.querySelector('.button-row');
+                    const actions = cardDiv.querySelector('.actions');
+                    const nameSpan = actions.querySelector('.name');
+                    let modelName  = nameSpan.textContent.trim();
+                    let currentElement = cardDiv.parentElement;
+                    let content_type = null;
+
+                    while (currentElement) {
+                        const parentId = currentElement.id;
+                        if (validParentIds.includes(parentId)) {
+                            content_type = parentId;
+                            break;
+                        }
+                        currentElement = currentElement.parentElement;
+                    }
+
+                    const existingDiv = buttonRow.querySelector('.goto-civitbrowser.card-button');
+                    if (existingDiv) {
+                        return;
+                    }
+
+                    const metaDataButton = buttonRow.querySelector('.metadata-button.card-button')
+
+                    const newDiv = document.createElement('div');
+                    newDiv.classList.add('goto-civitbrowser', 'card-button');
+                    newDiv.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        sendModelToBrowser(modelName, content_type);
+                    });
+
+                    const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    if (isLobeTheme) {
+                        svgIcon.setAttribute('width', '25');
+                        svgIcon.setAttribute('height', '25');
+                    } else {
+                        if (metaDataButton) {
+                            metaDataButton.style.paddingTop = '5px';
+                            metaDataButton.style.width = '42px';
+                            metaDataButton.style.fontSize = '230%';
+                        }
+                        svgIcon.setAttribute('width', '40');
+                        svgIcon.setAttribute('height', '40');
+                    }
+                    svgIcon.setAttribute('viewBox', '75 0 500 500');
+                    svgIcon.setAttribute('fill', 'white');
+
+                    svgIcon.innerHTML = `
+                        <path d="M 352.79 218.85 L 319.617 162.309 L 203.704 162.479 L 146.28 259.066 L 203.434 355.786 L 319.373 355.729 L 352.773 299.386 L 411.969 299.471 L 348.861 404.911 L 174.065 404.978 L 87.368 259.217 L 174.013 113.246 L 349.147 113.19 L 411.852 218.782 L 352.79 218.85 Z"/>
+                        <path d="M 304.771 334.364 L 213.9 334.429 L 169.607 259.146 L 214.095 183.864 L 305.132 183.907 L 330.489 227.825 L 311.786 259.115 L 330.315 290.655 Z M 278.045 290.682 L 259.294 259.18 L 278.106 227.488 L 240.603 227.366 L 221.983 259.128 L 240.451 291.026 Z"/>
+                    `;
+
+                    newDiv.appendChild(svgIcon);
+                    buttonRow.insertBefore(newDiv, buttonRow.firstChild);
+                });
+            }
+        }, 100);
+    }
+}
+
+document.addEventListener('click', createCardButtons);
+
+function sendModelToBrowser(modelName, content_type) {
+    const tabNav = document.querySelector('.tab-nav');
+    const buttons = tabNav.querySelectorAll('button');
+    for (const button of buttons) {
+        if (button.textContent.includes('Civitai')) {
+            button.click();
+            
+            const firstButton = document.querySelector('#tab_civitai_interface > div > div > div > button');
+            if (firstButton) {
+                firstButton.click();
+            }
+        }
+    }
+    select_model(modelName, true, content_type);
+}
+
+// Clicks the first item in the browser cards list
+function clickFirstFigureInColumn() {
+    const columnDiv = document.querySelector('.column.civmodellist');
+    if (columnDiv) {
+        const firstFigure = columnDiv.querySelector('figure');
+        if (firstFigure) {
+            firstFigure.click();
+        }
+    }
+}
+
 // Runs all functions when the page is fully loaded
 function onPageLoad() {
     const divElement = document.getElementById('setting_custom_api_key');
@@ -374,6 +494,16 @@ function onPageLoad() {
     if (!infoElement) {
         return;
     }
+
+    var subfolderDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
+    var subfolders = subfolderDiv.querySelectorAll("[id$='subfolder']");
+
+    createAccordion(subfolderDiv, subfolders, "Default sub folders");
+
+    var upscalerDiv = document.querySelector("#settings_civitai_browser_plus > div > div > #settings-accordion > div");
+    var upscalers = upscalerDiv.querySelectorAll("[id$='upscale_subfolder']");
+
+    createAccordion(upscalerDiv, upscalers, "Upscalers");
 
     observer.observe(civitaiDiv);
     clearInterval(intervalID);
@@ -384,7 +514,6 @@ function onPageLoad() {
     setupClickOutsideListener();
     createLink(infoElement);
     updateBackToTopVisibility([{isIntersecting: false}]);
-    createAccordion();
 }
 
 // Checks every second if the page is fully loaded

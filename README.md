@@ -23,6 +23,10 @@
 
 * Assign tags by scanning all installed models for automatic use in image generation.
 
+<h3>Quick Model Info Access 📊</h3>
+
+* A button for each model card in txt2img and img2img to load it into the extension.
+
 <h3>High-speed downloads with Aria2 🚄</h3>
 
 * Maximize your bandwidth for lightning-fast downloads.
@@ -86,14 +90,29 @@ These settings can be found under the "Settings" tab in Web-UI and then under th
 
 # Preview 👀
 
-https://github.com/BlafKing/sd-civitai-browser/assets/9644716/ea873c3e-a7e4-44a8-907a-e9bddf13bc55
+https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854-4043-bfbb-f32fa9df5a74
 
-
-(Theme used: [Lobe](https://github.com/canisminor1990/sd-webui-lobe-theme))  
 
 # Changelog 📋
 
+<h3>v2.0</h3>
 
+* Feature: New button on each model card in txt2img and img2img to view it in the extension.
+<details>
+<summary> Preview</summary>
+
+![ezgif-3-b1f0de4dd2](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/536a693a-c30c-438e-a34f-1aec54e4e7ee)
+
+</details>
+
+* Feature: Ability to set [\Model Name] & [\Model Name\Version Name] as default sub folders.
+* New setting: Hide sub folders that start with a '.'
+* Bug fix: Preview HTML is now emptied when loading a new page.
+* Bug fix: Buttons now correctly display when loading new page.
+* Bug fix: Fixed compatibility with SD.Next. (again)
+* Bug fix: Emptied tags, base model, and filename upon loading new page.
+
+---
 <h3>v1.16</h3>
 
 * Feature: Ability to download/update model preview images in Update Models tab.

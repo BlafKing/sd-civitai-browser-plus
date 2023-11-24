@@ -96,6 +96,10 @@
     z-index: 60;
 }
 
+.acss-14flpmm .gap:has(#quicksettings):first-child {
+    gap: var(--layout-gap);
+}
+
 #browserTab > div > #header, #browserTab > div > #header_off {
     display: flex;
     flex-direction: column;
@@ -342,6 +346,14 @@
 }
 
 /* End of Custom Accordion */
+
+.goto-civitbrowser.card-button {
+    filter: drop-shadow(2px 2px 3px black);
+}
+
+.goto-civitbrowser.card-button:hover svg {
+    fill: red !important;
+}
 
 /* Custom settings Accordion */
 #settings-accordion {

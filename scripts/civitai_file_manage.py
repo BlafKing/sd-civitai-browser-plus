@@ -332,6 +332,48 @@ def gen_sha256(file_path):
     
     return hash_value
 
+def model_from_sent(model_name, content_type, click_first_item):
+    model_name = re.sub(r'\.\d{3}$', '', model_name)
+    content_type = re.sub(r'\.\d{3}$', '', content_type)
+    content_mapping = {
+        "txt2img_textual_inversion_cards_html": ['TextualInversion'],
+        "txt2img_hypernetworks_cards_html": ['Hypernetwork'],
+        "txt2img_checkpoints_cards_html": ['Checkpoint'],
+        "txt2img_lora_cards_html": ['LORA', 'LoCon']
+    }
+    content_type = content_mapping.get(content_type, content_type)
+    
+    for content_type_item in content_type:
+        folder = _api.contenttype_folder(content_type_item)
+        for folder_path, _, files in os.walk(folder):
+            for file in files:
+                if file.startswith(model_name) and not file.endswith(".json"):
+                    model_file = os.path.join(folder_path, file)
+    
+    
+    modelID = get_models(model_file)
+    gl.json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, f"civitai.com/models/{modelID}")
+    if gl.json_data == "timeout":
+        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or the selected model could not be found.</div>'
+        number = click_first_item
+    if gl.json_data != None and gl.json_data != "timeout":
+        model_dict = {}
+        for item in gl.json_data['items']:
+            model_dict[item['name']] = item['name']
+        HTML = _api.model_list_html(gl.json_data, model_dict)
+        (hasPrev, hasNext, current_page, total_pages) = _api.pagecontrol(gl.json_data)
+        page_string = f"Page: {current_page}/{total_pages}"
+        number = _download.random_number(click_first_item)
+        
+        
+    return (
+        gr.HTML.update(HTML), # Card HTML
+        gr.Button.update(interactive=hasPrev), # Prev Button
+        gr.Button.update(interactive=hasNext), # Next Button 
+        gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Slider
+        gr.Textbox.update(number) # Click first card trigger 
+    )
+    
 def is_image_url(url):
     image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
     parsed = urlparse(url)
@@ -845,9 +887,9 @@ def load_to_browser():
     global from_ver, from_installed
     _ = None
     if from_ver:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,_dm,ip,sf,fl,ph,tt,bm,mf) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,True)
     if from_installed:
-        (lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,False,True)
+        (lm,lv,lh,pp,np,p,st,si,dm,_dm,ip,sf,fl,ph,tt,bm,mf) = _api.update_model_list(_,_,_,_,_,_,_,_,_,_,False,True)
     
     gl.file_scan = True
     from_ver, from_installed = False, False
@@ -858,7 +900,7 @@ def load_to_browser():
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=False, visible=False),
-        lm,lv,lh,pp,np,p,st,si,dm,ip,sf,fl,
+        lm,lv,lh,pp,np,p,st,si,dm,_dm,ip,sf,fl,ph,tt,bm,mf,
         gr.HTML.update(value='<div style="min-height: 0px;"></div>')
     )
     

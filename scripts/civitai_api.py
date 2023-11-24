@@ -462,10 +462,15 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Count
             gr.Button.update(interactive=False), # Save Tags
             gr.Button.update(interactive=False), # Save Images
-            gr.Button.update(interactive=False), # Download Button
+            gr.Button.update(interactive=False, visible=False if gl.isDownloading else True), # Download Button
+            gr.Button.update(interactive=False, visible=False), # Delete Button
             gr.Textbox.update(interactive=False, value=None), # Install Path
             gr.Dropdown.update(choices=[], value="", interactive=False), # Sub Folder List
-            gr.Dropdown.update(choices=[], value="", interactive=False) # File List
+            gr.Dropdown.update(choices=[], value="", interactive=False), # File List
+            gr.HTML.update(value='<div style="min-height: 0px;"></div>'), # Preview HTML
+            gr.Textbox.update(value=None), # Trained Tags
+            gr.Textbox.update(value=None), # Base Model
+            gr.Textbox.update(value=None) # Model Filename
     )
 
 def pagecontrol(json_data):
@@ -549,10 +554,16 @@ def update_model_list(content_type, sort_type, period_type, use_search_term, sea
             gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Count
             gr.Button.update(interactive=False), # Save Tags
             gr.Button.update(interactive=False), # Save Images
-            gr.Button.update(interactive=False), # Download Button
-            gr.Textbox.update(interactive=False, value=None), # Install Path
+            gr.Button.update(interactive=False, visible=False if gl.isDownloading else True), # Download Button
+            gr.Button.update(interactive=False, visible=False), # Delete Button
+            gr.Textbox.update(interactive=False, value=None, visible=True), # Install Path
             gr.Dropdown.update(choices=[], value="", interactive=False), # Sub Folder List
-            gr.Dropdown.update(choices=[], value="", interactive=False) # File List
+            gr.Dropdown.update(choices=[], value="", interactive=False), # File List
+            gr.HTML.update(value='<div style="min-height: 0px;"></div>'), # Preview HTML
+            gr.Textbox.update(value=None), # Trained Tags
+            gr.Textbox.update(value=None), # Base Model
+            gr.Textbox.update(value=None) # Model Filename
+            
     )
 
 def update_model_versions(model_name):
@@ -817,9 +828,13 @@ def update_model_info(model_name=None, model_version=None):
                 break
 
         insert_sub = getattr(opts, "insert_sub", True)
+        dot_subfolders = getattr(opts, "dot_subfolders", True)
+        
         try:
             sub_folders = ["None"]
             for root, dirs, _ in os.walk(model_folder):
+                if dot_subfolders:
+                    dirs = [d for d in dirs if not d.startswith('.')]
                 for d in dirs:
                     sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                     if sub_folder:
@@ -828,11 +843,13 @@ def update_model_info(model_name=None, model_version=None):
             sub_folders.remove("None")
             sub_folders = sorted(sub_folders)
             sub_folders.insert(0, "None")
+            sub_opt1 = os.path.join(os.sep, model_name)
+            sub_opt2 = os.path.join(os.sep, model_name, model_version)
             if insert_sub:
                 model_name = model_name.replace('/', '').replace('\\', '')
                 model_version = model_version.replace('/', '').replace('\\', '')
-                sub_folders.insert(1, os.path.join(os.sep, model_name))
-                sub_folders.insert(2, os.path.join(os.sep, model_name, model_version))
+                sub_folders.insert(1, sub_opt1)
+                sub_folders.insert(2, sub_opt2)
             
             list = set()
             sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -840,6 +857,11 @@ def update_model_info(model_name=None, model_version=None):
             sub_folders = ["None"]
             
         default_sub = sub_folder_value(content_type, desc)
+        if default_sub == f"{os.sep}Model Name":
+            default_sub = sub_opt1
+        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+            default_sub = sub_opt2
+            
         if folder_location == "None":
             folder_location = model_folder
             if default_sub != "None":

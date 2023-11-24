@@ -1,5 +1,5 @@
 import gradio as gr
-from modules import script_callbacks, shared, ui_settings
+from modules import script_callbacks, shared
 import os
 import json
 import fnmatch
@@ -70,6 +70,7 @@ def on_ui_tabs():
     toggle3 = "toggle3L" if lobe_directory else "toggle3"
     refreshbtn = "refreshBtnL" if lobe_directory else "refreshBtn"
     filterBox = "filterBoxL" if lobe_directory else "filterBox"
+    
     if page_header:
         header = "headerL" if lobe_directory else "header"
     else:
@@ -178,7 +179,10 @@ def on_ui_tabs():
         #Invisible triggers/variables
         model_id = gr.Textbox(value=None, visible=False)
         dl_url = gr.Textbox(value=None, visible=False)
-        event_text = gr.Textbox(elem_id="eventtext1", visible=False)
+        model_select = gr.Textbox(elem_id="model_select", visible=False)
+        model_sent = gr.Textbox(elem_id="model_sent", visible=False)
+        type_sent = gr.Textbox(elem_id="type_sent", visible=False)
+        click_first_item = gr.Textbox(elem_id="type_sent", visible=False)
         download_start = gr.Textbox(value=None, visible=False)
         download_finish = gr.Textbox(value=None, visible=False)
         tag_start = gr.Textbox(value=None, visible=False)
@@ -210,6 +214,11 @@ def on_ui_tabs():
             return gr.Textbox.update(value=newpath)
 
         # Javascript Functions #
+        
+        click_first_item.change(
+            fn=None,
+            _js="() => clickFirstFigureInColumn()"
+        )
         
         list_models.select(
             fn=None,
@@ -311,11 +320,9 @@ def on_ui_tabs():
             (html, tags, base_mdl, DwnButton, DelButton, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
             return gr.Dropdown.update(value=model_name),ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,DelButton,filelist,id,current_sha256,gr.Button.update(interactive=True)
         
-        event_text.change(
+        model_select.change(
             fn=update_models_dropdown,
-            inputs=[
-                event_text
-                ],
+            inputs=[model_select],
             outputs=[
                 list_models,
                 list_versions,
@@ -332,6 +339,12 @@ def on_ui_tabs():
                 current_sha256,
                 save_info
             ]
+        )
+            
+        model_sent.change(
+            fn=_file.model_from_sent,
+            inputs=[model_sent, type_sent, click_first_item],
+            outputs=[list_html, get_prev_page , get_next_page, page_slider, click_first_item]
         )
         
         sub_folder.select(
@@ -526,9 +539,14 @@ def on_ui_tabs():
             save_info,
             save_images,
             download_model,
+            delete_model,
             install_path,
             sub_folder,
-            file_list
+            file_list,
+            preview_html,
+            trained_tags,
+            base_model,
+            model_filename
         ]
 
         page_btn_list = {
@@ -732,9 +750,14 @@ def on_ui_tabs():
                 save_info,
                 save_images,
                 download_model,
+                delete_model,
                 install_path,
                 sub_folder,
                 file_list,
+                preview_html,
+                trained_tags,
+                base_model,
+                model_filename,
                 installed_progress
             ]
         )
@@ -757,9 +780,14 @@ def on_ui_tabs():
                 save_info,
                 save_images,
                 download_model,
+                delete_model,
                 install_path,
                 sub_folder,
                 file_list,
+                preview_html,
+                trained_tags,
+                base_model,
+                model_filename,
                 version_progress
             ]
         )
@@ -767,12 +795,16 @@ def on_ui_tabs():
     return (civitai_interface, "Civitai Browser+", "civitai_interface"),
 
 def subfolder_list(folder, desc=None):
+    insert_sub = getattr(opts, "insert_sub", True)
+    dot_subfolders = getattr(opts, "dot_subfolders", True)
     if folder == None:
         return
     try:
         model_folder = _api.contenttype_folder(folder, desc)
         sub_folders = ["None"]
         for root, dirs, _ in os.walk(model_folder):
+            if dot_subfolders:
+                dirs = [d for d in dirs if not d.startswith('.')]
             for d in dirs:
                 sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                 if sub_folder:
@@ -781,6 +813,9 @@ def subfolder_list(folder, desc=None):
         sub_folders.remove("None")
         sub_folders = sorted(sub_folders)
         sub_folders.insert(0, "None")
+        if insert_sub:
+            sub_folders.insert(1, f"{os.sep}Model Name")
+            sub_folders.insert(2, f"{os.sep}Model Name{os.sep}Version Name")
         
         list = set()
         sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -805,9 +840,10 @@ def on_ui_settings():
     shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in console", section=section).info("Requires UI reload"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
     shared.opts.add_option("aria2_flags", shared.OptionInfo(r"", "Custom Aria2 command line flags", section=section).info("Requires UI reload"))
-    shared.opts.add_option("insert_sub", shared.OptionInfo(True, "Insert [/Model Name] & [/Model Name/Version Name] as default sub folder options", section=section))
+    shared.opts.add_option("insert_sub", shared.OptionInfo(True, f"Insert [{os.sep}Model Name] & [{os.sep}Model Name{os.sep}Version Name] as sub folder options", section=section))
+    shared.opts.add_option("dot_subfolders", shared.OptionInfo(True, "Hide sub-folders that start with a .", section=section))
     shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Treat LoCon's as LORA's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload"))
-    shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip after downloading", section=section))
+    shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip files after downloading", section=section))
     shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=section).info("Early access models are only downloadable for supporter tier members, Requires API key"))
     shared.opts.add_option("custom_api_key", shared.OptionInfo(r"", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
     shared.opts.add_option("page_header", shared.OptionInfo(False, "Page navigation as header", section=section).info("Keeps the page navigation always visible at the top, Requires UI reload"))
@@ -815,15 +851,6 @@ def on_ui_settings():
     shared.opts.add_option("image_location", shared.OptionInfo(r"", "Custom save images location", section=section).info("Overrides the download folder location when saving images."))
     
     use_LORA = getattr(opts, "use_LORA", False)
-    
-    def has_folders(input, desc=None):
-        if input == None:
-            return False
-        try:
-            path = any(entry.is_dir() for entry in os.scandir(_api.contenttype_folder(input, desc)))
-        except:
-            return False
-        return path
     
     # Default sub folders
     folders = [
@@ -853,7 +880,7 @@ def on_ui_settings():
         desc = None
         if isinstance(folder, tuple):
             folder_name = " - ".join(folder)
-            setting_name = folder[1]
+            setting_name = f"{folder[1]}_upscale"
             folder = folder[0]
             desc = folder[1]
         else:
@@ -863,8 +890,7 @@ def on_ui_settings():
             folder = "LORA"
             setting_name = "LORA_LoCon"
         
-        if has_folders(folder, desc):
-            shared.opts.add_option(f"{setting_name}_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=section))
+        shared.opts.add_option(f"{setting_name}_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=section))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)
