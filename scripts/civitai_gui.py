@@ -151,6 +151,8 @@ def on_ui_tabs():
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=scan_choices)
             with gr.Row():
+                overwrite_toggle = gr.Checkbox(elem_id="overwrite_toggle", label="Overwrite any existing previews, tags or descriptions.", value=True)
+            with gr.Row():
                 save_all_tags = gr.Button(value="Update model info & tags", interactive=True, visible=True)
                 cancel_all_tags = gr.Button(value="Cancel updating model info & tags", interactive=False, visible=False)
             with gr.Row():
@@ -587,7 +589,8 @@ def on_ui_tabs():
                 ver_finish,
                 tag_finish,
                 installed_finish,
-                preview_finish
+                preview_finish,
+                overwrite_toggle
                 ],
             outputs=[
                 version_progress,
@@ -628,7 +631,8 @@ def on_ui_tabs():
                 ver_finish,
                 tag_finish,
                 installed_finish,
-                preview_finish
+                preview_finish,
+                overwrite_toggle
                 ],
             outputs=[
                 installed_progress,
@@ -669,7 +673,8 @@ def on_ui_tabs():
                 ver_finish,
                 tag_finish,
                 installed_finish,
-                preview_finish
+                preview_finish,
+                overwrite_toggle
                 ],
             outputs=[
                 tag_progress,
@@ -709,7 +714,8 @@ def on_ui_tabs():
                 ver_finish,
                 tag_finish,
                 installed_finish,
-                preview_finish
+                preview_finish,
+                overwrite_toggle
                 ],
             outputs=[
                 preview_progress,

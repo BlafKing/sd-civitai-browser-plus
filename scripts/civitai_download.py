@@ -499,7 +499,7 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
                 except Exception as e:
                     print(f"{gl.print} Failed to extract {file_name} with error: {e}")
             if create_json:
-                _file.save_model_info(install_path, file_name, current_sha256, gl.json_data)
+                _file.save_model_info(install_path, file_name, current_sha256, api_response=gl.json_data)
             if not gl.cancel_status:
                 info_to_json(path_to_new_file, unpackList)
                 _file.save_preview(file_name, install_path, preview_html)

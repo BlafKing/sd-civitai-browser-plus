@@ -115,7 +115,7 @@
     justify-content: center;
 }
 
-#toggle1L, #toggle2L, #toggle3L, #toggle4L, #toggle4L_api{
+#toggle1L, #toggle2L, #toggle3L, #toggle4L, #toggle4L_api, #overwrite_toggle{
     display: flex;
 	justify-content: center;
 }

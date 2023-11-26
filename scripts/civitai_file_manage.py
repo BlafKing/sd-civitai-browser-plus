@@ -164,12 +164,16 @@ def save_preview(file_name, install_path, preview_html):
     except Exception as e:
         print(f'{gl.print} Error downloading preview image: {e}')
 
-def save_preview_multi(file_path, api_response):
+def save_preview_multi(file_path, api_response, overwrite_toggle):
     json_file = os.path.splitext(file_path)[0] + ".json"
     install_path, file_name = os.path.split(file_path)
     name = os.path.splitext(file_name)[0]
     filename = f'{name}.preview.png'
     image_path = os.path.join(install_path, filename)
+    
+    if overwrite_toggle:
+        if os.path.exists(image_path):
+            return
     
     if os.path.exists(json_file):
         try:
@@ -391,7 +395,7 @@ def clean_description(desc):
     cleaned_text = soup.get_text()
     return cleaned_text
 
-def save_model_info(install_path, file_name, sha256=None, api_response=None):
+def save_model_info(install_path, file_name, sha256=None, overwrite_toggle=False, api_response=None):
     file_path = os.path.join(install_path, file_name)
     json_file = os.path.splitext(file_path)[0] + ".json"
     
@@ -408,13 +412,13 @@ def save_model_info(install_path, file_name, sha256=None, api_response=None):
     if not api_response:
         api_response = gl.json_data
 
-    result = find_and_save(api_response, sha256, file_name, json_file, False)
+    result = find_and_save(api_response, sha256, file_name, json_file, False, overwrite_toggle)
     if result == "found":
         return
     else:
-        result = find_and_save(api_response, sha256, file_name, json_file, True)
+        result = find_and_save(api_response, sha256, file_name, json_file, True, overwrite_toggle)
     
-def find_and_save(api_response, sha256, file_name, json_file, no_hash):
+def find_and_save(api_response, sha256, file_name, json_file, no_hash, overwrite_toggle):
     for item in api_response.get('items', []):
         for model_version in item.get('modelVersions', []):
             for file in model_version.get('files', []):
@@ -455,14 +459,27 @@ def find_and_save(api_response, sha256, file_name, json_file, no_hash):
                                 content = {}
                     else:
                         content = {}
-                    content["activation text"] = trained_tags
-                    content["description"] = description
-                    content["sd version"] = base_model
+                    changed = False
+                    if overwrite_toggle:
+                        if "activation text" not in content or not content["activation text"]:
+                            content["activation text"] = trained_tags
+                            changed = True
+                        if "description" not in content or not content["description"]:
+                            content["description"] = description
+                            changed = True
+                        if "sd version" not in content or not content["sd version"]:
+                            content["sd version"] = base_model
+                            changed = True
+                    else:
+                        content["activation text"] = trained_tags
+                        content["description"] = description
+                        content["sd version"] = base_model
+                        changed = True
                     
                     with open(json_file, 'w') as f:
                         json.dump(content, f, indent=4)
                         
-                    print(f"{gl.print} Model info saved to \"{json_file}\"")
+                    if changed: print(f"{gl.print} Model info saved to \"{json_file}\"")
                     return "found"
     
     return "not found"
@@ -583,7 +600,7 @@ def get_content_choices(scan_choices=False):
         return content_list
     return content_list
     
-def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, progress=gr.Progress() if queue else None):
+def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, progress=gr.Progress() if queue else None):
     global from_ver, from_installed, no_update
     update_log = getattr(opts, "update_log", True)
     gl.scan_files = True
@@ -776,7 +793,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     elif from_tag:
         for file in file_paths:
             install_path, file_name = os.path.split(file)
-            save_model_info(install_path, file_name, api_response=api_response)
+            save_model_info(install_path, file_name, api_response=api_response, overwrite_toggle=overwrite_toggle)
         if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
         time.sleep(2)
@@ -793,7 +810,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             name = os.path.splitext(file_name)[0]
             if progress != None:
                 progress(completed_preview / preview_count, desc=f"Saving preview images... {completed_preview}/{preview_count} | {name}")
-            save_preview_multi(file, api_response)
+            save_preview_multi(file, api_response, overwrite_toggle)
             completed_preview += 1
         return  (
                 gr.HTML.update(value='<div style="min-height: 0px;"></div>'),

@@ -95,9 +95,14 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v2.1.0</h3>
+
+* Feature: "Overwrite any existing previews, tags or descriptions" Toggle in Update tab.
+* Feature: Added content type "All" to model scanning to select all content types.
+
+---
 <h3>v2.0.1</h3>
 
-* Feature: Added content type "All" to model scanning to select all content types.
 * Bug fix: Folders starting with "." now no longer show sub folders.
 * Bug fix: Added headers to simulate browser request. (May fix issues for users from Russia)
 
