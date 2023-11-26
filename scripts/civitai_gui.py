@@ -54,7 +54,6 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, sn, ss, ts):
         print(f"{gl.print} Updated settings to: {config}")
         
 def on_ui_tabs():    
-    use_LORA = getattr(opts, "use_LORA", False)
     page_header = getattr(opts, "page_header", False)
     lobe_directory = None
     
@@ -83,11 +82,9 @@ def on_ui_tabs():
     else:
         toggle4 = "toggle4L" if lobe_directory else "toggle4"
         show_only_liked = False
-    
-    if use_LORA:
-        content_choices = ["Checkpoint", "TextualInversion", "LORA & LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"] 
-    else:
-        content_choices = ["Checkpoint", "TextualInversion", "LORA", "LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
+        
+    content_choices = _file.get_content_choices()
+    scan_choices = _file.get_content_choices(True)
     
     with gr.Blocks() as civitai_interface:
         with gr.Tab(label="Browser", elem_id="browserTab"):
@@ -152,7 +149,7 @@ def on_ui_tabs():
                 back_to_top = gr.Button(value="↑", elem_id="backToTop")
         with gr.Tab("Update Models"):
             with gr.Row():
-                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=content_choices)
+                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=scan_choices)
             with gr.Row():
                 save_all_tags = gr.Button(value="Update model info & tags", interactive=True, visible=True)
                 cancel_all_tags = gr.Button(value="Cancel updating model info & tags", interactive=False, visible=False)
@@ -508,7 +505,7 @@ def on_ui_tabs():
             outputs=[]
         )
         
-        # Page Button Functions #
+        # Common input&output lists #
         
         page_inputs = [
             content_type,
@@ -542,6 +539,18 @@ def on_ui_tabs():
             model_filename
         ]
 
+        cancel_btn_list = [cancel_all_tags,cancel_ver_search,cancel_installed,cancel_update_preview]
+        
+        browser = [ver_search,save_all_tags,load_installed,update_preview]
+        
+        browser_installed_load = [cancel_installed,load_to_browser_installed,installed_progress]
+        browser_load = [cancel_ver_search,load_to_browser,version_progress]
+        
+        browser_installed_list = page_outputs + browser + browser_installed_load
+        browser_list = page_outputs + browser + browser_load
+        
+        # Page Button Functions #
+        
         page_btn_list = {
             refresh.click: _api.update_model_list,
             search_term.submit: _api.update_model_list,
@@ -551,12 +560,6 @@ def on_ui_tabs():
 
         for trigger, function in page_btn_list.items():
             trigger(fn=function, inputs=page_inputs, outputs=page_outputs)
-        
-        cancel_btn_list = [
-            cancel_all_tags,
-            cancel_ver_search,
-            cancel_installed,
-            cancel_update_preview]
         
         for button in cancel_btn_list:
             button.click(fn=_file.cancel_scan)
@@ -727,62 +730,12 @@ def on_ui_tabs():
         
         load_to_browser_installed.click(
             fn=_file.load_to_browser,
-            outputs=[
-                ver_search,
-                save_all_tags,
-                load_installed,
-                update_preview,
-                cancel_installed,
-                load_to_browser_installed,
-                list_models,
-                list_versions,
-                list_html,
-                get_prev_page,
-                get_next_page,
-                page_slider,
-                save_info,
-                save_images,
-                download_model,
-                delete_model,
-                install_path,
-                sub_folder,
-                file_list,
-                preview_html,
-                trained_tags,
-                base_model,
-                model_filename,
-                installed_progress
-            ]
+            outputs=browser_installed_list
         )
         
         load_to_browser.click(
             fn=_file.load_to_browser,
-            outputs=[
-                ver_search,
-                save_all_tags,
-                load_installed,
-                update_preview,
-                cancel_ver_search,
-                load_to_browser,
-                list_models,
-                list_versions,
-                list_html,
-                get_prev_page,
-                get_next_page,
-                page_slider,
-                save_info,
-                save_images,
-                download_model,
-                delete_model,
-                install_path,
-                sub_folder,
-                file_list,
-                preview_html,
-                trained_tags,
-                base_model,
-                model_filename,
-                version_progress
-            ]
+            outputs=browser_list
         )
 
     return (civitai_interface, "Civitai Browser+", "civitai_interface"),

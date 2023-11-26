@@ -17,6 +17,7 @@ import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 import scripts.civitai_download as _download
+
 try:
     from send2trash import send2trash
 except:
@@ -571,6 +572,17 @@ def version_match(file_paths, api_response):
                 
     return updated_models, outdated_models
 
+def get_content_choices(scan_choices=False):
+    use_LORA = getattr(opts, "use_LORA", False)
+    if use_LORA:
+        content_list = ["Checkpoint", "TextualInversion", "LORA & LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
+    else:
+        content_list = ["Checkpoint", "TextualInversion", "LORA", "LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
+    if scan_choices:
+        content_list.insert(0, 'All')
+        return content_list
+    return content_list
+    
 def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, progress=gr.Progress() if queue else None):
     global from_ver, from_installed, no_update
     update_log = getattr(opts, "update_log", True)
@@ -596,6 +608,9 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                 gr.Textbox.update(value=number))
     
     folders_to_check = []
+    if 'All' in folders:
+        folders = _file.get_content_choices()
+        
     for item in folders:
         if item == "LORA & LoCon":
             folder = _api.contenttype_folder("LORA")
@@ -893,13 +908,13 @@ def load_to_browser():
     gl.file_scan = True
     from_ver, from_installed = False, False
     return (
-        gr.Button.update(interactive=True, visible=True),
-        gr.Button.update(interactive=True, visible=True),
-        gr.Button.update(interactive=True, visible=True),
-        gr.Button.update(interactive=True, visible=True),
-        gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=False, visible=False),
         *model_list_return,
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=False, visible=False),
         gr.HTML.update(value='<div style="min-height: 0px;"></div>')
     )
     
