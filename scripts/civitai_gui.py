@@ -798,6 +798,7 @@ def subfolder_list(folder, desc=None):
         for root, dirs, _ in os.walk(model_folder):
             if dot_subfolders:
                 dirs = [d for d in dirs if not d.startswith('.')]
+                dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
             for d in dirs:
                 sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                 if sub_folder:

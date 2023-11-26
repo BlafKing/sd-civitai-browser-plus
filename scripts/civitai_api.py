@@ -13,6 +13,10 @@ from modules.paths import models_path, extensions_dir, data_path
 from html import escape 
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
+try:
+    from fake_useragent import UserAgent
+except:
+    print(f"{gl.print} Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
@@ -827,6 +831,7 @@ def update_model_info(model_name=None, model_version=None):
             for root, dirs, _ in os.walk(model_folder):
                 if dot_subfolders:
                     dirs = [d for d in dirs if not d.startswith('.')]
+                    dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
                 for d in dirs:
                     sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                     if sub_folder:
@@ -990,12 +995,22 @@ def request_civit_api(api_url=None):
     if not api_key:
         api_key = "eaee11648ef4c72efb2333d5ebc68b98"
     headers = {
+        'User-Agent': UserAgent().chrome,
+        'Sec-Ch-Ua': '"Brave";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Sec-Gpc': '1',
+        'Upgrade-Insecure-Requests': '1',
         'Authorization': f'Bearer {api_key}'
     }
     try:
-        response = requests.get(api_url, headers=headers, timeout=(10,30))
+        response = requests.get(api_url, headers=headers, timeout=(10, 30))
         response.raise_for_status()
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         print(f"{gl.print} Error: {e}")
         return "timeout"
     else:

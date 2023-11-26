@@ -19,6 +19,11 @@ try:
     from zip_unicode import ZipHandler
 except:
     print(f"{gl.print} Python module 'ZipUnicode' has not been imported correctly, please try to restart or install it manually.")
+try:
+    from fake_useragent import UserAgent
+except:
+    print(f"{gl.print} Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
+
 
 def random_number(prev):
     number = str(random.randint(10000, 99999))
@@ -171,6 +176,16 @@ def get_download_link(url):
     if not api_key:
         api_key = "eaee11648ef4c72efb2333d5ebc68b98"
     headers = {
+        'User-Agent': UserAgent().chrome,
+        'Sec-Ch-Ua': '"Brave";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Sec-Gpc': '1',
+        'Upgrade-Insecure-Requests': '1',
         'Authorization': f'Bearer {api_key}'
     }
 
