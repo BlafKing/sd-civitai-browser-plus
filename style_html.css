@@ -1,0 +1,215 @@
+body {
+    background-color: #0b0f19;
+}
+
+.model-block {
+	box-shadow: 0px 0px 1px 3px #3339ff30;
+    border-radius: 10px;
+    padding: 1px 20px 10px;
+    margin-bottom: 20px;
+}
+
+.model-block code {
+    white-space: pre-wrap;
+}
+
+.model-block dl {
+    overflow-wrap: anywhere;
+}
+
+.sampleimgs .model-block img,
+.sampleimgs .model-block video {
+	padding-top: 1em;
+	max-width: 20em;
+	cursor: zoom-in;
+	transition: max-width 0.1s;
+}
+
+/* Text adjustments */
+h1, h2, h3, h4, h5, dd, dt, p, a, label {
+    font-family: 'Source Sans Pro', 'ui-sans-serif', 'system-ui', sans-serif;
+}
+
+h3 {
+    font-size: 16px;
+}
+
+h2 {
+    margin: 16px 0px 8px;
+    font-size: 22px;
+}
+
+ul {
+    padding-left: 18px;
+}
+
+p {
+    margin: 0px 0px 6px;
+    font-size: 14px;
+}
+
+dt {
+	font-size: medium;
+    color: #80a6c8!important;
+    font-size: 16px;
+}
+
+dd {
+	padding: 0px 0px 5px 10px;
+    margin-inline-start: 0px;
+    font-size: 14px;
+    color: #F3F4F6;
+}
+
+a {
+    color: #F3F4F6;
+    font-weight: bold;
+}
+
+a:hover {
+    color: #60A5FA;
+}
+
+/* Preview Image zoom */
+.zoom-radio {
+    display: none!important;
+}
+
+/* Style for when the image is clicked (radio button checked) */
+.zoom-radio:checked + label > img,
+.zoom-radio:checked + label > video {
+    max-width: 95vw;
+    max-height: 95vh;
+    padding-top: 0px;
+    cursor: zoom-out;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000; /* Higher than the overlay */
+    pointer-events: none; /* Allow clicks to penetrate through to the overlay for resetting */
+}
+
+/* Overlay for resetting zoomed state */
+.zoom-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, .5); 
+    z-index: 999; /* Below the zoomed image */
+    cursor: zoom-out;
+}
+
+.zoom-radio:checked + label + .zoom-overlay {
+    display: block;
+    pointer-events: all; /* Capture click events when displayed */
+}
+
+.zoom-img-container {
+    min-width: 20em;
+}
+
+.model-uploader {
+ 	border-bottom: 1px solid;
+    padding-bottom: 10px;
+    color: white;
+ }
+
+.model-description {
+ 	border-top: 1px solid;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    color: white;
+ }
+
+/*Avatar CSS mostly copied from CivitAI, but 48px instead of 32px*/
+.avatar {
+	user-select: none;
+    overflow: hidden;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 48px;
+    text-decoration: none;
+    border: 0;
+    padding: 0;
+    background-color: rgba(0,0,0,0.31);
+    display: inline-block!important;
+    margin-left: 5px!important;
+    vertical-align: middle;
+}
+
+.avatar img {
+	object-fit: cover;
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow-clip-margin: content-box;
+    overflow: clip;
+    border-style: none;
+}
+
+/*CSS accordion for toggling extra metadata*/
+/*-----------------------------------------*/
+.accordionCheckbox {
+    position: absolute;
+    opacity: 0;
+    z-index: -1;
+}
+
+.tabs {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.tab {
+    width: 100%;
+    color: white;
+    overflow: hidden;
+    margin-left: -15px;
+}
+
+.tab-label {
+    display: flex;
+    padding: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: large;
+}
+
+/* Icon */
+.tab-label::before {
+    content: "❯";
+    width: 1em;
+    height: 1em;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.accordionCheckbox:checked + .tab-label::before {
+    transform: rotate(90deg);
+}
+
+.tab-content {
+    max-height: 0;
+    padding: 0 1em;
+    transition: all 0.3s;
+}
+
+.tab-close {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1em;
+    font-size: 0.75em;
+    cursor: pointer;
+}
+
+.accordionCheckbox:checked ~ .tab-content {
+    max-height: 100vh;
+    padding: 1em;
+}
+/*-----------------------------------------*/
+/*End CSS accordion for toggling extra metadata*/

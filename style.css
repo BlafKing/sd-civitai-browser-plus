@@ -240,6 +240,51 @@
     justify-content: center;
 }
 
+.custom-checkbox {
+    position: absolute;
+    top: 10px; 
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    background: var(--checkbox-background-color);
+    border-radius: var(--checkbox-border-radius);
+    border: 1px solid #bbbbbb;
+    cursor: pointer;
+}
+
+.custom-checkbox:hover {
+    border-color: #ffffff;
+}
+
+.model-checkbox:checked + .custom-checkbox {
+    background-color: var(--checkbox-background-color-selected);
+    border-color: var(--checkbox-border-color-selected);
+    background-image: var(--checkbox-check);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.open-in-civitai {
+    font-size: 18pt;
+    color: var(--body-text-color);
+    display: flex;
+    justify-content: center;
+}
+
+#select_all_models_container {
+    display: flex;
+    justify-content: flex-end;
+}
+
+#select_all_models {
+    max-width: 100px;
+    min-width: 100px;
+    min-height: 30px;
+    padding: 0px;
+    margin-top: -25px;
+}
+
 /* Customized Accordion Filter */
 
 #filterBox,

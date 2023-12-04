@@ -24,6 +24,8 @@ try:
 except:
     print(f"{gl.print} Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
 
+total_count = 0
+current_count = 0
 
 def random_number(prev):
     number = str(random.randint(10000, 99999))
@@ -34,7 +36,6 @@ def random_number(prev):
     return number
 
 gl.init()
-current_sha256 = None
 rpc_secret = "R7T5P2Q9K6"
 try:
     queue = not cmd_opts.no_gradio_queue
@@ -100,27 +101,124 @@ elif os_type == 'Linux':
 class TimeOutFunction(Exception):
     pass
 
-def download_start(download_start, model_name, model_filename, version, sha256):
-    global current_sha256, current_id
-    gl.last_version = version
-    gl.current_download = model_filename
-    gl.cancel_status = False
-    gl.recent_model = model_name
-    if sha256:
-        current_sha256 = sha256.upper()
+def create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json):
+    if model_sha256:
+        model_sha256 = model_sha256.upper()
+    
+    filtered_items = []
+    
     for item in gl.json_data['items']:
-        if item['name'] == model_name:
-            current_id = item['id']
-    number = random_number(download_start)
+        if item['id'] == int(model_id):
+            filtered_items.append(item)
+            break
+            
+    model_json = {"items": filtered_items}
+    
+    gr_components = _api.update_model_versions(model_name)
+    
+    for item in gl.download_queue:
+        if item['dl_url'] == dl_url:
+            return None
+    
+    item = {
+        "dl_url" : dl_url,
+        "model_filename" : model_filename,
+        "install_path" : install_path,
+        "model_name" : model_name,
+        "version_name" : version_name,
+        "model_sha256" : model_sha256,
+        "model_id" : model_id,
+        "create_json" : create_json,
+        "model_json" : model_json,
+        "gr_components" : gr_components
+    }
+    
+    return item
+
+def selected_to_queue(model_list, download_start, create_json):
+    global total_count, current_count
+    if gl.download_queue:
+        number = download_start
+    else:
+        number = random_number(download_start)
+        total_count = 0
+        current_count = 0
+        
+    model_list = json.loads(model_list)
+    
+    for model_name in model_list:
+        for item in gl.json_data['items']:
+            if item['name'] == model_name:
+                model_id = item['id']
+                desc = item['description']
+                content_type = item['type']
+                for version in item['modelVersions']:
+                    version_name = version['name']
+                    for file in version['files']:
+                        model_filename = _api.cleaned_name(file['name'])
+                        model_sha256 = file['hashes']['SHA256']
+                        dl_url = file['downloadUrl']
+                        break
+                    break
+                break
+        
+        model_folder = _api.contenttype_folder(content_type, desc)
+        
+        sub_opt1 = os.path.join(os.sep, _api.cleaned_name(model_name))
+        sub_opt2 = os.path.join(os.sep, _api.cleaned_name(model_name), _api.cleaned_name(version_name))
+            
+        default_sub = _api.sub_folder_value(content_type, desc)
+        if default_sub == f"{os.sep}Model Name":
+            default_sub = sub_opt1
+        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+            default_sub = sub_opt2
+            
+        if default_sub != "None":
+            install_path = model_folder + default_sub
+        else:
+            install_path = model_folder
+        
+        model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json)
+        if model_item:
+            gl.download_queue.append(model_item)
+            total_count += 1
+            
     return  (
             gr.Button.update(interactive=False, visible=False), # Download Button
             gr.Button.update(interactive=True, visible=True), # Cancel Button
+            gr.Button.update(interactive=True if len(gl.download_queue) > 1 else False, visible=True), # Cancel All Button
+            gr.Textbox.update(value=number), # Download Start Trigger
+            gr.HTML.update(value='<div style="min-height: 100px;"></div>') # Download Progress
+    )
+    
+def download_start(download_start, dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json):
+    global total_count, current_count
+    
+    model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json)
+    
+    gl.download_queue.append(model_item)
+    
+    if len(gl.download_queue) > 1:
+        number = download_start
+        total_count += 1
+    else: 
+        number = random_number(download_start)
+        total_count = 1
+        current_count = 0
+    
+    return  (
+            gr.Button.update(interactive=False, visible=True), # Download Button
+            gr.Button.update(interactive=True, visible=True), # Cancel Button
+            gr.Button.update(interactive=True if len(gl.download_queue) > 1 else False, visible=True), # Cancel All Button
             gr.Textbox.update(value=number), # Download Start Trigger
             gr.HTML.update(value='<div style="min-height: 100px;"></div>') # Download Progress
     )
 
 def download_finish(model_filename, version, model_name):
-    gr_components = _api.update_model_versions(model_name)
+    if model_name:
+        gr_components = _api.update_model_versions(model_name)
+    else:
+        gr_components = None
     if gr_components:
         version_choices = gr_components['choices']
     else:
@@ -139,30 +237,46 @@ def download_finish(model_filename, version, model_name):
         Del = False
         Down = True
     
+    gl.download_fail = False
+    gl.cancel_status = False
+    
     return  (
             gr.Button.update(interactive=model_filename, visible=Down), # Download Button
             gr.Button.update(interactive=False, visible=False), # Cancel Button
+            gr.Button.update(interactive=False, visible=False), # Cancel All Button
             gr.Button.update(interactive=Del, visible=Del), # Delete Button
             gr.HTML.update(value='<div style="min-height: 0px;"></div>'), # Download Progress
-            gr.Dropdown.update(value=version, choices=version_choices)
+            gr.Dropdown.update(value=version, choices=version_choices) # Version Dropdown
     )
 
-def download_cancel(delete_finish, model_name, list_versions, model_filename, sha256):
+def download_cancel():
     gl.cancel_status = True
     gl.download_fail = True
     
+    item = gl.download_queue[0]
+    
     while True:        
         if not gl.isDownloading:
-            _file.delete_model(delete_finish, gl.current_download, model_name, list_versions, sha256)
+            _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
             break
         else:
             time.sleep(0.5)
-            
-    return  (
-            gr.Button.update(interactive=model_filename, visible=True), # Down Button
-            gr.Button.update(interactive=False, visible=False), # Cancel Button
-            gr.HTML.update(value='<div style="min-height: 0px;"></div>') # Download Progress
-    )
+    return
+
+def download_cancel_all():
+    gl.cancel_status = True
+    gl.download_fail = True
+    
+    item = gl.download_queue[0]
+    
+    while True:        
+        if not gl.isDownloading:
+            _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
+            gl.download_queue = []
+            break
+        else:
+            time.sleep(0.5)
+    return
 
 def convert_size(size):
     for unit in ['bytes', 'KB', 'MB', 'GB']:
@@ -199,7 +313,6 @@ def get_download_link(url):
 def download_file(url, file_path, install_path, progress=gr.Progress() if queue else None):
     disable_dns = getattr(opts, "disable_dns", False)
     split_aria2 = getattr(opts, "split_aria2", 64)
-    
     max_retries = 5
     gl.download_fail = False
     aria2_rpc_url = "http://localhost:24000/jsonrpc"
@@ -239,7 +352,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
         response = requests.post(aria2_rpc_url, data=payload)
         data = json.loads(response.text)
         if 'result' not in data:
-                raise ValueError(f'Failed to start download: {data}')
+            raise ValueError(f'Failed to start download: {data}')
         gid = data['result']
     except Exception as e:
         print(f"{gl.print} Failed to start download: {e}")
@@ -257,7 +370,6 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
             requests.post(aria2_rpc_url, data=payload)
             if progress != None:
                 progress(0, desc=f"Download cancelled.")
-            time.sleep(2)
             return
 
         try:
@@ -284,13 +396,12 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
             else:
                 eta_formatted = "XX:XX:XX"
             if progress != None:
-                progress(progress_percent / 100, desc=f"Downloading: {file_name} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted}")
+                progress(progress_percent / 100, desc=f"Downloading: {file_name} - {convert_size(completed_length)}/{convert_size(total_length)} - Speed: {convert_size(download_speed)}/s - ETA: {eta_formatted} - Queue: {current_count}/{total_count}")
             
             if status_info['status'] == 'complete':
                 print(f"{gl.print} Model saved to: {file_path}")
                 if progress != None:
                     progress(1, desc=f"Model saved to: {file_path}")
-                time.sleep(2)
                 gl.download_fail = False
                 return
             
@@ -298,7 +409,6 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
                 if progress != None:
                     progress(0, desc=f"Encountered an error during download of: \"{file_name}\" Please try again.")
                 gl.download_fail = True
-                time.sleep(2)
                 return
                 
             time.sleep(0.25)
@@ -309,12 +419,11 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
             if max_retries == 0:
                 if progress != None:
                     progress(0, desc="An error occurred while downloading the file, please try again.")
-                time.sleep(2)
                 gl.download_fail = True
                 return
             time.sleep(5)
 
-def info_to_json(install_path, unpackList=None):
+def info_to_json(install_path, model_id, model_sha256, unpackList=None):
     json_file = os.path.splitext(install_path)[0] + ".json"
     if os.path.exists(json_file):
         try:
@@ -325,8 +434,8 @@ def info_to_json(install_path, unpackList=None):
     else:
         data = {}
 
-    data['modelId'] = current_id
-    data['sha256'] = current_sha256
+    data['modelId'] = model_id
+    data['sha256'] = model_sha256
     if unpackList:
         data['unpackList'] = unpackList
 
@@ -356,7 +465,6 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
         if gl.cancel_status:
             if progress != None:
                 progress(0, desc=f"Download cancelled.")
-            time.sleep(2)
             return
         if os.path.exists(file_path):
             downloaded_size = os.path.getsize(file_path)
@@ -369,19 +477,16 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                     if gl.cancel_status:
                         if progress != None:
                             progress(0, desc=f"Download cancelled.")
-                        time.sleep(2)
                         return
                     try:
                         if gl.cancel_status:
                             if progress != None:
                                 progress(0, desc=f"Download cancelled.")
-                            time.sleep(2)
                             return
                         response = requests.get(download_link, headers=headers, stream=True, timeout=4)
                         if response.status_code == 404:
                             if progress != None:
                                 progress(0, desc="File returned a 404, file is not found.")
-                            time.sleep(3)
                             gl.download_fail = True
                             return
                         total_size = int(response.headers.get("Content-Length", 0))
@@ -396,7 +501,6 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                             if gl.cancel_status:
                                 if progress != None:
                                     progress(0, desc=f"Download cancelled.")
-                                time.sleep(2)
                                 return
                             f.write(chunk)
                             downloaded_size += len(chunk)
@@ -410,7 +514,8 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                                 eta_formatted = "XX:XX:XX"
                             current_time = time.time()
                             if current_time - last_update_time >= update_interval:
-                                progress(downloaded_size / total_size, desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)} - Speed: {convert_size(int(download_speed))}/s - ETA: {eta_formatted}")
+                                if progress != None:
+                                    progress(downloaded_size / total_size, desc=f"Downloading: {file_name_display} {convert_size(downloaded_size)} / {convert_size(total_size)} - Speed: {convert_size(int(download_speed))}/s - ETA: {eta_formatted} - Queue: {current_count}/{total_count}")
                                 last_update_time = current_time
                             if gl.isDownloading == False:
                                 response.close
@@ -425,7 +530,6 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                     if max_retries == 0:
                         if progress != None:
                             progress(0, desc="Unable to download file due to time-out, please try to download again.")
-                        time.sleep(2)
                         gl.download_fail = True
                         return
                     time.sleep(5)
@@ -440,7 +544,6 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                 print(f"{gl.print} Model saved to: {file_path}")
                 if progress != None:
                     progress(1, desc=f"Model saved to: {file_path}")
-                time.sleep(2)
                 gl.download_fail = False
                 return
 
@@ -449,33 +552,37 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                 progress(0, desc="Download failed, please try again.")
             print(f"{gl.print} File download failed: {file_name_display}")
             gl.download_fail = True
-            time.sleep(2)
             if os.path.exists(file_path):
                 os.remove(file_path)
 
-def download_create_thread(download_finish, url, file_name, preview_html, create_json, install_path, model_name, list_versions, progress=gr.Progress() if queue else None):
-    gr_components = _api.update_model_versions(model_name)
+def download_create_thread(download_finish, queue_trigger, progress=gr.Progress() if queue else None):
+    global current_count
+    current_count += 1
+    if not gl.download_queue:
+        return  (
+            gr.HTML.update(), # Download Progress HTML
+            gr.Textbox.update(value=None), # Current Model
+            gr.Textbox.update(value=random_number(download_finish)), # Download Finish Trigger
+            gr.Textbox.update(value=queue_trigger), # Queue Trigger
+            gr.Button.update(interactive=False) # Cancel All Button
+    )
+    item = gl.download_queue[0]
     gl.cancel_status = False
     use_aria2 = getattr(opts, "use_aria2", True)
     unpack_zip = getattr(opts, "unpack_zip", False)
-    name = model_name
-    
-    number = random_number(download_finish)
-    
-    if gl.isDownloading:
-        gl.isDownloading = False
-        return
+    gl.recent_model = item['model_name']
+    gl.last_version = item['version_name']
     
     gl.isDownloading = True
-    if not os.path.exists(install_path):
-        os.makedirs(install_path)
+    if not os.path.exists(item['install_path']):
+        os.makedirs(item['install_path'])
         
-    path_to_new_file = os.path.join(install_path, file_name)
+    path_to_new_file = os.path.join(item['install_path'], item['model_filename'])
     
     if use_aria2 and os_type != 'Darwin':
-        thread = threading.Thread(target=download_file, args=(url, path_to_new_file, install_path, progress))
+        thread = threading.Thread(target=download_file, args=(item['dl_url'], path_to_new_file, item['install_path'], progress))
     else:
-        thread = threading.Thread(target=download_file_old, args=(url, path_to_new_file, progress))
+        thread = threading.Thread(target=download_file_old, args=(item['dl_url'], path_to_new_file, progress))
     thread.start()
     thread.join()
     
@@ -488,51 +595,58 @@ def download_create_thread(download_finish, url, file_name, preview_html, create
                         directory = Path(os.path.dirname(path_to_new_file))
                         zip_handler = ZipHandler(path_to_new_file)
                         
-                        for original_name, decoded_name in zip_handler.name_map.items():
+                        for _, decoded_name in zip_handler.name_map.items():
                             unpackList.append(decoded_name)
                         
                         zip_handler.extract_all(directory)
                         zip_handler.zip_ref.close()
                         
-                        print(f"{gl.print} Successfully extracted {file_name} to {directory}")
+                        print(f"{gl.print} Successfully extracted {item['model_filename']} to {directory}")
                         os.remove(path_to_new_file)
                 except Exception as e:
-                    print(f"{gl.print} Failed to extract {file_name} with error: {e}")
-            if create_json:
-                _file.save_model_info(install_path, file_name, current_sha256, api_response=gl.json_data)
+                    print(f"{gl.print} Failed to extract {item['model_filename']} with error: {e}")
             if not gl.cancel_status:
-                info_to_json(path_to_new_file, unpackList)
-                _file.save_preview(file_name, install_path, preview_html)
+                if item['create_json']:
+                    _file.save_model_info(item['install_path'], item['model_filename'], item['model_sha256'], api_response=item['model_json'])
+                info_to_json(path_to_new_file, item['model_id'], item['model_sha256'], unpackList)
+                _file.save_preview(path_to_new_file, item['model_json'], True, item['model_sha256'])
                 
-    base_name = os.path.splitext(file_name)[0]
+    base_name = os.path.splitext(item['model_filename'])[0]
     base_name_preview = base_name + '.preview'
 
     if gl.download_fail:
-        for root, dirs, files in os.walk(install_path):
+        for root, dirs, files in os.walk(item['install_path']):
             for file in files:
                 file_base_name = os.path.splitext(file)[0]
                 if file_base_name == base_name or file_base_name == base_name_preview:
                     path_file = os.path.join(root, file)
                     os.remove(path_file)
         if gl.cancel_status:
-            print(f'{gl.print} Cancelled download of "{file_name}"')
+            print(f'{gl.print} Cancelled download of "{item["model_filename"]}"')
         else:
-            print(f'{gl.print} Error occured during download of "{file_name}"')
-                    
-    if gl.isDownloading:
-        gl.isDownloading = False
+            print(f'{gl.print} Error occured during download of "{item["model_filename"]}"')
     
-    (model, _, _) = _file.card_update(gr_components, name, list_versions, True)
-    
-    if not gl.cancel_status:
-        modelName = model
+    if gl.cancel_status:
+        card_name = None
     else:
-        modelName = None
+        (card_name, _, _) = _file.card_update(item['gr_components'], item['model_name'], item['version_name'], True)
     
-    gl.cancel_status = False
+    if len(gl.download_queue) != 0:
+        gl.download_queue.pop(0)
+    gl.isDownloading = False
+    time.sleep(2)
     
+    if len(gl.download_queue) == 0:
+        finish_nr = random_number(download_finish)
+        queue_nr = queue_trigger
+    else:
+        finish_nr = download_finish
+        queue_nr = random_number(queue_trigger)
+        
     return  (
             gr.HTML.update(), # Download Progress HTML
-            gr.Textbox.update(value=modelName), # Current Model
-            gr.Textbox.update(value=number) # Download Finish Trigger
+            gr.Textbox.update(value=card_name), # Current Model
+            gr.Textbox.update(value=finish_nr), # Download Finish Trigger
+            gr.Textbox.update(value=queue_nr), # Queue Trigger
+            gr.Button.update(interactive=True if len(gl.download_queue) > 1 else False) # Cancel All Button
     )

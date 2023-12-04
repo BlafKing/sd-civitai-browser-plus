@@ -9,7 +9,7 @@ except:
     tile_count_value = 15
 
 def init():
-    global last_version, current_download, cancel_status, recent_model, json_data, json_info, main_folder, previous_inputs, download_fail, sortNewest, inputs_changed, isDownloading, tile_count, old_download, scan_files, ver_json, file_scan, url_list_with_numbers, print
+    global download_queue, last_version, cancel_status, recent_model, json_data, json_info, main_folder, previous_inputs, download_fail, sortNewest, inputs_changed, isDownloading, tile_count, old_download, scan_files, ver_json, file_scan, url_list_with_numbers, print
     print = ('\033[96mCivitAI Browser+\033[0m:')
     
     cancel_status = None
@@ -19,9 +19,9 @@ def init():
     main_folder = None
     previous_inputs = None
     last_version = None
-    current_download = None
     ver_json = None
     url_list_with_numbers = None
+    download_queue = []
     
     file_scan = False
     scan_files = False

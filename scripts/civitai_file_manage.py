@@ -29,6 +29,7 @@ except:
 
 gl.init()
 
+css_path = Path(__file__).resolve().parents[1] / "style_html.css"
 no_update = False
 from_ver = False
 from_tag = False
@@ -40,7 +41,7 @@ except AttributeError:
 except:
     queue = True
 
-def delete_model(delete_finish, model_filename, model_name, list_versions, sha256=None):
+def delete_model(delete_finish=None, model_filename=None, model_name=None, list_versions=None, sha256=None, selected_list=None):
     deleted = False
     gr_components = _api.update_model_versions(model_name)
     model_name_search = model_name
@@ -116,9 +117,12 @@ def delete_model(delete_finish, model_filename, model_name, list_versions, sha25
                         delete_associated_files(root, current_file)
 
     number = _download.random_number(delete_finish)
+
+
+    btnDwn = not selected_list or selected_list == "[]"
     
     return (
-            gr.Button.update(interactive=True, visible=True),  # Download Button
+            gr.Button.update(interactive=btnDwn, visible=btnDwn),  # Download Button
             gr.Button.update(interactive=False, visible=False),  # Cancel Button
             gr.Button.update(interactive=False, visible=False),  # Delete Button
             gr.Textbox.update(value=number),  # Delete Finish Trigger
@@ -138,33 +142,7 @@ def delete_associated_files(directory, base_name):
                 os.remove(path_to_delete)
                 print(f"{gl.print} Associated file deleted: {path_to_delete}")
 
-def save_preview(file_name, install_path, preview_html):
-    if not os.path.exists(install_path):
-        os.makedirs(install_path)
-    img_urls = re.findall(r'data-preview-img=[\'"]?([^\'" >]+)', preview_html)
-
-    if not img_urls:
-        print(f"{gl.print} No images found, preview won't be saved.")
-        return
-
-    name = os.path.splitext(file_name)[0]
-    opener = urllib.request.build_opener()
-    opener.addheaders = [('User-agent', 'Mozilla/5.0')]
-    urllib.request.install_opener(opener)
-
-    img_url = urllib.parse.quote(img_urls[0], safe=':/=')
-    filename = f'{name}.preview.png'
-    try:
-        with urllib.request.urlopen(img_url) as url:
-            preview_path = os.path.join(install_path, filename)
-            with open(preview_path, 'wb') as f:
-                f.write(url.read())
-                
-                print(f"{gl.print} Preview image saved to: {preview_path}")
-    except Exception as e:
-        print(f'{gl.print} Error downloading preview image: {e}')
-
-def save_preview_multi(file_path, api_response, overwrite_toggle):
+def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     json_file = os.path.splitext(file_path)[0] + ".json"
     install_path, file_name = os.path.split(file_path)
     name = os.path.splitext(file_name)[0]
@@ -175,14 +153,17 @@ def save_preview_multi(file_path, api_response, overwrite_toggle):
         if os.path.exists(image_path):
             return
     
-    if os.path.exists(json_file):
-        try:
-            with open(json_file, 'r') as f:
-                data = json.load(f)
-                if 'sha256' in data:
-                    sha256 = data['sha256'].upper()
-        except Exception as e:
-            print(f"{gl.print} Failed to open {json_file}: {e}")
+    if not sha256:
+        if os.path.exists(json_file):
+            try:
+                with open(json_file, 'r') as f:
+                    data = json.load(f)
+                    if 'sha256' in data:
+                        sha256 = data['sha256'].upper()
+            except Exception as e:
+                print(f"{gl.print} Failed to open {json_file}: {e}")
+    else:
+        sha256 = sha256.upper()
 
     for item in api_response["items"]:
         for version in item["modelVersions"]:
@@ -220,7 +201,9 @@ def save_images(preview_html, model_filename, model_name, install_path):
     urllib.request.install_opener(opener)
 
     HTML = preview_html
+    image_count = 0
     for i, img_url in enumerate(img_urls):
+        image_count += 1
         filename = f'{name}_{i}.png'
         filenamethumb = f'{name}.png'
         if model_name is not None:
@@ -229,7 +212,7 @@ def save_images(preview_html, model_filename, model_name, install_path):
                     if item['type'] == "TextualInversion":
                         filename = f'{name}_{i}.preview.png'
                         filenamethumb = f'{name}.preview.png'
-        HTML = HTML.replace(img_url,f'"{filename}"')
+        HTML = HTML.replace(img_url,f'{filename}')
         img_url = urllib.parse.quote(img_url,  safe=':/=')
         try:
             with urllib.request.urlopen(img_url) as url:
@@ -237,10 +220,19 @@ def save_images(preview_html, model_filename, model_name, install_path):
                     f.write(url.read())
                     if i == 0 and not os.path.exists(os.path.join(install_path, filenamethumb)):
                         shutil.copy2(os.path.join(install_path, filename),os.path.join(install_path, filenamethumb))
-                    print(f"{gl.print} Downloaded images.")
+                    print(f"{gl.print} Downloaded image {image_count}")
                     
         except urllib.error.URLError as e:
             print(f'Error: {e.reason}')
+    match = re.search(r'(\s*)<div class="model-block">', preview_html)
+    if match:
+        indentation = match.group(1)
+    else:
+        indentation = ''
+    css_link = f'<link rel="stylesheet" type="text/css" href="{css_path}">'
+    head_section = f'{indentation}<head>{indentation}    {css_link}{indentation}</head>'
+    
+    HTML = head_section + HTML
     path_to_new_file = os.path.join(install_path, f'{name}.html')
     with open(path_to_new_file, 'wb') as f:
         f.write(HTML.encode('utf8'))
@@ -249,7 +241,12 @@ def save_images(preview_html, model_filename, model_name, install_path):
         json.dump(gl.json_info, f, indent=4, ensure_ascii=False)
 
 def card_update(gr_components, model_name, list_versions, is_install):
-    version_choices = gr_components['choices']
+    if gr_components:
+        version_choices = gr_components['choices']
+    else:
+        print(f"{gl.print} Couldn't retrieve version, defaulting to installed")
+        model_name += ".New"
+        return model_name, None, None
     
     if is_install and not gl.download_fail and not gl.cancel_status:
         version_value_clean = list_versions + " [Installed]"
@@ -369,7 +366,12 @@ def model_from_sent(model_name, content_type, click_first_item):
         (hasPrev, hasNext, current_page, total_pages) = _api.pagecontrol(gl.json_data)
         page_string = f"Page: {current_page}/{total_pages}"
         number = _download.random_number(click_first_item)
-        
+    else:
+        hasPrev = False
+        hasNext = False
+        page_string = "Page: 0/0"
+        current_page = 0
+        total_pages = 0
         
     return (
         gr.HTML.update(HTML), # Card HTML
@@ -427,10 +429,15 @@ def find_and_save(api_response, sha256, file_name, json_file, no_hash, overwrite
                 
                 if file_name == file_name_api if no_hash else sha256 == sha256_api:
                     trained_words = model_version.get('trainedWords', [])
+                    model_id = model_version.get('modelId', '')
+                    
+                    if model_id:
+                        model_url = f'Model URL: \"https://civitai.com/models/{model_id}\"\n'
                     
                     description = item.get('description', '')
                     if description != None:
                         description = clean_description(description)
+                        description = model_url + description
                     
                     base_model = model_version.get('baseModel', '')
                     
@@ -460,7 +467,7 @@ def find_and_save(api_response, sha256, file_name, json_file, no_hash, overwrite
                     else:
                         content = {}
                     changed = False
-                    if overwrite_toggle:
+                    if not overwrite_toggle:
                         if "activation text" not in content or not content["activation text"]:
                             content["activation text"] = trained_tags
                             changed = True
@@ -539,7 +546,7 @@ def get_models(file_path):
         print(f"{gl.print} Request timed out for {file_path}. Skipping...")
     except Exception as e:
         print(f"{gl.print} An error occurred for {file_path}: {str(e)}")
-        
+
 def version_match(file_paths, api_response):
     updated_models = []
     outdated_models = []
@@ -810,7 +817,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             name = os.path.splitext(file_name)[0]
             if progress != None:
                 progress(completed_preview / preview_count, desc=f"Saving preview images... {completed_preview}/{preview_count} | {name}")
-            save_preview_multi(file, api_response, overwrite_toggle)
+            save_preview(file, api_response, overwrite_toggle)
             completed_preview += 1
         return  (
                 gr.HTML.update(value='<div style="min-height: 0px;"></div>'),

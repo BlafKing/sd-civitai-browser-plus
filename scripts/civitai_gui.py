@@ -52,7 +52,30 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, sn, ss, ts):
     with open(config, 'w') as file:
         json.dump(data, file, indent=4)
         print(f"{gl.print} Updated settings to: {config}")
-        
+
+def all_visible(html_check):
+    return gr.Button.update(visible="model-checkbox" in html_check)
+
+def show_multi_buttons(input_list, version_value, model_id):
+    input_list = json.loads(input_list)
+    BtnDwn = version_value and not version_value.endswith('[Installed]') and not input_list
+    BtnDel = version_value.endswith('[Installed]')
+
+    multi = bool(input_list) and not len(gl.download_queue) > 0
+    
+    BtnDwnInt = BtnDwn
+    if len(gl.download_queue) > 0:
+            for item in gl.download_queue:
+                if int(model_id) == int(item['model_id']):
+                    print("match found")
+                    BtnDwnInt = False
+                    break
+    
+    return (gr.Button.update(visible=multi, interactive=multi), # Download Multi Button
+            gr.Button.update(visible=BtnDwn if multi else True if not version_value.endswith('[Installed]') else False, interactive=BtnDwnInt), # Download Button
+            gr.Button.update(visible=BtnDel) # Delete Button 
+            )
+
 def on_ui_tabs():    
     page_header = getattr(opts, "page_header", False)
     lobe_directory = None
@@ -118,6 +141,8 @@ def on_ui_tabs():
                     get_next_page = gr.Button(value="Next page", interactive=False, elem_id="pageBtn2")
                 with gr.Row(elem_id="pageBoxMobile"):
                     pass # Row used for button placement on mobile
+            with gr.Row(elem_id="select_all_models_container"):
+                select_all = gr.Button(value="Select All", elem_id="select_all_models", visible=False)
             with gr.Row():
                 list_html = gr.HTML(value='<div style="font-size: 24px; text-align: center; margin: 50px;">Click the search icon to load models.<br>Use the filter icon to filter results.</div>')
             with gr.Row():
@@ -140,9 +165,12 @@ def on_ui_tabs():
             with gr.Row():
                 save_info = gr.Button(value="Save model info", interactive=False)
                 save_images = gr.Button(value="Save images", interactive=False)
-                download_model = gr.Button(value="Download model", interactive=False)
-                cancel_model = gr.Button(value="Cancel download", interactive=False, visible=False)
                 delete_model = gr.Button(value="Delete model", interactive=False, visible=False)
+                download_model = gr.Button(value="Download model", interactive=False)
+                download_selected = gr.Button(value="Download all seleceted", interactive=False, visible=False)
+            with gr.Row():
+                cancel_all_model = gr.Button(value="Cancel all downloads", interactive=False, visible=False)
+                cancel_model = gr.Button(value="Cancel current download", interactive=False, visible=False)
             with gr.Row():
                 preview_html = gr.HTML(elem_id="civitai_preview_html")
             with gr.Row(elem_id="backToTopContainer"):
@@ -176,25 +204,28 @@ def on_ui_tabs():
                 installed_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
                 
         #Invisible triggers/variables
-        model_id = gr.Textbox(value=None, visible=False)
-        dl_url = gr.Textbox(value=None, visible=False)
+        file_id = gr.Textbox(visible=False)
+        model_id = gr.Textbox(visible=False)
+        queue_trigger = gr.Textbox(visible=False)
+        dl_url = gr.Textbox(visible=False)
+        selected_list = gr.Textbox(elem_id="selected_list", visible=False)
         model_select = gr.Textbox(elem_id="model_select", visible=False)
         model_sent = gr.Textbox(elem_id="model_sent", visible=False)
         type_sent = gr.Textbox(elem_id="type_sent", visible=False)
-        click_first_item = gr.Textbox(elem_id="type_sent", visible=False)
-        download_start = gr.Textbox(value=None, visible=False)
-        download_finish = gr.Textbox(value=None, visible=False)
-        tag_start = gr.Textbox(value=None, visible=False)
-        tag_finish = gr.Textbox(value=None, visible=False)
-        preview_start = gr.Textbox(value=None, visible=False)
-        preview_finish = gr.Textbox(value=None, visible=False)
-        ver_start = gr.Textbox(value=None, visible=False)
-        ver_finish = gr.Textbox(value=None, visible=False)
-        installed_start = gr.Textbox(value=None, visible=None)
-        installed_finish = gr.Textbox(value=None, visible=None)
-        delete_finish = gr.Textbox(value=None, visible=False)
-        current_model = gr.Textbox(value=None, visible=False)
-        current_sha256 = gr.Textbox(value=None, visible=False)
+        click_first_item = gr.Textbox(visible=False)
+        download_start = gr.Textbox(visible=False)
+        download_finish = gr.Textbox(visible=False)
+        tag_start = gr.Textbox(visible=False)
+        tag_finish = gr.Textbox(visible=False)
+        preview_start = gr.Textbox(visible=False)
+        preview_finish = gr.Textbox(visible=False)
+        ver_start = gr.Textbox(visible=False)
+        ver_finish = gr.Textbox(visible=False)
+        installed_start = gr.Textbox(visible=None)
+        installed_finish = gr.Textbox(visible=None)
+        delete_finish = gr.Textbox(visible=False)
+        current_model = gr.Textbox(visible=False)
+        current_sha256 = gr.Textbox(visible=False)
         
         def ToggleDate(toggle_date):
             gl.sortNewest = toggle_date
@@ -211,67 +242,31 @@ def on_ui_tabs():
 
         # Javascript Functions #
         
-        click_first_item.change(
-            fn=None,
-            _js="() => clickFirstFigureInColumn()"
-        )
+        download_selected.click(fn=None, _js="() => deselectAllModels()")
         
-        list_models.select(
-            fn=None,
-            inputs=[list_models],
-            _js="(list_models) => select_model(list_models)"
-        )
+        select_all.click(fn=None, _js="() => selectAllModels()")
         
-        preview_html.change(
-            fn=None,
-            _js="() => adjustFilterBoxAndButtons()"
-        )
+        click_first_item.change(fn=None, _js="() => clickFirstFigureInColumn()")
         
-        back_to_top.click(
-            fn=None,
-            _js="() => BackToTop()"
-        )
+        list_models.select(fn=None, inputs=[list_models], _js="(list_models) => select_model(list_models)")
         
-        page_slider.release(
-            fn=None,
-            _js="() => pressRefresh()"
-        )
+        preview_html.change(fn=None, _js="() => adjustFilterBoxAndButtons()")
         
-        download_finish.change(
-            fn=None,
-            inputs=[current_model],
-            _js="(modelName) => updateCard(modelName)"
-        )
+        back_to_top.click(fn=None, _js="() => BackToTop()")
         
-        delete_finish.change(
-            fn=None,
-            inputs=[current_model],
-            _js="(modelName) => updateCard(modelName)"
-        )
+        page_slider.release(fn=None, _js="() => pressRefresh()")
+        
+        card_updates = [queue_trigger, download_finish, delete_finish]
+        for func in card_updates:
+            func.change(fn=None, inputs=[current_model], _js="(modelName) => updateCard(modelName)")
+        
+        list_html.change(fn=None, inputs=[show_nsfw], _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)")
+        
+        show_nsfw.change(fn=None, inputs=[show_nsfw], _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)")
+        
+        list_html.change(fn=None, inputs=[size_slider], _js="(size) => updateCardSize(size, size * 1.5)")
 
-        list_html.change(
-            fn=None,
-            inputs=[show_nsfw],
-            _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)"
-        )
-        
-        show_nsfw.change(
-            fn=None,
-            inputs=[show_nsfw],
-            _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)"
-        )
-        
-        list_html.change(
-            fn=None,
-            inputs=[size_slider],
-            _js="(size) => updateCardSize(size, size * 1.5)"
-        )
-
-        size_slider.change(
-            fn=None,
-            inputs=[size_slider],
-            _js="(size) => updateCardSize(size, size * 1.5)"
-        )
+        size_slider.change(fn=None, inputs=[size_slider], _js="(size) => updateCardSize(size, size * 1.5)")
         
         # Filter button Functions #
         
@@ -305,11 +300,15 @@ def on_ui_tabs():
         
         # Model Button Functions #
         
+        list_html.change(fn=all_visible,inputs=list_html,outputs=select_all)
+        
         def update_models_dropdown(model_name):
             model_name = re.sub(r'\.\d{3}$', '', model_name)
             ret_versions = _api.update_model_versions(model_name)
-            (html, tags, base_mdl, DwnButton, DelButton, filelist, filename, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
-            return gr.Dropdown.update(value=model_name),ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,DelButton,filelist,id,current_sha256,gr.Button.update(interactive=True)
+            (html, tags, base_mdl, DwnButton, DelButton, filelist, filename, id, model_id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
+            return (gr.Dropdown.update(value=model_name),
+                    ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,DelButton,filelist,id,model_id,current_sha256,
+                    gr.Button.update(interactive=True))
         
         model_select.change(
             fn=update_models_dropdown,
@@ -326,6 +325,7 @@ def on_ui_tabs():
                 download_model,
                 delete_model,
                 file_list,
+                file_id,
                 model_id,
                 current_sha256,
                 save_info
@@ -358,6 +358,7 @@ def on_ui_tabs():
                 delete_model,
                 file_list,
                 model_filename,
+                file_id,
                 model_id,
                 current_sha256,
                 install_path,
@@ -374,6 +375,7 @@ def on_ui_tabs():
             ],
             outputs=[
                 model_filename,
+                file_id,
                 model_id,
                 current_sha256,
                 download_model,
@@ -383,10 +385,10 @@ def on_ui_tabs():
             ]
         )
         
-        model_id.change(
+        file_id.change(
             fn=_api.update_dl_url,
             inputs=[
-                model_id,
+                file_id,
                 list_models,
                 list_versions
                 ],
@@ -398,19 +400,46 @@ def on_ui_tabs():
         )
 
         # Download/Save Model Button Functions #
-
+        
+        selected_list.change(
+            fn=show_multi_buttons,
+            inputs=[selected_list, list_versions, model_id],
+            outputs=[
+                download_selected,
+                download_model,
+                delete_model
+            ]
+        )
+        
         download_model.click(
             fn=_download.download_start,
             inputs=[
                 download_start,
-                list_models,
+                dl_url,
                 model_filename,
+                install_path,
+                list_models,
                 list_versions,
-                current_sha256
+                current_sha256,
+                model_id,
+                create_json
                 ],
             outputs=[
                 download_model,
                 cancel_model,
+                cancel_all_model,
+                download_start,
+                download_progress
+            ]
+        )
+        
+        download_selected.click(
+            fn=_download.selected_to_queue,
+            inputs=[selected_list, download_start, create_json],
+            outputs=[
+                download_model,
+                cancel_model,
+                cancel_all_model,
                 download_start,
                 download_progress
             ]
@@ -418,20 +447,23 @@ def on_ui_tabs():
         
         download_start.change(
             fn=_download.download_create_thread,
-            inputs=[
-                download_finish,
-                dl_url,
-                model_filename,
-                preview_html,
-                create_json,
-                install_path,
-                list_models,
-                list_versions
-                ],
+            inputs=[download_finish, queue_trigger],
             outputs=[
                 download_progress,
                 current_model,
-                download_finish
+                download_finish,
+                queue_trigger
+            ]
+        )
+        
+        queue_trigger.change(
+            fn=_download.download_create_thread,
+            inputs=[download_finish, queue_trigger],
+            outputs=[
+                download_progress,
+                current_model,
+                download_finish,
+                queue_trigger
             ]
         )
 
@@ -445,27 +477,15 @@ def on_ui_tabs():
             outputs=[
                 download_model,
                 cancel_model,
+                cancel_all_model,
                 delete_model,
                 download_progress,
                 list_versions
             ]
         )
-
-        cancel_model.click(
-            fn=_download.download_cancel,
-            inputs=[
-                delete_finish,
-                list_models,
-                list_versions,
-                model_filename,
-                current_sha256
-                ],
-            outputs=[
-                download_model,
-                cancel_model,
-                download_progress
-            ]
-        )
+        
+        cancel_model.click(_download.download_cancel)
+        cancel_all_model.click(_download.download_cancel_all)
         
         delete_model.click(
             fn=_file.delete_model,
@@ -474,7 +494,8 @@ def on_ui_tabs():
                 model_filename,
                 list_models,
                 list_versions,
-                current_sha256
+                current_sha256,
+                selected_list
                 ],
             outputs=[
                 download_model,
@@ -562,6 +583,7 @@ def on_ui_tabs():
 
         for trigger, function in page_btn_list.items():
             trigger(fn=function, inputs=page_inputs, outputs=page_outputs)
+            trigger(fn=None, _js="() => multi_model_select()")
         
         for button in cancel_btn_list:
             button.click(fn=_file.cancel_scan)
@@ -764,7 +786,7 @@ def subfolder_list(folder, desc=None):
                     sub_folders.append(f'{os.sep}{sub_folder}')
         
         sub_folders.remove("None")
-        sub_folders = sorted(sub_folders)
+        sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
         sub_folders.insert(0, "None")
         if insert_sub:
             sub_folders.insert(1, f"{os.sep}Model Name")
@@ -777,7 +799,7 @@ def subfolder_list(folder, desc=None):
     return sub_folders
 
 def make_lambda(folder, desc):
-        return lambda: {"choices": subfolder_list(folder, desc)}
+    return lambda: {"choices": subfolder_list(folder, desc)}
 
 def on_ui_settings():
     section = ("civitai_browser_plus", "CivitAI Browser+")
@@ -788,7 +810,7 @@ def on_ui_settings():
             return self
         shared.OptionInfo.info = info
     
-    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=section).info("Disable to use the old download method"))
+    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=section).info("Disable this option if you're experiencing any issues with downloads."))
     shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=section).info("Useful for users who use PortMaster or other software that controls the DNS"))
     shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in console", section=section).info("Requires UI reload"))
     shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))

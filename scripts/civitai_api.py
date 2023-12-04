@@ -7,6 +7,7 @@ import urllib.error
 import os
 import re
 import datetime
+import platform
 from collections import defaultdict
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
@@ -332,9 +333,12 @@ def model_list_html(json_data, model_dict):
                                     installstatus = "civmodelcardinstalled"
                                 else:
                                     installstatus = "civmodelcardoutdated"
-                model_card = f'<figure class="civmodelcard {nsfw} {installstatus}" base-model="{baseModel}" date="{date}" onclick="select_model(\'{model_name}\')">' \
-                            + imgtag \
-                            + f'<figcaption>{item["name"]}</figcaption></figure>'
+                    model_card = f'<figure class="civmodelcard {nsfw} {installstatus}" base-model="{baseModel}" date="{date}" onclick="select_model(\'{model_name}\', event)">'
+                    if installstatus != "civmodelcardinstalled":
+                        model_card += f'<input type="checkbox" class="model-checkbox" id="checkbox-{model_name}" onchange="multi_model_select(\'{model_name}\', this.checked)" style="opacity: 0; position: absolute; top: 10px; right: 10px;">' \
+                                    + f'<label for="checkbox-{model_name}" class="custom-checkbox"></label>'
+                    model_card += imgtag \
+                                + f'<figcaption>{item["name"]}</figcaption></figure>'
                 
                 if gl.sortNewest:
                     sorted_models[date].append(model_card)
@@ -559,17 +563,13 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             gr.Textbox.update(value=None), # Trained Tags
             gr.Textbox.update(value=None), # Base Model
             gr.Textbox.update(value=None) # Model Filename
-            
     )
 
 def update_model_versions(model_name):
-    # Use a dictionary to store the item names and types
     item_names_and_types = {item['name']: (item['type'], item['description']) for item in gl.json_data['items']}
 
     if model_name is not None:
-        # Lookup the selected content type and description from the dictionary
         selected_content_type, desc = item_names_and_types.get(model_name, (None, None))
-        
         if selected_content_type is None:
             print(f"{gl.print} Model name not found in json_data. (update_model_versions)")
             return
@@ -628,14 +628,22 @@ def update_model_versions(model_name):
                 gr.Dropdown.update(choices=[], value=None, interactive=False) # Version List
         )
 
+def cleaned_name(file_name):
+    if platform.system() == "Windows":
+        illegal_chars_pattern = r'[\\/:*?"<>|]'
+    else:
+        illegal_chars_pattern = r'/'
+
+    name, extension = os.path.splitext(file_name)
+    clean_name = re.sub(illegal_chars_pattern, '', name)
+
+    return f"{clean_name}{extension}"
+
 def update_model_info(model_name=None, model_version=None):
     BtnDown = True
     BtnDel = False
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
-    if gl.isDownloading:
-        BtnDown = False
-        BtnDel = False
     if model_name and model_version:
         output_html = ""
         output_training = ""
@@ -646,12 +654,14 @@ def update_model_info(model_name=None, model_version=None):
         allow = {}
         file_list = []
         model_filename = None
+        model_id = None
         file_id_value = None
         sha256_value = None
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 content_type = item['type']
                 desc = item['description']
+                model_id = item['id']
                 model_folder = os.path.join(contenttype_folder(content_type, desc))
                 model_uploader = item['creator']['username']
                 uploader_avatar = item['creator']['image']
@@ -699,18 +709,11 @@ def update_model_info(model_name=None, model_version=None):
                         model_url = model['downloadUrl']
                         model_main_url = f"https://civitai.com/models/{item['id']}"
                         img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
-                        first_image = True
                         for index, pic in enumerate(model['images']):
                             # Change width value in URL to original image width
                             image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
                             if pic['type'] == "video":
                                 image_url = image_url.replace("width=", "transcode=true,width=")
-                            if first_image and pic['type'] != "video":
-                                # Set a data attribute on the first image to designate it as preview
-                                preview_attr = f'data-preview-img={image_url}'
-                                first_image = False
-                            else: 
-                                preview_attr = ''
                             nsfw = 'class="model-block"'
                             
                             if pic['nsfw'] not in ["None", "Soft"]:
@@ -724,9 +727,9 @@ def update_model_info(model_name=None, model_version=None):
                             
                             # Check if the pic is an image or video
                             if pic['type'] == "video":
-                                img_html += f'<video {preview_attr} data-sampleimg="true" autoplay loop muted playsinline><source src="{image_url}" type="video/mp4"></video>'
+                                img_html += f'<video data-sampleimg="true" autoplay loop muted playsinline><source src="{image_url}" type="video/mp4"></video>'
                             else:
-                                img_html += f'<img {preview_attr} data-sampleimg="true" src="{image_url}">'
+                                img_html += f'<img data-sampleimg="true" src="{image_url}">'
 
                             img_html += '''
                                 </label>
@@ -809,12 +812,13 @@ def update_model_info(model_name=None, model_version=None):
                                 folder_location = root
                                 BtnDown = False
                                 BtnDel = True
+                                
                                 break
                         except Exception as e:
                             print(f"{gl.print} Error decoding JSON: {str(e)}")
             else:
                 for filename in files:
-                    if filename == model_filename:
+                    if filename == model_filename or filename == cleaned_name(model_filename):
                         folder_location = root
                         BtnDown = False
                         BtnDel = True
@@ -838,13 +842,11 @@ def update_model_info(model_name=None, model_version=None):
                         sub_folders.append(f'{os.sep}{sub_folder}')
             
             sub_folders.remove("None")
-            sub_folders = sorted(sub_folders)
+            sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
             sub_folders.insert(0, "None")
-            sub_opt1 = os.path.join(os.sep, model_name)
-            sub_opt2 = os.path.join(os.sep, model_name, model_version)
+            sub_opt1 = os.path.join(os.sep, cleaned_name(model_name))
+            sub_opt2 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
             if insert_sub:
-                model_name = model_name.replace('/', '').replace('\\', '')
-                model_version = model_version.replace('/', '').replace('\\', '')
                 sub_folders.insert(1, sub_opt1)
                 sub_folders.insert(2, sub_opt2)
             
@@ -869,16 +871,27 @@ def update_model_info(model_name=None, model_version=None):
             folder_path = folder_location
         relative_path = os.path.relpath(folder_location, model_folder)
         default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if BtnDel == False else "None"
-                
+        if gl.isDownloading:
+            item = gl.download_queue[0]
+            if model_name == item['model_name']:
+                BtnDel = False
+        BtnDownInt = BtnDown
+        if len(gl.download_queue) > 0:
+            for item in gl.download_queue:
+                if int(model_id) == int(item['model_id']):
+                    print("match found")
+                    BtnDownInt = False
+                    break
         return  (
                 gr.HTML.update(value=output_html), # Model Preview
                 gr.Textbox.update(value=output_training, interactive=True), # Trained Tags
                 gr.Textbox.update(value=output_basemodel), # Base Model Number
-                gr.Button.update(visible=BtnDown, interactive=BtnDown), # Download Button
+                gr.Button.update(visible=BtnDown if not BtnDel else False, interactive=BtnDownInt), # Download Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
                 gr.Dropdown.update(choices=file_list, value=default_file, interactive=True), # File List
-                gr.Textbox.update(value=model_filename),  # Model File Name
-                gr.Textbox.update(value=file_id_value),  # Model ID
+                gr.Textbox.update(value=cleaned_name(model_filename), interactive=True),  # Model File Name
+                gr.Textbox.update(value=file_id_value), # File ID
+                gr.Textbox.update(value=model_id), # Model ID
                 gr.Textbox.update(value=sha256_value),  # SHA256
                 gr.Textbox.update(interactive=True, value=folder_path if model_name else None), # Install Path
                 gr.Dropdown.update(choices=sub_folders, value=default_subfolder, interactive=True) # Sub Folder List
@@ -891,7 +904,7 @@ def update_model_info(model_name=None, model_version=None):
                 gr.Button.update(visible=BtnDown), # Download Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
                 gr.Dropdown.update(choices=None, value=None, interactive=False), # File List
-                gr.Textbox.update(value=None),  # Model File Name
+                gr.Textbox.update(value=None, interactive=False),  # Model File Name
                 gr.Textbox.update(value=None),  # Model ID
                 gr.Textbox.update(value=None),  # SHA256
                 gr.Textbox.update(interactive=False, value=None), # Install Path
@@ -925,6 +938,7 @@ def update_file_info(model_name, model_version, file_metadata):
                     if model['name'] == model_version:
                         for file in model['files']:
                             file_id = file.get('id', 'Unknown')
+                            model_id = item['id']
                             file_name = file.get('name', 'Unknown')
                             sha256 = file['hashes'].get('SHA256', 'Unknown')
                             metadata = file.get('metadata', {})
@@ -971,8 +985,9 @@ def update_file_info(model_name, model_version, file_metadata):
                                 default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if installed == False else "None"
                                 
                                 return  (
-                                        gr.Textbox.update(value=file['name']),  # Update model_filename Textbox
-                                        gr.Textbox.update(value=file_id),  # Update ID Textbox
+                                        gr.Textbox.update(value=cleaned_name(file['name']), interactive=True),  # Model File Name Textbox
+                                        gr.Textbox.update(value=file_id), # Update ID Textbox
+                                        gr.Textbox.update(value=model_id), # Model ID Textbox
                                         gr.Textbox.update(value=sha256), # sha256 textbox
                                         gr.Button.update(interactive=False if installed else True, visible=False if installed else True), # Download Button
                                         gr.Button.update(interactive=True if installed else False, visible=True if installed else False),  # Delete Button
@@ -981,7 +996,7 @@ def update_file_info(model_name, model_version, file_metadata):
                                 )
     
     return  (
-            gr.Textbox.update(value=None), # Update model_filename Textbox
+            gr.Textbox.update(value=None, interactive=False), # Model File Name Textbox
             gr.Textbox.update(value=None), # Update ID Textbox
             gr.Textbox.update(value=None), # sha256 textbox
             gr.Button.update(interactive=False, visible=True), # Download Button

@@ -95,6 +95,22 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.0</h3>
+
+* Feature: Download queue! Ability to add downloads to a queue. (Finally!)
+* Feature: Checkboxes to download multiple models at once.
+   - This will automatically use the first version and first file of the selected model(s).
+   - Will use the default sub folders per content type defined in sub folder settings.
+* Feature: "Select all" button to select all downloadable models at once.
+* Feature: "Open on CivitAI" button when viewing a models metadata in txt2img or img2img.
+   - Will only display if the model's info has been saved to the .json after v2.2.0
+* Feature: Ability to rename model filename
+   - Note that it's not recommended to change the filename since some checks rely on it.
+* Bug fix: Fixed display of saved .html files.
+* Bug fix: Removed potential illegal characters from file name/path name.
+* Bug fix: Fixed case sensitive sorting of sub folders.
+
+---
 <h3>v2.1.0</h3>
 
 * Feature: "Overwrite any existing previews, tags or descriptions" Toggle in Update tab.
