@@ -149,7 +149,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     filename = f'{name}.preview.png'
     image_path = os.path.join(install_path, filename)
     
-    if overwrite_toggle:
+    if not overwrite_toggle:
         if os.path.exists(image_path):
             return
     
