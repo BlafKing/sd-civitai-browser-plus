@@ -194,7 +194,7 @@ def save_images(preview_html, model_filename, model_name, install_path, sub_fold
             content_type = gl.json_info['type']
             install_path = os.path.join(_api.contenttype_folder(content_type, desc, custom_folder=image_location))
             if sub_folder and sub_folder != "None":
-                install_path = os.path.join(install_path, sub_folder)
+                install_path = os.path.join(install_path, sub_folder.lstrip("/").lstrip("\\"))
         else:
             install_path = Path(image_location)
             
