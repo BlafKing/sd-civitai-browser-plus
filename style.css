@@ -1,3 +1,4 @@
+/* Card list HTML */
 .civmodellist {
 	display: flex;
 	flex-wrap: wrap;
@@ -52,6 +53,8 @@
 	color: white !important;
 }
 
+/* End of Card list HTML */
+
 #quicksettings > div{
 	max-width: None !important;
 	width: auto !important;
@@ -100,6 +103,10 @@
     gap: var(--layout-gap);
 }
 
+#txt2img_seed > label > input{
+    height: unset !important;
+}
+
 #browserTab > div > #header, #browserTab > div > #header_off {
     display: flex;
     flex-direction: column;
@@ -107,7 +114,7 @@
     margin-top: -15px;
 }
 
-#toggle1, #toggle2, #toggle3, #toggle4, #toggle4_api{
+#toggle1, #toggle2, #toggle3, #toggle4, #toggle4_api, #toggle5{
 	margin-top: 5px;
     margin-right: 0px;
     margin-left: 0px;
@@ -115,7 +122,7 @@
     justify-content: center;
 }
 
-#toggle1L, #toggle2L, #toggle3L, #toggle4L, #toggle4L_api, #overwrite_toggle{
+#toggle1L, #toggle2L, #toggle3L, #toggle4L, #toggle4L_api, #overwrite_toggle, #toggle5L{
     display: flex;
 	justify-content: center;
 }
@@ -270,6 +277,40 @@
     color: var(--body-text-color);
     display: flex;
     justify-content: center;
+    margin-top: -12px;
+}
+
+#model_header:hover{
+    color: var(--link-text-color-hover);
+}
+
+.civitai-txt2img-btn:hover {
+    border-color: var(--button-secondary-border-color-hover);
+    background: var(--button-secondary-background-fill-hover);
+    color: var(--button-secondary-text-color-hover);
+}
+
+.civitai-txt2img-btn {
+    border-radius: var(--button-large-radius);
+    border: var(--button-border-width) solid var(--button-secondary-border-color);
+    padding: var(--button-large-padding);
+    font-weight: var(--button-large-text-weight);
+    font-size: var(--button-large-text-size);
+    background: var(--button-secondary-background-fill);
+    color: var(--button-secondary-text-color);
+}
+
+.civitai-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.civitai-tag {
+    background-color: var(--input-background-fill);
+    border-radius: 8px;
+    padding: 4px 6px;
+    border: 1px solid var(--input-border-color);
 }
 
 #select_all_models_container {
@@ -589,7 +630,7 @@
 }
 
 #civitai_preview_html .accordionCheckbox:checked ~ .tab-content {
-    max-height: 100vh;
+    max-height: 200vh;
     padding: 1em;
 }
 /*-----------------------------------------*/

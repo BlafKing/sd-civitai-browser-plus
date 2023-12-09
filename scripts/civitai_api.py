@@ -8,7 +8,10 @@ import os
 import re
 import datetime
 import platform
+from PIL import Image
+from io import BytesIO
 from collections import defaultdict
+from modules.images import read_info_from_image
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
 from html import escape 
@@ -21,129 +24,110 @@ except:
 
 gl.init()
 
-def update_dl_url(model_id=None, model_name=None, model_version=None):    
-    if model_version and "[Installed]" in model_version:
-        model_version = model_version.replace(" [Installed]", "")
-    
-    if model_id:
-        dl_url = None
-        for item in gl.json_data['items']:
-            if item['name'] == model_name:
-                for model in item['modelVersions']:
-                    if model['name'] == model_version:
-                        for file in model['files']:
-                            if int(file['id']) == int(model_id):
-                                dl_url = file['downloadUrl']
-                                gl.json_info = model
-                                
-        return  (
-                gr.Textbox.update(value=dl_url), # Download URL
-                gr.Button.update(interactive=True if model_version else False), # Save Images Button
-                gr.Button.update(interactive=True if model_version else False) # Download Button
-        )
-    else:
-        return  (
-                gr.Textbox.update(value=None), # Download URL
-                gr.Button.update(interactive=True if model_version else False), # Save Images Button
-                gr.Button.update(interactive=True if model_version else False) # Download Button
-        )
-
-def contenttype_folder(content_type, desc=None, fromCheck=False):
+def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=None):
     use_LORA = getattr(opts, "use_LORA", False)
     folder = None
     if desc:
         desc = desc.upper()
     else:
         desc = "PLACEHOLDER"
+    if custom_folder:
+        main_models = custom_folder
+        main_data = custom_folder
+    else:
+        main_models = models_path
+        main_data = data_path
         
     if content_type == "modelFolder":
-        folder = os.path.join(models_path)
+        folder = os.path.join(main_models)
         
     if content_type == "Checkpoint":
-        if cmd_opts.ckpt_dir:
+        if cmd_opts.ckpt_dir and not custom_folder:
             folder = cmd_opts.ckpt_dir
         else:
-            folder = os.path.join(models_path,"Stable-diffusion")
+            folder = os.path.join(main_models,"Stable-diffusion")
             
     elif content_type == "Hypernetwork":
-        if cmd_opts.hypernetwork_dir:
+        if cmd_opts.hypernetwork_dir and not custom_folder:
             folder = cmd_opts.hypernetwork_dir
         else:
-            folder = os.path.join(models_path, "hypernetworks")
+            folder = os.path.join(main_models, "hypernetworks")
         
     elif content_type == "TextualInversion":
-        if cmd_opts.embeddings_dir:
+        if cmd_opts.embeddings_dir and not custom_folder:
             folder = cmd_opts.embeddings_dir
         else:
-            folder = os.path.join(data_path, "embeddings")
+            folder = os.path.join(main_data, "embeddings")
         
     elif content_type == "AestheticGradient":
-        folder = os.path.join(extensions_dir, "stable-diffusion-webui-aesthetic-gradients", "aesthetic_embeddings")
-        
+        if not custom_folder:
+            folder = os.path.join(extensions_dir, "stable-diffusion-webui-aesthetic-gradients", "aesthetic_embeddings")
+        else:
+            folder = os.path.join(custom_folder, "aesthetic_embeddings")
     elif content_type == "LORA":
-        if cmd_opts.lora_dir:
+        if cmd_opts.lora_dir and not custom_folder:
             folder = cmd_opts.lora_dir
         else:
-            folder = folder = os.path.join(models_path, "Lora")
+            folder = folder = os.path.join(main_models, "Lora")
         
     elif content_type == "LoCon":
-        folder = os.path.join(models_path, "LyCORIS")
+        folder = os.path.join(main_models, "LyCORIS")
         if use_LORA and not fromCheck:
-            if cmd_opts.lora_dir:
+            if cmd_opts.lora_dir and not custom_folder:
                 folder = cmd_opts.lora_dir
             else:
-                folder = folder = os.path.join(models_path, "Lora")
+                folder = folder = os.path.join(main_models, "Lora")
             
     elif content_type == "VAE":
-        if cmd_opts.vae_dir:
+        if cmd_opts.vae_dir and not custom_folder:
             folder = cmd_opts.vae_dir
         else:
-            folder = os.path.join(models_path, "VAE")
+            folder = os.path.join(main_models, "VAE")
             
     elif content_type == "Controlnet":  
-        folder = os.path.join(models_path, "ControlNet")
+        folder = os.path.join(main_models, "ControlNet")
             
     elif content_type == "Poses":
-        folder = os.path.join(models_path, "Poses")
+        folder = os.path.join(main_models, "Poses")
     
     elif content_type == "Upscaler":
         if "SWINIR" in desc:
-            if cmd_opts.swinir_models_path:
+            if cmd_opts.swinir_models_path and not custom_folder:
                 folder = cmd_opts.swinir_models_path
             else:
-                folder = os.path.join(models_path, "SwinIR")
+                folder = os.path.join(main_models, "SwinIR")
         elif "REALESRGAN" in desc:
-            if cmd_opts.realesrgan_models_path:
+            if cmd_opts.realesrgan_models_path and not custom_folder:
                 folder = cmd_opts.realesrgan_models_path
             else:
-                folder = os.path.join(models_path, "RealESRGAN")
+                folder = os.path.join(main_models, "RealESRGAN")
         elif "GFPGAN" in desc:
-            if cmd_opts.gfpgan_models_path:
+            if cmd_opts.gfpgan_models_path and not custom_folder:
                 folder = cmd_opts.gfpgan_models_path
             else:
-                folder = os.path.join(models_path, "GFPGAN")
+                folder = os.path.join(main_models, "GFPGAN")
         elif "BSRGAN" in desc:
-            if cmd_opts.bsrgan_models_path:
+            if cmd_opts.bsrgan_models_path and not custom_folder:
                 folder = cmd_opts.bsrgan_models_path
             else:
-                folder = os.path.join(models_path, "BSRGAN")
+                folder = os.path.join(main_models, "BSRGAN")
         else:
-            if cmd_opts.esrgan_models_path:
+            if cmd_opts.esrgan_models_path and not custom_folder:
                 folder = cmd_opts.esrgan_models_path
             else:
-                folder = os.path.join(models_path, "ESRGAN")
+                folder = os.path.join(main_models, "ESRGAN")
             
     elif content_type == "MotionModule":
         folder = os.path.join(extensions_dir, "sd-webui-animatediff", "model")
         
     elif content_type == "Workflows":
-        folder = os.path.join(models_path, "Workflows")
+        folder = os.path.join(main_models, "Workflows")
         
     elif content_type == "Other":
         if "ADETAILER" in desc:
-            folder = os.path.join(models_path, "adetailer")
+            folder = os.path.join(main_models, "adetailer")
         else:
-            folder = os.path.join(models_path, "Other")
+            folder = os.path.join(main_models, "Other")
     
     elif content_type == "Wildcards":
         folder = os.path.join(extensions_dir, "UnivAICharGen", "wildcards")
@@ -226,6 +210,10 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
     return data
 
 def model_list_html(json_data, model_dict):
+    video_playback = getattr(opts, "video_playback", True)
+    playback = ""
+    if video_playback: playback = "autoplay loop"
+    
     hide_early_access = getattr(opts, "hide_early_access", True)
     filtered_items = []
     current_time = datetime.datetime.utcnow()
@@ -313,7 +301,7 @@ def model_list_html(json_data, model_dict):
                         image = item["modelVersions"][0]["images"][0]["url"]
                         if media_type == "video":
                             image = image.replace("width=", "transcode=true,width=")
-                            imgtag = f'<video class="video-bg" autoplay loop muted playsinline><source src="{image}" type="video/mp4"></video>'
+                            imgtag = f'<video class="video-bg" {playback} muted playsinline><source src="{image}" type="video/mp4"></video>'
                         else:
                             imgtag = f'<img src="{image}"></img>'
                     else:
@@ -337,8 +325,13 @@ def model_list_html(json_data, model_dict):
                     if installstatus != "civmodelcardinstalled":
                         model_card += f'<input type="checkbox" class="model-checkbox" id="checkbox-{model_name}" onchange="multi_model_select(\'{model_name}\', this.checked)" style="opacity: 0; position: absolute; top: 10px; right: 10px;">' \
                                     + f'<label for="checkbox-{model_name}" class="custom-checkbox"></label>'
+                    if len(item["name"]) > 40:
+                        display_name = item["name"][:40] + '...'
+                    else:
+                        display_name = item["name"]
+                    
                     model_card += imgtag \
-                                + f'<figcaption>{item["name"]}</figcaption></figure>'
+                                + f'<figcaption title="{item["name"]}">{display_name}</figcaption></figure>'
                 
                 if gl.sortNewest:
                     sorted_models[date].append(model_card)
@@ -639,9 +632,24 @@ def cleaned_name(file_name):
 
     return f"{clean_name}{extension}"
 
+def fetch_and_process_image(image_url):
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        image = Image.open(BytesIO(response.content))
+        geninfo, _ = read_info_from_image(image)
+        return geninfo
+    return None
+    
+
 def update_model_info(model_name=None, model_version=None):
-    BtnDown = True
+    video_playback = getattr(opts, "video_playback", True)
+    playback = ""
+    if video_playback: playback = "autoplay loop"
+    
+    BtnDownInt = True
     BtnDel = False
+    BtnImage = False
+    
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
     if model_name and model_version:
@@ -649,13 +657,10 @@ def update_model_info(model_name=None, model_version=None):
         output_training = ""
         output_basemodel = ""
         img_html = ""
-        model_desc = ""
         dl_dict = {}
-        allow = {}
         file_list = []
         model_filename = None
         model_id = None
-        file_id_value = None
         sha256_value = None
         for item in gl.json_data['items']:
             if item['name'] == model_name:
@@ -669,17 +674,8 @@ def update_model_info(model_name=None, model_version=None):
                      uploader_avatar = ''
                 else:
                     uploader_avatar = f'<div class="avatar"><img src={uploader_avatar}></div>'
-                tags = item['tags']
-                if item['description']:
-                    model_desc = item['description']
-                if item['allowNoCredit']:
-                    allow['allowNoCredit'] = item['allowNoCredit']
-                if item['allowCommercialUse']:
-                    allow['allowCommercialUse'] = item['allowCommercialUse']
-                if item['allowDerivatives']:
-                    allow['allowDerivatives'] = item['allowDerivatives']
-                if item['allowDifferentLicense']:
-                    allow['allowDifferentLicense'] = item['allowDifferentLicense']
+                tags = item.get('tags', "")
+                model_desc = item.get('description', "")
                 for model in item['modelVersions']:
                     if model['name'] == model_version:
                         if model['trainedWords']:
@@ -694,9 +690,10 @@ def update_model_info(model_name=None, model_version=None):
                             
                             if not model_filename:
                                 model_filename = file['name']
-                                file_id_value = file.get('id', 'Unknown')
+                                dl_url = file['downloadUrl']
+                                gl.json_info = item
                                 sha256_value = file['hashes'].get('SHA256', 'Unknown')
-                            
+                                
                             size = file['metadata'].get('size', 'Unknown')
                             format = file['metadata'].get('format', 'Unknown')
                             fp = file['metadata'].get('fp', 'Unknown')
@@ -710,6 +707,11 @@ def update_model_info(model_name=None, model_version=None):
                         model_main_url = f"https://civitai.com/models/{item['id']}"
                         img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
                         for index, pic in enumerate(model['images']):
+                            meta_button = False
+                            meta = pic['meta']
+                            if meta and meta.get('prompt'):
+                                meta_button = True
+                            BtnImage = True 
                             # Change width value in URL to original image width
                             image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
                             if pic['type'] == "video":
@@ -721,13 +723,15 @@ def update_model_info(model_name=None, model_version=None):
 
                             img_html += f'''
                             <div {nsfw} style="display:flex;align-items:flex-start;">
-                                <input type="radio" name="zoomRadio" id="zoomRadio{index}" class="zoom-radio">
-                                <label for="zoomRadio{index}" class="zoom-img-container">
+                            <div class="civitai-image-container">
+                            <input type="radio" name="zoomRadio" id="zoomRadio{index}" class="zoom-radio">
+                            <label for="zoomRadio{index}" class="zoom-img-container">
                             '''
                             
                             # Check if the pic is an image or video
                             if pic['type'] == "video":
-                                img_html += f'<video data-sampleimg="true" autoplay loop muted playsinline><source src="{image_url}" type="video/mp4"></video>'
+                                img_html += f'<video data-sampleimg="true" {playback} muted playsinline><source src="{image_url}" type="video/mp4"></video>'
+                                meta_button = False
                             else:
                                 img_html += f'<img data-sampleimg="true" src="{image_url}">'
 
@@ -735,20 +739,29 @@ def update_model_info(model_name=None, model_version=None):
                                 </label>
                                 <label for="resetZoom" class="zoom-overlay"></label>
                             '''
-
-                            if pic['meta']:
-                                img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height: 1.5em;"><dl>'
-                                # Define the preferred order of keys
+                            
+                            if meta_button:
+                                img_html += f'''
+                                    <div class="civitai_txt2img" style="margin-top:30px;margin-bottom:30px;">
+                                    <label onclick='sendImgUrl("{escape(image_url)}")' class="civitai-txt2img-btn" style="max-width:fit-content;cursor:pointer;">Send to txt2img</label>
+                                    </div></div>
+                                '''
+                            else:
+                                img_html += '</div>'
+                                
+                            if meta:
+                                img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height:1.5em;" id="image_info"><dl>'
+                                # Define the preferred order of keys and convert them to lowercase
                                 preferred_order = ["prompt", "negativePrompt", "seed", "Size", "Model", "clipSkip", "sampler", "steps", "cfgScale"]
+                                preferred_order_lower = [key.lower() for key in preferred_order]
                                 # Loop through the keys in the preferred order and add them to the HTML
                                 for key in preferred_order:
-                                    if key in pic['meta']:
-                                        value = pic['meta'][key]
-                                        img_html += f'<dt>{escape(str(key))}</dt><dd>{escape(str(value))}</dd>'
-                                
-                                # Check if there are remaining keys in pic['meta']
-                                remaining_keys = [key for key in pic['meta'] if key not in preferred_order]
-                                
+                                    if key in meta:
+                                        value = meta[key]
+                                        img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
+                                # Check if there are remaining keys in meta
+                                remaining_keys = [key for key in meta if key.lower() not in preferred_order_lower]
+
                                 # Add the rest
                                 if remaining_keys:
                                     img_html += f"""
@@ -758,32 +771,55 @@ def update_model_info(model_name=None, model_version=None):
                                             <label class="tab-label" for="chck{index}">More details...</label>
                                             <div class="tab-content">
                                     """
-                                    for key, value in pic['meta'].items():
-                                        if key not in preferred_order:
-                                            img_html += f'<dt>{escape(str(key))}</dt><dd>{escape(str(value))}</dd>'
+                                    for key in remaining_keys:
+                                        value = meta[key]
+                                        img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
                                     img_html = img_html + '</div></div></div>'
-                                
+
                                 img_html += '</dl></div>'
-                            
+
                             img_html = img_html + '</div>'
                         img_html = img_html + '</div>'
+                        tags_html = ''.join([f'<span class="civitai-tag">{escape(str(tag))}</span>' for tag in tags])
+                        def perms_svg(color):
+                            return f'<span style="display:inline-block;vertical-align:middle;">'\
+                        f'<svg width="15" height="15" viewBox="0 1.5 24 24" stroke-width="4" stroke-linecap="round" stroke="{color}">'
+                        allow_svg = f'{perms_svg("lime")}<path d="M5 12l5 5l10 -10"></path></svg></span>'
+                        deny_svg = f'{perms_svg("red")}<path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path></svg></span>'
+                        perms_html= '<p style="line-height: 2; font-weight: bold;">'\
+                                    f'{allow_svg if item.get("allowNoCredit") else deny_svg} Use the model without crediting the creator<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") == "Image" else deny_svg} Sell images they generate<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") == "Rent" else deny_svg} Run on services that generate images for money<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") == "RentCivit" else deny_svg} Run on Civitai<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") == "Sell" else deny_svg} Sell this model or merges using this model<br/>'\
+                                    f'{allow_svg if item.get("allowDerivatives") else deny_svg} Share merges using this model<br/>'\
+                                    f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
+                                    '</p>'
                         output_html = f'''
-
                         <div class="model-block">
-                            <h2><a href={model_main_url} target="_blank">{escape(str(model_name))}</a></h2>
+                            <h2><a href={model_main_url} target="_blank" id="model_header">{escape(str(model_name))}</a></h2>
                             <h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>
-                            <dl>
-                                <dt>Version</dt>
-                                <dd>{escape(str(model_version))}</dd>
-                                <dt>Base Model</dt>
-                                <dd>{escape(str(output_basemodel))}</dd>
-                                <dt>CivitAI Tags</dt>
-                                <dd>{escape(str(tags))}</dd>
-                                <dt>License</dt>
-                                <dd>{escape(str(allow))}</dd>
-                                <dt>Download Link</dt>
-                                <dd><a href={model_url} target="_blank">{model_url}</a></dd>
-                            </dl>
+                            <div class="civitai-version-info" style="display:flex; flex-wrap:wrap; justify-content:space-between;">
+                                <dl id="info_block">
+                                    <dt>Version</dt>
+                                    <dd>{escape(str(model_version))}</dd>
+                                    <dt>Base Model</dt>
+                                    <dd>{escape(str(output_basemodel))}</dd>
+                                    <dt>CivitAI Tags</dt>
+                                    <dd>
+                                        <div class="civitai-tags-container">
+                                            {tags_html}
+                                        </div>
+                                    </dd>
+                                    <dt>Download Link</dt>
+                                    <dd><a href={model_url} target="_blank">{model_url}</a></dd>
+                                </dl>
+                                <div style="align-self:center; min-width:320px;">
+                                    <div>
+                                        {perms_html}
+                                    </div>
+                                </div>
+                            </div>
                             <div class="model-description">
                                 <h2>Description</h2>
                                 {model_desc}
@@ -810,7 +846,7 @@ def update_model_info(model_name=None, model_version=None):
                                 sha256 = sha256.upper()
                             if sha256 == sha256_value:
                                 folder_location = root
-                                BtnDown = False
+                                BtnDownInt = False
                                 BtnDel = True
                                 
                                 break
@@ -820,7 +856,7 @@ def update_model_info(model_name=None, model_version=None):
                 for filename in files:
                     if filename == model_filename or filename == cleaned_name(model_filename):
                         folder_location = root
-                        BtnDown = False
+                        BtnDownInt = False
                         BtnDel = True
                         break
 
@@ -844,11 +880,13 @@ def update_model_info(model_name=None, model_version=None):
             sub_folders.remove("None")
             sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
             sub_folders.insert(0, "None")
-            sub_opt1 = os.path.join(os.sep, cleaned_name(model_name))
-            sub_opt2 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
+            sub_opt1 = os.path.join(os.sep, cleaned_name(model_uploader))
+            sub_opt2 = os.path.join(os.sep, cleaned_name(model_name))
+            sub_opt3 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
             if insert_sub:
                 sub_folders.insert(1, sub_opt1)
                 sub_folders.insert(2, sub_opt2)
+                sub_folders.insert(3, sub_opt3)
             
             list = set()
             sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -856,10 +894,12 @@ def update_model_info(model_name=None, model_version=None):
             sub_folders = ["None"]
             
         default_sub = sub_folder_value(content_type, desc)
-        if default_sub == f"{os.sep}Model Name":
+        if default_sub == f"{os.sep}Author Name":
             default_sub = sub_opt1
-        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+        elif default_sub == f"{os.sep}Model Name":
             default_sub = sub_opt2
+        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+            default_sub = sub_opt3
             
         if folder_location == "None":
             folder_location = model_folder
@@ -875,22 +915,22 @@ def update_model_info(model_name=None, model_version=None):
             item = gl.download_queue[0]
             if model_name == item['model_name']:
                 BtnDel = False
-        BtnDownInt = BtnDown
         if len(gl.download_queue) > 0:
             for item in gl.download_queue:
-                if int(model_id) == int(item['model_id']):
-                    print("match found")
+                if item['version_name'] == model_version:
                     BtnDownInt = False
                     break
+        
         return  (
-                gr.HTML.update(value=output_html), # Model Preview
+                gr.HTML.update(value=output_html), # Preview HTML 
                 gr.Textbox.update(value=output_training, interactive=True), # Trained Tags
                 gr.Textbox.update(value=output_basemodel), # Base Model Number
-                gr.Button.update(visible=BtnDown if not BtnDel else False, interactive=BtnDownInt), # Download Button
+                gr.Button.update(visible=False if BtnDel else True, interactive=BtnDownInt), # Download Button
+                gr.Button.update(interactive=BtnImage), # Images Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
                 gr.Dropdown.update(choices=file_list, value=default_file, interactive=True), # File List
                 gr.Textbox.update(value=cleaned_name(model_filename), interactive=True),  # Model File Name
-                gr.Textbox.update(value=file_id_value), # File ID
+                gr.Textbox.update(value=dl_url), # Download URL
                 gr.Textbox.update(value=model_id), # Model ID
                 gr.Textbox.update(value=sha256_value),  # SHA256
                 gr.Textbox.update(interactive=True, value=folder_path if model_name else None), # Install Path
@@ -898,14 +938,16 @@ def update_model_info(model_name=None, model_version=None):
         )
     else:
         return  (
-                gr.HTML.update(value=None), # Model Preview
+                gr.HTML.update(value=None), # Preview HTML
                 gr.Textbox.update(value=None, interactive=False), # Trained Tags
                 gr.Textbox.update(value=''), # Base Model Number
-                gr.Button.update(visible=BtnDown), # Download Button
+                gr.Button.update(visible=False if BtnDel else True), # Download Button
+                gr.Button.update(interactive=False), # Images Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
                 gr.Dropdown.update(choices=None, value=None, interactive=False), # File List
                 gr.Textbox.update(value=None, interactive=False),  # Model File Name
-                gr.Textbox.update(value=None),  # Model ID
+                gr.Textbox.update(value=None),  # Download URL
+                gr.Textbox.update(value=None), # Model ID
                 gr.Textbox.update(value=None),  # SHA256
                 gr.Textbox.update(interactive=False, value=None), # Install Path
                 gr.Dropdown.update(choices=None, value=None, interactive=False) # Sub Folder List
@@ -937,7 +979,6 @@ def update_file_info(model_name, model_version, file_metadata):
                 for model in item['modelVersions']:
                     if model['name'] == model_version:
                         for file in model['files']:
-                            file_id = file.get('id', 'Unknown')
                             model_id = item['id']
                             file_name = file.get('name', 'Unknown')
                             sha256 = file['hashes'].get('SHA256', 'Unknown')
@@ -952,12 +993,14 @@ def update_file_info(model_name, model_version, file_metadata):
                                 installed = False
                                 folder_location = "None"
                                 model_folder = os.path.join(contenttype_folder(content_type, desc))
+                                dl_url = file['downloadUrl']
+                                gl.json_info = item
                                 for root, _, files in os.walk(model_folder):
                                     if file_name in files:
                                         installed = True
                                         folder_location = root
                                         break
-
+                                
                                 if not installed:
                                     for root, _, files in os.walk(model_folder):
                                         for filename in files:
@@ -983,13 +1026,19 @@ def update_file_info(model_name, model_version, file_metadata):
                                     folder_path = folder_location
                                 relative_path = os.path.relpath(folder_location, model_folder)
                                 default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if installed == False else "None"
+                                BtnDownInt = not installed
+                                if len(gl.download_queue) > 0:
+                                    for item in gl.download_queue:
+                                        if item['version_name'] == model_version:
+                                            BtnDownInt = False
+                                            break
                                 
                                 return  (
                                         gr.Textbox.update(value=cleaned_name(file['name']), interactive=True),  # Model File Name Textbox
-                                        gr.Textbox.update(value=file_id), # Update ID Textbox
+                                        gr.Textbox.update(value=dl_url), # Download URL Textbox
                                         gr.Textbox.update(value=model_id), # Model ID Textbox
                                         gr.Textbox.update(value=sha256), # sha256 textbox
-                                        gr.Button.update(interactive=False if installed else True, visible=False if installed else True), # Download Button
+                                        gr.Button.update(interactive=BtnDownInt, visible=False if installed else True), # Download Button
                                         gr.Button.update(interactive=True if installed else False, visible=True if installed else False),  # Delete Button
                                         gr.Textbox.update(interactive=True, value=folder_path if model_name else None), # Install Path
                                         gr.Dropdown.update(value=default_subfolder, interactive=True) # Sub Folder List
@@ -997,7 +1046,7 @@ def update_file_info(model_name, model_version, file_metadata):
     
     return  (
             gr.Textbox.update(value=None, interactive=False), # Model File Name Textbox
-            gr.Textbox.update(value=None), # Update ID Textbox
+            gr.Textbox.update(value=None), # Download URL Textbox
             gr.Textbox.update(value=None), # sha256 textbox
             gr.Button.update(interactive=False, visible=True), # Download Button
             gr.Button.update(interactive=False, visible=False), # Delete Button

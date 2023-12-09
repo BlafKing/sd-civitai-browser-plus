@@ -44,6 +44,7 @@ ul {
 }
 
 p {
+    color: #F3F4F6;
     margin: 0px 0px 6px;
     font-size: 14px;
 }
@@ -64,10 +65,15 @@ dd {
 a {
     color: #F3F4F6;
     font-weight: bold;
+    text-decoration: unset;
 }
 
 a:hover {
     color: #60A5FA;
+}
+
+.civitai_txt2img {
+    display: none;
 }
 
 /* Preview Image zoom */

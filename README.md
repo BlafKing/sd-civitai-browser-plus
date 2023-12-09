@@ -95,6 +95,18 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.1.0</h3>
+
+* Feature: Send to txt2img, Send any image in the model info to txt2img.
+* Feature: Added new Base model filters: 
+   - SD 1.5 LCM, SDXL 1.0 LCM, SDXL Distilled, SDXL Turbo, SVD, SVD XT
+* Feature: Hide installed models filter toggle.
+* Feature: Better display of permissions and tags in model info.
+* New setting: Append sub folders to custom image path.
+* New setting: Toggle gif/video playback, Disable if video's are taking high CPU usage.
+* Bug fix: Better handling if hash is not found.
+
+---
 <h3>v3.0</h3>
 
 * Feature: Download queue! Ability to add downloads to a queue. (Finally!)

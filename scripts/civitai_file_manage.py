@@ -185,10 +185,19 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                     print(f"{gl.print} No preview images found for \"{name}\"")
                     return
 
-def save_images(preview_html, model_filename, model_name, install_path):
+def save_images(preview_html, model_filename, model_name, install_path, sub_folder):
     image_location = getattr(opts, "image_location", r"")
+    sub_image_location = getattr(opts, "sub_image_location", True)
     if image_location:
-        install_path = Path(image_location)
+        if sub_image_location:
+            desc = gl.json_info['description']
+            content_type = gl.json_info['type']
+            install_path = os.path.join(_api.contenttype_folder(content_type, desc, custom_folder=image_location))
+            if sub_folder and sub_folder != "None":
+                install_path = os.path.join(install_path, sub_folder)
+        else:
+            install_path = Path(image_location)
+            
         
     if not os.path.exists(install_path):
         os.makedirs(install_path)
@@ -517,7 +526,11 @@ def get_models(file_path):
             response = requests.get(by_hash, timeout=(10,30))
             if response.status_code == 200:
                 api_response = response.json()
-                modelId = api_response.get("modelId", "")
+                if 'error' in api_response:
+                    print(f"{gl.print} \"{file_path}\": {api_response['error']}")
+                    return None
+                else:
+                    modelId = api_response.get("modelId", "")
         if not modelId or not sha256:
             if os.path.exists(json_file):
                 try:

@@ -27,11 +27,12 @@ except:
 total_count = 0
 current_count = 0
 
-def random_number(prev):
+def random_number(prev=None):
     number = str(random.randint(10000, 99999))
     
-    while number == prev:
-        number = str(random.randint(10000, 99999))
+    if prev:
+        while number == prev:
+            number = str(random.randint(10000, 99999))
     
     return number
 
