@@ -903,12 +903,12 @@ def start_ver_search(ver_start):
 
 def finish_ver_search():
     return (
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
+        gr.Button.update(interactive=no_update, visible=no_update),
+        gr.Button.update(interactive=no_update, visible=no_update),
+        gr.Button.update(interactive=no_update, visible=no_update),
+        gr.Button.update(interactive=no_update, visible=no_update),
         gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True)
+        gr.Button.update(interactive=not no_update, visible=not no_update)
     )
 
 def start_installed_models(installed_start):
@@ -927,12 +927,12 @@ def start_installed_models(installed_start):
     
 def finish_installed_models():
     return (
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
-        gr.Button.update(interactive=True if no_update else False, visible=True if no_update else False),
-        gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=False if no_update else True, visible=False if no_update else True)
+        gr.Button.update(interactive= no_update, visible= no_update),
+        gr.Button.update(interactive= no_update, visible= no_update),
+        gr.Button.update(interactive= no_update, visible= no_update),
+        gr.Button.update(interactive= no_update, visible= no_update),
+        gr.Button.update(interactive= False, visible=False),
+        gr.Button.update(interactive= not no_update, visible= not no_update)
     )
 
 def load_to_browser():
