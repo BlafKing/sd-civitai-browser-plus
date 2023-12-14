@@ -598,7 +598,7 @@ def on_ui_tabs():
         # Update model Functions #
         
         ver_search.click(
-            fn=_file.start_ver_search,
+            fn=_file.ver_search_start,
             inputs=[ver_start],
             outputs=[
                 ver_start,
@@ -628,7 +628,7 @@ def on_ui_tabs():
         )
         
         ver_finish.change(
-            fn=_file.finish_ver_search,
+            fn=_file.scan_finish,
             outputs=[
                 ver_search,
                 save_all_tags,
@@ -640,7 +640,7 @@ def on_ui_tabs():
         )
         
         load_installed.click(
-            fn=_file.start_installed_models,
+            fn=_file.installed_models_start,
             inputs=[installed_start],
             outputs=[
                 installed_start,
@@ -670,7 +670,7 @@ def on_ui_tabs():
         )
         
         installed_finish.change(
-            fn=_file.finish_installed_models,
+            fn=_file.scan_finish,
             outputs=[
                 ver_search,
                 save_all_tags,

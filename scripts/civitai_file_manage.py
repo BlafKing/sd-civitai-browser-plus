@@ -361,11 +361,14 @@ def model_from_sent(model_name, content_type, click_first_item):
                 if file.startswith(model_name) and not file.endswith(".json"):
                     model_file = os.path.join(folder_path, file)
     
+    offlineHTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or the selected model could not be found.</div>'
     
     modelID = get_models(model_file)
+    if modelID == "offline":
+        HTML = offlineHTML
     gl.json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, f"civitai.com/models/{modelID}")
     if gl.json_data == "timeout":
-        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or the selected model could not be found.</div>'
+        HTML = offlineHTML
         number = click_first_item
     if gl.json_data != None and gl.json_data != "timeout":
         model_dict = {}
@@ -397,13 +400,17 @@ def is_image_url(url):
     return any(path.endswith(ext) for ext in image_extensions)
 
 def clean_description(desc):
-    soup = BeautifulSoup(desc, 'html.parser')
-    for a in soup.find_all('a', href=True):
-        link_text = a.text + ' ' + a['href']
-        if not is_image_url(a['href']):
-            a.replace_with(link_text)
+    try:
+        soup = BeautifulSoup(desc, 'html.parser')
+        for a in soup.find_all('a', href=True):
+            link_text = a.text + ' ' + a['href']
+            if not is_image_url(a['href']):
+                a.replace_with(link_text)
 
-    cleaned_text = soup.get_text()
+        cleaned_text = soup.get_text()
+    except ImportError:
+        print(f"{gl.print} Python module 'BeautifulSoup' was not imported correctly, cannot clean description. Please try to restart or install it manually.")
+        cleaned_text = desc
     return cleaned_text
 
 def save_model_info(install_path, file_name, sha256=None, overwrite_toggle=False, api_response=None):
@@ -557,6 +564,10 @@ def get_models(file_path):
         return modelId
     except requests.exceptions.Timeout:
         print(f"{gl.print} Request timed out for {file_path}. Skipping...")
+        return "offline"
+    except requests.exceptions.ConnectionError:
+        print("Failed to connect to the API. The CivitAI servers might be offline.")
+        return "offline"
     except Exception as e:
         print(f"{gl.print} An error occurred for {file_path}: {str(e)}")
 
@@ -737,20 +748,30 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         url_done = 0
         for url in url_list:
             while url:
-                if progress != None:
-                    progress(url_done / url_count, desc=f"Sending API request... {url_done}/{url_count}")
-                response = requests.get(url, timeout=(10,30))
-                if response.status_code == 200:
-                    api_response = response.json()
+                try:
+                    if progress is not None:
+                        progress(url_done / url_count, desc=f"Sending API request... {url_done}/{url_count}")
+                    response = requests.get(url, timeout=(10, 30))
+                    if response.status_code == 200:
+                        api_response = response.json()
 
-                    all_items.extend(api_response['items'])
-                    metadata = api_response.get('metadata', {})
-                    url = metadata.get('nextPage', None)
-                else:
-                    print(f"{gl.print} Error: Received status code {response.status_code} with URL:")
-                    print(url)
-                url_done += 1
-                
+                        all_items.extend(api_response['items'])
+                        metadata = api_response.get('metadata', {})
+                        url = metadata.get('nextPage', None)
+                    else:
+                        print(f"Error: Received status code {response.status_code} with URL: {url}")
+                        url = None
+                    url_done += 1
+                except requests.exceptions.Timeout:
+                    print(f"Request timed out for {url}. Skipping...")
+                    url = None
+                except requests.exceptions.ConnectionError:
+                    print("Failed to connect to the API. The servers might be offline.")
+                    url = None
+                except Exception as e:
+                    print(f"An unexpected error occurred: {e}")
+                    url = None
+
         api_response['items'] = all_items
         
     if progress != None:
@@ -784,19 +805,39 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     base_url = "https://civitai.com/api/v1/models?limit=100"
     gl.url_list_with_numbers = {i+1: f"{base_url}{''.join(chunk)}" for i, chunk in enumerate(model_chunks)}
 
+    url_error = False
     api_url = gl.url_list_with_numbers.get(1)
     response = requests.get(api_url, timeout=(10,30))
-    if response.status_code == 200:
-        response.encoding = "utf-8"
-        gl.ver_json = json.loads(response.text)
+    try:
+        if response.status_code == 200:
+            response.encoding = "utf-8"
+            gl.ver_json = json.loads(response.text)
+            
+            highest_number = max(gl.url_list_with_numbers.keys())
+            gl.ver_json["metadata"]["totalPages"] = highest_number
+            
+            if highest_number > 1:
+                gl.ver_json["metadata"]["nextPage"] = gl.url_list_with_numbers.get(2)
+        else:
+            print(f"Error: Received status code {response.status_code} for URL: {url}")
+            url_error = True
+    except requests.exceptions.Timeout:
+        print(f"Request timed out for {url}. Skipping...")
+        url_error = True
+    except requests.exceptions.ConnectionError:
+        print("Failed to connect to the API. The servers might be offline.")
+        url_error = True
+    except Exception as e:  
+        print(f"An unexpected error occurred: {e}")
+        url_error = True
         
-        highest_number = max(gl.url_list_with_numbers.keys())
-        gl.ver_json["metadata"]["totalPages"] = highest_number
-        
-        if highest_number > 1:
-            gl.ver_json["metadata"]["nextPage"] = gl.url_list_with_numbers.get(2)
-    
-    if from_ver:
+    if url_error:
+        gl.scan_files = False
+        return  (
+                gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'),
+                gr.Textbox.update(value=number)
+            )
+    elif from_ver:
         gl.scan_files = False
         return  (
                 gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">Outdated models have been found.<br>Please press the button above to load the models into the browser tab</div>'),
@@ -816,6 +857,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             save_model_info(install_path, file_name, api_response=api_response, overwrite_toggle=overwrite_toggle)
         if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
+        gl.scan_files = False
         time.sleep(2)
         return  (
                 gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
@@ -832,6 +874,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                 progress(completed_preview / preview_count, desc=f"Saving preview images... {completed_preview}/{preview_count} | {name}")
             save_preview(file, api_response, overwrite_toggle)
             completed_preview += 1
+        gl.scan_files = False
         return  (
                 gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                 gr.Textbox.update(value=number)
@@ -841,6 +884,48 @@ def save_tag_start(tag_start):
     global from_tag, from_ver, from_installed, from_preview
     from_tag, from_ver, from_installed, from_preview = True, False, False, False
     number = _download.random_number(tag_start)
+    return (
+        gr.Textbox.update(value=number),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
+    )
+    
+def save_preview_start(preview_start):
+    global from_tag, from_ver, from_installed, from_preview
+    from_preview, from_tag, from_ver, from_installed = True, False, False, False
+    number = _download.random_number(preview_start)
+    return (
+        gr.Textbox.update(value=number),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
+    )
+
+def installed_models_start(installed_start):
+    global from_installed, from_ver, from_tag, from_preview
+    from_installed, from_ver, from_tag, from_preview = True, False, False, False
+    number = _download.random_number(installed_start)
+    return (
+        gr.Textbox.update(value=number),
+        gr.Button.update(interactive=False, visible=False),
+        gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=True),
+        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
+    )
+
+def ver_search_start(ver_start):
+    global from_ver, from_tag, from_installed, from_preview
+    from_ver, from_tag, from_installed, from_preview = True, False, False, False
+    number = _download.random_number(ver_start)
     return (
         gr.Textbox.update(value=number),
         gr.Button.update(interactive=False, visible=False),
@@ -861,20 +946,6 @@ def save_tag_finish():
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False)
     )
-    
-def save_preview_start(preview_start):
-    global from_tag, from_ver, from_installed, from_preview
-    from_preview, from_tag, from_ver, from_installed = True, False, False, False
-    number = _download.random_number(preview_start)
-    return (
-        gr.Textbox.update(value=number),
-        gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=True, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
-    )
 
 def save_preview_finish():
     global from_preview
@@ -886,22 +957,8 @@ def save_preview_finish():
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=False, visible=False)
     )
-    
-def start_ver_search(ver_start):
-    global from_ver, from_tag, from_installed, from_preview
-    from_ver, from_tag, from_installed, from_preview = True, False, False, False
-    number = _download.random_number(ver_start)
-    return (
-        gr.Textbox.update(value=number),
-        gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=True, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
-    )
 
-def finish_ver_search():
+def scan_finish():
     return (
         gr.Button.update(interactive=no_update, visible=no_update),
         gr.Button.update(interactive=no_update, visible=no_update),
@@ -909,30 +966,6 @@ def finish_ver_search():
         gr.Button.update(interactive=no_update, visible=no_update),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=not no_update, visible=not no_update)
-    )
-
-def start_installed_models(installed_start):
-    global from_installed, from_ver, from_tag, from_preview
-    from_installed, from_ver, from_tag, from_preview = True, False, False, False
-    number = _download.random_number(installed_start)
-    return (
-        gr.Textbox.update(value=number),
-        gr.Button.update(interactive=False, visible=False),
-        gr.Button.update(interactive=True, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.Button.update(interactive=False, visible=True),
-        gr.HTML.update(value='<div style="min-height: 100px;"></div>')
-    )
-    
-def finish_installed_models():
-    return (
-        gr.Button.update(interactive= no_update, visible= no_update),
-        gr.Button.update(interactive= no_update, visible= no_update),
-        gr.Button.update(interactive= no_update, visible= no_update),
-        gr.Button.update(interactive= no_update, visible= no_update),
-        gr.Button.update(interactive= False, visible=False),
-        gr.Button.update(interactive= not no_update, visible= not no_update)
     )
 
 def load_to_browser():

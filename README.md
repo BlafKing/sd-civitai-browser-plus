@@ -18,6 +18,7 @@
 <h3>Download any Model, any version, and any file 📥</h3>
 
 * Get the specific model version and file you need hassle-free.
+* Download queue to avoid waiting for finished downloads.
 
 <h3>Automatically assign tags to installed models 🏷️</h3>
 
@@ -26,6 +27,7 @@
 <h3>Quick Model Info Access 📊</h3>
 
 * A button for each model card in txt2img and img2img to load it into the extension.
+* A button under each image in model info to send it's generation info to txt2img.
 
 <h3>High-speed downloads with Aria2 🚄</h3>
 
@@ -95,6 +97,14 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.1.1</h3>
+
+* Bug fix: Early Access models now get correctly hidden/detected.
+* Bug fix: Better timeout/offline server detection for options in "Update Models" tab.
+* Bug fix: Better error detection if required packages were not installed/imported.
+* Bug fix: Download button displays as "Add to queue" during active download.
+
+---
 <h3>v3.1.0</h3>
 
 * Feature: Send to txt2img, Send any image in the model info to txt2img.

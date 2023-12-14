@@ -242,7 +242,7 @@ def download_finish(model_filename, version, model_name):
     gl.cancel_status = False
     
     return  (
-            gr.Button.update(interactive=model_filename, visible=Down), # Download Button
+            gr.Button.update(interactive=model_filename, visible=Down, value="Download model"), # Download Button
             gr.Button.update(interactive=False, visible=False), # Cancel Button
             gr.Button.update(interactive=False, visible=False), # Cancel All Button
             gr.Button.update(interactive=Del, visible=Del), # Delete Button
@@ -270,7 +270,7 @@ def download_cancel_all():
     
     item = gl.download_queue[0]
     
-    while True:        
+    while True:
         if not gl.isDownloading:
             _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
             gl.download_queue = []
@@ -604,6 +604,8 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
                         
                         print(f"{gl.print} Successfully extracted {item['model_filename']} to {directory}")
                         os.remove(path_to_new_file)
+                except ImportError:
+                    print(f"{gl.print} Python module 'ZipUnicode' has not been imported correctly, cannot extract zip file. Please try to restart or install it manually.")
                 except Exception as e:
                     print(f"{gl.print} Failed to extract {item['model_filename']} with error: {e}")
             if not gl.cancel_status:

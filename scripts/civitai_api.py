@@ -226,9 +226,7 @@ def model_list_html(json_data, model_dict):
                 continue
             if hide_early_access:
                 early_access_days = version['earlyAccessTimeFrame']
-                if not early_access_days == 0:
-                    continue
-                else:
+                if early_access_days != 0:
                     published_at = datetime.datetime.strptime(version['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
                     adjusted_date = published_at + datetime.timedelta(days=early_access_days)
                     if not current_time > adjusted_date:
@@ -915,7 +913,9 @@ def update_model_info(model_name=None, model_version=None):
             item = gl.download_queue[0]
             if model_name == item['model_name']:
                 BtnDel = False
+        BtnDownTxt = "Download model"
         if len(gl.download_queue) > 0:
+            BtnDownTxt = "Add to queue"
             for item in gl.download_queue:
                 if item['version_name'] == model_version:
                     BtnDownInt = False
@@ -925,7 +925,7 @@ def update_model_info(model_name=None, model_version=None):
                 gr.HTML.update(value=output_html), # Preview HTML 
                 gr.Textbox.update(value=output_training, interactive=True), # Trained Tags
                 gr.Textbox.update(value=output_basemodel), # Base Model Number
-                gr.Button.update(visible=False if BtnDel else True, interactive=BtnDownInt), # Download Button
+                gr.Button.update(visible=False if BtnDel else True, interactive=BtnDownInt, value=BtnDownTxt), # Download Button
                 gr.Button.update(interactive=BtnImage), # Images Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
                 gr.Dropdown.update(choices=file_list, value=default_file, interactive=True), # File List
@@ -941,7 +941,7 @@ def update_model_info(model_name=None, model_version=None):
                 gr.HTML.update(value=None), # Preview HTML
                 gr.Textbox.update(value=None, interactive=False), # Trained Tags
                 gr.Textbox.update(value=''), # Base Model Number
-                gr.Button.update(visible=False if BtnDel else True), # Download Button
+                gr.Button.update(visible=False if BtnDel else True, value="Download model"), # Download Button
                 gr.Button.update(interactive=False), # Images Button
                 gr.Button.update(visible=BtnDel, interactive=BtnDel), # Delete Button
                 gr.Dropdown.update(choices=None, value=None, interactive=False), # File List
@@ -1027,7 +1027,9 @@ def update_file_info(model_name, model_version, file_metadata):
                                 relative_path = os.path.relpath(folder_location, model_folder)
                                 default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if installed == False else "None"
                                 BtnDownInt = not installed
+                                BtnDownTxt = "Download model"
                                 if len(gl.download_queue) > 0:
+                                    BtnDownTxt = "Add to queue"
                                     for item in gl.download_queue:
                                         if item['version_name'] == model_version:
                                             BtnDownInt = False
@@ -1038,7 +1040,7 @@ def update_file_info(model_name, model_version, file_metadata):
                                         gr.Textbox.update(value=dl_url), # Download URL Textbox
                                         gr.Textbox.update(value=model_id), # Model ID Textbox
                                         gr.Textbox.update(value=sha256), # sha256 textbox
-                                        gr.Button.update(interactive=BtnDownInt, visible=False if installed else True), # Download Button
+                                        gr.Button.update(interactive=BtnDownInt, visible=False if installed else True, value=BtnDownTxt), # Download Button
                                         gr.Button.update(interactive=True if installed else False, visible=True if installed else False),  # Delete Button
                                         gr.Textbox.update(interactive=True, value=folder_path if model_name else None), # Install Path
                                         gr.Dropdown.update(value=default_subfolder, interactive=True) # Sub Folder List
@@ -1058,8 +1060,12 @@ def request_civit_api(api_url=None):
     api_key = getattr(opts, "custom_api_key", "")
     if not api_key:
         api_key = "eaee11648ef4c72efb2333d5ebc68b98"
+    try:
+        user_agent = UserAgent().chrome
+    except ImportError:
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
     headers = {
-        'User-Agent': UserAgent().chrome,
+        'User-Agent': user_agent,
         'Sec-Ch-Ua': '"Brave";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
         'Sec-Ch-Ua-Mobile': '?0',
         'Sec-Ch-Ua-Platform': '"Windows"',

@@ -252,8 +252,9 @@
     top: 10px; 
     right: 10px;
     width: 20px;
+    min-width: 20px;
     height: 20px;
-    background: var(--checkbox-background-color);
+    background: #111B;
     border-radius: var(--checkbox-border-radius);
     border: 1px solid #bbbbbb;
     cursor: pointer;
