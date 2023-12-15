@@ -71,7 +71,8 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
             folder = folder = os.path.join(main_models, "Lora")
         
     elif content_type == "LoCon":
-        folder = os.path.join(main_models, "LyCORIS")
+        #Starting from stable-diffusion-webui version 1.5.0 - version 1.6.1, the lycoris extension is no longer required, All its features have been integrated into the original LoRA extension, LyCORIS models can now be used as if there were regular LoRA models.
+        folder = os.path.join(main_models, "Lora")
         if use_LORA and not fromCheck:
             if cmd_opts.lora_dir and not custom_folder:
                 folder = cmd_opts.lora_dir
