@@ -152,6 +152,7 @@ def selected_to_queue(model_list, download_start, create_json):
             if item['name'] == model_name:
                 model_id, desc, content_type = item['id'], item['description'], item['type']
                 version = item['modelVersions'][0]
+                version_name = version['name']
                 model_filename = _api.cleaned_name(version['files'][0]['name'])
                 model_sha256 = version['files'][0]['hashes']['SHA256']
                 dl_url = version['files'][0]['downloadUrl']
