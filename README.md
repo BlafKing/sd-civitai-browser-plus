@@ -95,7 +95,7 @@ These settings can be found under the "Settings" tab in Web-UI and then under th
 https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854-4043-bfbb-f32fa9df5a74
 
 
-# Star History
+# Star History 🌟
 
 <a href="https://star-history.com/#BlafKing/sd-civitai-browser-plus&Date">
   <picture>
