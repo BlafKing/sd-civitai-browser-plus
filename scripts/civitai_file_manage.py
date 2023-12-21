@@ -29,6 +29,7 @@ except:
 
 gl.init()
 
+offlineHTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or the selected model could not be found.</div>'
 css_path = Path(__file__).resolve().parents[1] / "style_html.css"
 no_update = False
 from_ver = False
@@ -179,7 +180,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                                     img_file.write(response.content)
                                 print(f"{gl.print} Preview saved at \"{image_path}\"")
                             else:
-                                print(f"{gl.print} Failed to preview. Status code: {response.status_code}")
+                                print(f"{gl.print} Failed to save preview. Status code: {response.status_code}")
 
                             return
                     print(f"{gl.print} No preview images found for \"{name}\"")
@@ -343,7 +344,7 @@ def gen_sha256(file_path):
     
     return hash_value
 
-def model_from_sent(model_name, content_type, click_first_item):
+def model_from_sent(model_name, content_type, click_first_item, tile_count):
     model_name = re.sub(r'\.\d{3}$', '', model_name)
     content_type = re.sub(r'\.\d{3}$', '', content_type)
     content_mapping = {
@@ -361,12 +362,10 @@ def model_from_sent(model_name, content_type, click_first_item):
                 if file.startswith(model_name) and not file.endswith(".json"):
                     model_file = os.path.join(folder_path, file)
     
-    offlineHTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or the selected model could not be found.</div>'
-    
     modelID = get_models(model_file)
     if modelID == "offline":
         HTML = offlineHTML
-    gl.json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, f"civitai.com/models/{modelID}")
+    gl.json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
     if gl.json_data == "timeout":
         HTML = offlineHTML
         number = click_first_item
@@ -507,7 +506,7 @@ def find_and_save(api_response, sha256, file_name, json_file, no_hash, overwrite
     
     return "not found"
 
-def get_models(file_path):
+def get_models(file_path, skip_hash=None):
     modelId = None
     sha256 = None
     json_file = os.path.splitext(file_path)[0] + ".json"
@@ -525,8 +524,14 @@ def get_models(file_path):
             print(f"{gl.print} Failed to open {json_file}: {e}")
     
     if not modelId or not sha256:
-        sha256 = gen_sha256(file_path)
-        by_hash = f"https://civitai.com/api/v1/model-versions/by-hash/{sha256}"
+        if not skip_hash:
+            sha256 = gen_sha256(file_path)
+            by_hash = f"https://civitai.com/api/v1/model-versions/by-hash/{sha256}"
+        else:
+            if modelId:
+                return modelId
+            else:
+                return None
     
     try:
         if not modelId:
@@ -538,16 +543,16 @@ def get_models(file_path):
                     return None
                 else:
                     modelId = api_response.get("modelId", "")
-        if not modelId or not sha256:
+            elif response.status_code == 503:
+                return "offline"
+            
             if os.path.exists(json_file):
                 try:
                     with open(json_file, 'r') as f:
                         data = json.load(f)
 
-                    if 'modelId' not in data:
-                        data['modelId'] = modelId
-                    if 'sha256' not in data:
-                        data['sha256'] = sha256.upper()
+                    data['modelId'] = modelId
+                    data['sha256'] = sha256.upper()
                         
                     with open(json_file, 'w') as f:
                         json.dump(data, f, indent=4)
@@ -631,7 +636,7 @@ def get_content_choices(scan_choices=False):
         return content_list
     return content_list
     
-def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, progress=gr.Progress() if queue else None):
+def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, skip_hash, progress=gr.Progress() if queue else None):
     global from_ver, from_installed, no_update
     update_log = getattr(opts, "update_log", True)
     gl.scan_files = True
@@ -722,7 +727,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         file_name = os.path.basename(file_path)
         if progress != None:
             progress(files_done / total_files, desc=f"Processing file: {file_name}")
-        model_id = get_models(file_path)
+        model_id = get_models(file_path, skip_hash)
         if model_id != None:
             all_model_ids.append(f"&ids={model_id}")
             file_paths.append(file_path)
@@ -758,6 +763,11 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                         all_items.extend(api_response['items'])
                         metadata = api_response.get('metadata', {})
                         url = metadata.get('nextPage', None)
+                    elif response.status_code == 503:
+                        return  (
+                            gr.HTML.update(value=offlineHTML),
+                            gr.Textbox.update(value=number)
+                        )
                     else:
                         print(f"Error: Received status code {response.status_code} with URL: {url}")
                         url = None
@@ -771,7 +781,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                 except Exception as e:
                     print(f"An unexpected error occurred: {e}")
                     url = None
-
+        
         api_response['items'] = all_items
         
     if progress != None:
@@ -800,7 +810,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                     gr.Textbox.update(value=number)
                 )
     
-    model_chunks = list(chunks(all_model_ids, gl.tile_count))
+    model_chunks = list(chunks(all_model_ids, tile_count))
 
     base_url = "https://civitai.com/api/v1/models?limit=100"
     gl.url_list_with_numbers = {i+1: f"{base_url}{''.join(chunk)}" for i, chunk in enumerate(model_chunks)}
@@ -834,7 +844,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     if url_error:
         gl.scan_files = False
         return  (
-                gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'),
+                gr.HTML.update(value=offlineHTML),
                 gr.Textbox.update(value=number)
             )
     elif from_ver:
@@ -968,12 +978,12 @@ def scan_finish():
         gr.Button.update(interactive=not no_update, visible=not no_update)
     )
 
-def load_to_browser():
+def load_to_browser(tile_count):
     global from_ver, from_installed
     if from_ver:
-        model_list_return = _api.update_model_list(from_ver=True)
+        model_list_return = _api.update_model_list(from_ver=True, tile_count=tile_count)
     if from_installed:
-        model_list_return = _api.update_model_list(from_installed=True)
+        model_list_return = _api.update_model_list(from_installed=True, tile_count=tile_count)
     
     gl.file_scan = True
     from_ver, from_installed = False, False

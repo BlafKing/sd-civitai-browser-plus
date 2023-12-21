@@ -1,5 +1,6 @@
+from click import launch
 import gradio as gr
-from modules import script_callbacks, shared
+from modules import script_callbacks, shared, launch_utils
 import os
 import json
 import fnmatch
@@ -11,6 +12,14 @@ import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
 import scripts.civitai_api as _api
 
+try:
+    from packaging import version
+    ver = launch_utils.git_tag()
+    ver_bool = version.parse(ver[1:]) >= version.parse("1.5")
+except:
+    print(f"{gl.print} Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
+    ver_bool = False
+    
 gl.init()
 
 def saveSettings(ust, ct, pt, st, bf, cj, td, ol, hi, sn, ss, ts):
@@ -34,7 +43,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, hi, sn, ss, ts):
     
     # Load the current contents of the config file into a dictionary
     try:
-        with open(config, 'r') as file:
+        with open(config, "r", encoding="utf8") as file:
             data = json.load(file)
     except:
         print(f"{gl.print} Cannot save settings, failed to open \"{file}\"")
@@ -131,7 +140,7 @@ def on_ui_tabs():
                         base_filter = gr.Dropdown(label='Base model:', multiselect=True, choices=["SD 1.4", "SD 1.5", "SD 1.5 LCM", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", "SDXL 0.9", "SDXL 1.0", "SDXL 1.0 LCM", "SDXL Distilled", "SDXL Turbo", "SVD", "SVD XT", "Other"], value=None, type="value", elem_id="centerText")
                     with gr.Row():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
-                        sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked"], value="Most Downloaded", type="value", elem_id="centerText")
+                        sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked", "Most Buzz","Most Discussed","Most Collected","Most Images"], value="Most Downloaded", type="value", elem_id="centerText")
                     with gr.Row(elem_id=component_id):
                         create_json = gr.Checkbox(label=f"Save info after download", value=True, elem_id=toggle1, min_width=171)
                         show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle2, min_width=107)
@@ -140,7 +149,7 @@ def on_ui_tabs():
                         hide_installed = gr.Checkbox(label="Hide installed models", value=False, elem_id=toggle5, min_width=170)
                     with gr.Row():
                         size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
-                        tile_slider = gr.Slider(label="Tile count:", minimum=1, maximum=100, value=15, step=1, max_width=100)
+                        tile_count_slider = gr.Slider(label="Tile count:", minimum=1, maximum=100, value=15, step=1, max_width=100)
                     with gr.Row(elem_id="save_set_box"):
                         save_settings = gr.Button(value="Save settings as default", elem_id="save_set_btn")
                 search_term = gr.Textbox(label="", placeholder="Search CivitAI", elem_id="searchBox")
@@ -192,6 +201,8 @@ def on_ui_tabs():
             with gr.Row():
                 overwrite_toggle = gr.Checkbox(elem_id="overwrite_toggle", label="Overwrite any existing previews, tags or descriptions.", value=True)
             with gr.Row():
+                skip_hash_toggle = gr.Checkbox(elem_id="skip_hash_toggle", label="One-Time Hash Generation for externally downloaded models.", value=True)
+            with gr.Row():
                 save_all_tags = gr.Button(value="Update model info & tags", interactive=True, visible=True)
                 cancel_all_tags = gr.Button(value="Cancel updating model info & tags", interactive=False, visible=False)
             with gr.Row():
@@ -241,9 +252,6 @@ def on_ui_tabs():
         
         def ToggleDate(toggle_date):
             gl.sortNewest = toggle_date
-        
-        def update_tile_count(slider_value):
-            gl.tile_count = slider_value
         
         def select_subfolder(sub_folder):
             if sub_folder == "None":
@@ -299,19 +307,13 @@ def on_ui_tabs():
                 hide_installed,
                 show_nsfw,
                 size_slider,
-                tile_slider
+                tile_count_slider
             ]
         )
         
         toggle_date.input(
             fn=ToggleDate,
             inputs=[toggle_date]
-        )
-        
-        tile_slider.release(
-            fn=update_tile_count,
-            inputs=[tile_slider],
-            outputs=[]
         )
         
         # Model Button Functions #
@@ -353,7 +355,7 @@ def on_ui_tabs():
             
         model_sent.change(
             fn=_file.model_from_sent,
-            inputs=[model_sent, type_sent, click_first_item],
+            inputs=[model_sent, type_sent, click_first_item, tile_count_slider],
             outputs=[list_html, get_prev_page , get_next_page, page_slider, click_first_item]
         )
         
@@ -451,27 +453,18 @@ def on_ui_tabs():
             ]
         )
         
-        download_start.change(
-            fn=_download.download_create_thread,
-            inputs=[download_finish, queue_trigger],
-            outputs=[
-                download_progress,
-                current_model,
-                download_finish,
-                queue_trigger
-            ]
-        )
         
-        queue_trigger.change(
-            fn=_download.download_create_thread,
-            inputs=[download_finish, queue_trigger],
-            outputs=[
-                download_progress,
-                current_model,
-                download_finish,
-                queue_trigger
-            ]
-        )
+        for component in [download_start, queue_trigger]:
+            component.change(
+                fn=_download.download_create_thread,
+                inputs=[download_finish, queue_trigger],
+                outputs=[
+                    download_progress,
+                    current_model,
+                    download_finish,
+                    queue_trigger
+                ]
+            )
 
         download_finish.change(
             fn=_download.download_finish,
@@ -546,7 +539,8 @@ def on_ui_tabs():
             page_slider,
             base_filter,
             only_liked,
-            show_nsfw
+            show_nsfw,
+            tile_count_slider
         ]
         
         page_outputs = [
@@ -567,6 +561,17 @@ def on_ui_tabs():
             trained_tags,
             base_model,
             model_filename
+        ]
+
+        file_scan_inputs = [
+            selected_tags,
+            ver_finish,
+            tag_finish,
+            installed_finish,
+            preview_finish,
+            overwrite_toggle,
+            tile_count_slider,
+            skip_hash_toggle
         ]
 
         cancel_btn_list = [cancel_all_tags,cancel_ver_search,cancel_installed,cancel_update_preview]
@@ -613,14 +618,7 @@ def on_ui_tabs():
         
         ver_start.change(
             fn=_file.file_scan,
-            inputs=[
-                selected_tags,
-                ver_finish,
-                tag_finish,
-                installed_finish,
-                preview_finish,
-                overwrite_toggle
-                ],
+            inputs=file_scan_inputs,
             outputs=[
                 version_progress,
                 ver_finish
@@ -655,14 +653,7 @@ def on_ui_tabs():
         
         installed_start.change(
             fn=_file.file_scan,
-            inputs=[
-                selected_tags,
-                ver_finish,
-                tag_finish,
-                installed_finish,
-                preview_finish,
-                overwrite_toggle
-                ],
+            inputs=file_scan_inputs,
             outputs=[
                 installed_progress,
                 installed_finish
@@ -697,14 +688,7 @@ def on_ui_tabs():
         
         tag_start.change(
             fn=_file.file_scan,
-            inputs=[
-                selected_tags,
-                ver_finish,
-                tag_finish,
-                installed_finish,
-                preview_finish,
-                overwrite_toggle
-                ],
+            inputs=file_scan_inputs,
             outputs=[
                 tag_progress,
                 tag_finish
@@ -738,14 +722,7 @@ def on_ui_tabs():
         
         preview_start.change(
             fn=_file.file_scan,
-            inputs=[
-                selected_tags,
-                ver_finish,
-                tag_finish,
-                installed_finish,
-                preview_finish,
-                overwrite_toggle
-                ],
+            inputs=file_scan_inputs,
             outputs=[
                 preview_progress,
                 preview_finish
@@ -765,11 +742,13 @@ def on_ui_tabs():
         
         load_to_browser_installed.click(
             fn=_file.load_to_browser,
+            inputs=tile_count_slider,
             outputs=browser_installed_list
         )
         
         load_to_browser.click(
             fn=_file.load_to_browser,
+            inputs=tile_count_slider,
             outputs=browser_list
         )
 
@@ -810,30 +789,40 @@ def make_lambda(folder, desc):
     return lambda: {"choices": subfolder_list(folder, desc)}
 
 def on_ui_settings():
-    section = ("civitai_browser_plus", "CivitAI Browser+")
-
+    if ver_bool:
+        browser = ("civitai_browser", "Browser")
+        download = ("civitai_browser_download", "Downloads")
+        from modules.options import categories
+        categories.register_category("civitai_browser_plus", "CivitAI Browser+")
+        cat_id = "civitai_browser_plus"
+    else:
+        section = ("civitai_browser_plus", "CivitAI Browser+")
+        browser = download = default_sub = section
     if not (hasattr(shared.OptionInfo, "info") and callable(getattr(shared.OptionInfo, "info"))):
         def info(self, info):
             self.label += f" ({info})"
             return self
         shared.OptionInfo.info = info
     
-    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=section).info("Disable this option if you're experiencing any issues with downloads."))
-    shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=section).info("Useful for users who use PortMaster or other software that controls the DNS"))
-    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in console", section=section).info("Requires UI reload"))
-    shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=section).info("Only applies to Aria2"))
-    shared.opts.add_option("aria2_flags", shared.OptionInfo(r"", "Custom Aria2 command line flags", section=section).info("Requires UI reload"))
-    shared.opts.add_option("insert_sub", shared.OptionInfo(True, f"Insert [{os.sep}Author Name] &  [{os.sep}Model Name] & [{os.sep}Model Name{os.sep}Version Name] as sub folder options", section=section))
-    shared.opts.add_option("dot_subfolders", shared.OptionInfo(True, "Hide sub-folders that start with a .", section=section))
-    shared.opts.add_option("use_LORA", shared.OptionInfo(False, "Treat LoCon's as LORA's", section=section).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload"))
-    shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip files after downloading", section=section))
-    shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=section).info("Early access models are only downloadable for supporter tier members, Requires API key"))
-    shared.opts.add_option("custom_api_key", shared.OptionInfo(r"", "Personal CivitAI API key", section=section).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
-    shared.opts.add_option("page_header", shared.OptionInfo(False, "Page navigation as header", section=section).info("Keeps the page navigation always visible at the top, Requires UI reload"))
-    shared.opts.add_option("update_log", shared.OptionInfo(True, 'Show console logs during update scanning', section=section).info('Shows the "is currently outdated" messages in the console when scanning models for available updates"'))
-    shared.opts.add_option("video_playback", shared.OptionInfo(True, 'Enable gif/video playback in the browser', section=section).info("Disable this option if you're experiencing high CPU usage during video/gif playback"))
-    shared.opts.add_option("image_location", shared.OptionInfo(r"", "Custom save images location", section=section).info("Overrides the download folder location when saving images."))
-    shared.opts.add_option("sub_image_location", shared.OptionInfo(True, 'Use sub folders inside custom images location', section=section).info("Will append any content type and sub folders to the custom path."))
+    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Disable this option if you're experiencing any issues with downloads."))
+    shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Useful for users who use PortMaster or other software that controls the DNS"))
+    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in console", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Requires UI reload"))
+    shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=download, **({'category_id': cat_id} if ver_bool else {})).info("Only applies to Aria2"))
+    shared.opts.add_option("aria2_flags", shared.OptionInfo(r"", "Custom Aria2 command line flags", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Requires UI reload"))
+    shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip files after downloading", section=download, **({'category_id': cat_id} if ver_bool else {})))
+    
+    shared.opts.add_option("custom_api_key", shared.OptionInfo(r"", "Personal CivitAI API key", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
+    shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Early access models are only downloadable for supporter tier members"))
+    shared.opts.add_option("use_LORA", shared.OptionInfo(ver_bool, "Treat LoCon's as LORA's", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload"))
+    shared.opts.add_option("insert_sub", shared.OptionInfo(True, f"Insert [{os.sep}Author Name] &  [{os.sep}Model Name] & [{os.sep}Model Name{os.sep}Version Name] as sub folder options", section=browser, **({'category_id': cat_id} if ver_bool else {})))
+    shared.opts.add_option("dot_subfolders", shared.OptionInfo(True, "Hide sub-folders that start with a '.'", section=browser, **({'category_id': cat_id} if ver_bool else {})))
+    shared.opts.add_option("page_header", shared.OptionInfo(False, "Page navigation as header", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Keeps the page navigation always visible at the top, Requires UI reload"))
+    shared.opts.add_option("video_playback", shared.OptionInfo(True, 'Enable gif/video playback in the browser', section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Disable this option if you're experiencing high CPU usage during video/gif playback"))
+    shared.opts.add_option("update_log", shared.OptionInfo(True, 'Show console logs during update scanning', section=browser, **({'category_id': cat_id} if ver_bool else {})).info('Shows the "is currently outdated" messages in the console when scanning models for available updates"'))
+    shared.opts.add_option("image_location", shared.OptionInfo(r"", "Custom save images location", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Overrides the download folder location when saving images."))
+    shared.opts.add_option("sub_image_location", shared.OptionInfo(True, 'Use sub folders inside custom images location', section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Will append any content type and sub folders to the custom path."))
+    
+    
     use_LORA = getattr(opts, "use_LORA", False)
     
     # Default sub folders
@@ -874,7 +863,7 @@ def on_ui_settings():
             folder = "LORA"
             setting_name = "LORA_LoCon"
         
-        shared.opts.add_option(f"{setting_name}_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=section))
+        shared.opts.add_option(f"{setting_name}_subfolder", shared.OptionInfo("None", folder_name, gr.Dropdown, make_lambda(folder, desc), section=download, **({'category_id': cat_id} if ver_bool else {})))
     
 script_callbacks.on_ui_tabs(on_ui_tabs)
 script_callbacks.on_ui_settings(on_ui_settings)

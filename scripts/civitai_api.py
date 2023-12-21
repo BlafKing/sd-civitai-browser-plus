@@ -136,14 +136,14 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
     
     return folder
 
-def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term=None, nsfw=None, timeOut=None, isNext=None):
+def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, tile_count, search_term=None, nsfw=None, timeOut=None, isNext=None, inputs_changed=None):
     if current_page in [0, None, ""]:
         current_page = 1
-    if gl.inputs_changed:
+    if inputs_changed:
         gl.file_scan = False
-        api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page=1"
+        api_url = f"https://civitai.com/api/v1/models?limit={tile_count}&page=1"
     else:
-        api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={current_page}"
+        api_url = f"https://civitai.com/api/v1/models?limit={tile_count}&page={current_page}"
     
     if timeOut:
         if isNext:
@@ -151,7 +151,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
         else:
             if current_page not in [1, 0, None, ""]:
                 next_page = str(int(current_page) - 1)
-        api_url = f"https://civitai.com/api/v1/models?limit={gl.tile_count}&page={next_page}"
+        api_url = f"https://civitai.com/api/v1/models?limit={tile_count}&page={next_page}"
     
     if period_type:
         period_type = period_type.replace(" ", "")
@@ -347,10 +347,10 @@ def model_list_html(json_data, model_dict):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw):
-    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, isNext=False)
+def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count):
+    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count, isNext=False)
 
-def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, isNext=True):
+def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count, isNext=True):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -368,17 +368,17 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
         
         return return_values
     
-    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter, nsfw)
+    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
     if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
-        gl.inputs_changed = True
+        inputs_changed = True
     else:
-        gl.inputs_changed = False
+        inputs_changed = False
     
     gl.previous_inputs = current_inputs
 
     if not gl.file_scan:
-        if gl.inputs_changed:
-            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw)
+        if inputs_changed:
+            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count)
             return return_values
     
         if isNext:
@@ -480,7 +480,7 @@ def pagecontrol(json_data):
         hasPrev = True
     return hasPrev, hasNext, current_page, total_pages
 
-def update_model_list(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, timeOut=None, isNext=None, from_ver=False, from_installed=False):
+def update_model_list(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, tile_count=None, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     use_LORA = getattr(opts, "use_LORA", False)
     
     if content_type:
@@ -493,18 +493,18 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             
     if not from_ver and not from_installed:
         gl.ver_json = None
-        if not not gl.file_scan:
+        if not gl.file_scan:
         
-            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, gl.tile_count, base_filter, nsfw)
+            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
             
             if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
-                gl.inputs_changed = True
+                inputs_changed = True
             else:
-                gl.inputs_changed = False
+                inputs_changed = False
             
             gl.previous_inputs = current_inputs
         
-        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, search_term, nsfw, timeOut, isNext)
+        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, tile_count, search_term, nsfw, timeOut, isNext, inputs_changed)
         if gl.json_data == "timeout":
             HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
             hasPrev = current_page not in [0, 1]
@@ -611,13 +611,9 @@ def update_model_versions(model_name):
         default_installed = next((f"{v} [Installed]" for v in installed_versions), None)
         default_value = default_installed or next(iter(version_names), None)
         
-        return  (
-                gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True) # Version List
-        )
+        return gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True) # Version List
     else:
-        return  (
-                gr.Dropdown.update(choices=[], value=None, interactive=False) # Version List
-        )
+        return gr.Dropdown.update(choices=[], value=None, interactive=False) # Version List
 
 def cleaned_name(file_name):
     if platform.system() == "Windows":
@@ -637,7 +633,6 @@ def fetch_and_process_image(image_url):
         geninfo, _ = read_info_from_image(image)
         return geninfo
     return None
-    
 
 def update_model_info(model_name=None, model_version=None):
     video_playback = getattr(opts, "video_playback", True)
@@ -656,6 +651,7 @@ def update_model_info(model_name=None, model_version=None):
         output_basemodel = ""
         img_html = ""
         dl_dict = {}
+        is_LORA = False
         file_list = []
         model_filename = None
         model_id = None
@@ -663,6 +659,8 @@ def update_model_info(model_name=None, model_version=None):
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 content_type = item['type']
+                if content_type == "LORA":
+                    is_LORA = True
                 desc = item['description']
                 model_id = item['id']
                 model_folder = os.path.join(contenttype_folder(content_type, desc))
@@ -700,7 +698,15 @@ def update_model_info(model_name=None, model_version=None):
                             
                             unique_file_name = f"{size} {format} {fp} ({filesize})"
                             file_list.append(unique_file_name)
-                            
+                        
+                        if is_LORA and file_list:
+                            extracted_formats = [file.split(' ')[1] for file in file_list]
+
+                            if "SafeTensor" in extracted_formats and "PickleTensor" in extracted_formats:
+                                if "PickleTensor" in file_list[0].split(' ')[1]:
+                                    if float(file_list[0].split(' ')[0]) <= 100:
+                                        model_folder = os.path.join(contenttype_folder("TextualInversion"))
+                        
                         model_url = model['downloadUrl']
                         model_main_url = f"https://civitai.com/models/{item['id']}"
                         img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
@@ -969,15 +975,32 @@ def sub_folder_value(content_type, desc=None):
     return folder
 
 def update_file_info(model_name, model_version, file_metadata):
+    file_list = []
+    is_LORA = False
+    embed_check = False
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
     if model_name and model_version:
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 content_type = item['type']
+                if content_type == "LORA":
+                    is_LORA = True
                 desc = item['description']
                 for model in item['modelVersions']:
                     if model['name'] == model_version:
+                        for file in model['files']:
+                            size = file['metadata'].get('size', 'Unknown')
+                            format = file['metadata'].get('format', 'Unknown')
+                            unique_file_name = f"{size} {format}"
+                            file_list.append(unique_file_name)
+                            pass
+                        
+                        if is_LORA and file_list:
+                            extracted_formats = [file.split(' ')[1] for file in file_list]
+                            if "SafeTensor" in extracted_formats and "PickleTensor" in extracted_formats:
+                                embed_check = True
+                        
                         for file in model['files']:
                             model_id = item['id']
                             file_name = file.get('name', 'Unknown')
@@ -986,13 +1009,17 @@ def update_file_info(model_name, model_version, file_metadata):
                             file_size = metadata.get('size', 'Unknown')
                             file_format = metadata.get('format', 'Unknown')
                             file_fp = metadata.get('fp', 'Unknown')
-                            sizeKB = file.get('sizeKB', 0) * 1024
-                            filesize = _download.convert_size(sizeKB)
+                            sizeKB = file.get('sizeKB', 0)
+                            sizeB = sizeKB * 1024
+                            filesize = _download.convert_size(sizeB)
 
                             if f"{file_size} {file_format} {file_fp} ({filesize})" == file_metadata:
                                 installed = False
                                 folder_location = "None"
                                 model_folder = os.path.join(contenttype_folder(content_type, desc))
+                                if embed_check and file_format == "PickleTensor":
+                                    if sizeKB <= 100:
+                                        model_folder = os.path.join(contenttype_folder("TextualInversion"))
                                 dl_url = file['downloadUrl']
                                 gl.json_info = item
                                 for root, _, files in os.walk(model_folder):
@@ -1049,6 +1076,7 @@ def update_file_info(model_name, model_version, file_metadata):
     return  (
             gr.Textbox.update(value=None, interactive=False), # Model File Name Textbox
             gr.Textbox.update(value=None), # Download URL Textbox
+            gr.Textbox.update(value=None), # Model ID Textbox
             gr.Textbox.update(value=None), # sha256 textbox
             gr.Button.update(interactive=False, visible=True), # Download Button
             gr.Button.update(interactive=False, visible=False), # Delete Button

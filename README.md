@@ -95,8 +95,28 @@ These settings can be found under the "Settings" tab in Web-UI and then under th
 https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854-4043-bfbb-f32fa9df5a74
 
 
+# Star History
+
+<a href="https://star-history.com/#BlafKing/sd-civitai-browser-plus&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=BlafKing/sd-civitai-browser-plus&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=BlafKing/sd-civitai-browser-plus&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=BlafKing/sd-civitai-browser-plus&type=Date" />
+  </picture>
+</a>
+
 # Changelog 📋
 
+<h3>v3.2.0</h3>
+
+* Feature: A toggle for One-Time hash generation for externally downloaded models.
+* Feature: Updated extension settings layout for SD-WebUI 1.7.0 and higher.
+* Bug fix: Set default value of Lora & LoCON combination based on SD-WebUI version.
+* Bug fix: LORA models with embedding files now get placed inside embeddings folder.
+* Bug fix: Better tile count handling to avoid issues with incorrect tile count.
+* Bug fix: Better settings saving/loading to prevent writing issues.
+
+---
 <h3>v3.1.1</h3>
 
 * Bug fix: Early Access models now get correctly hidden/detected.

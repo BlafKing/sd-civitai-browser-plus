@@ -261,27 +261,20 @@ function updateSVGIcons() {
 }
 
 // Creates a tooltip if the user wants to filter liked models without a personal API key
-function createTooltipOnHover() {
-    const toggle4L = document.getElementById('toggle4L');
-    const toggle4 = document.getElementById('toggle4');
-
-    if (toggle4L || toggle4) {
-        const targetElement = toggle4L || toggle4;
-
+function createTooltip(element, hover_element, insertText) {
+    if (element) {
         const tooltip = document.createElement('div');
-        tooltip.className = 'tooltip';
-        tooltip.textContent = 'Requires an API Key\nConfigurable in CivitAI settings tab';
+        tooltip.className = 'browser_tooltip';
+        tooltip.textContent = insertText;
         tooltip.style.cssText = 'display: none; text-align: center; white-space: pre;';
 
-        targetElement.addEventListener('mouseover', () => {
+        hover_element.addEventListener('mouseover', () => {
             tooltip.style.display = 'block';
         });
-
-        targetElement.addEventListener('mouseout', () => {
+        hover_element.addEventListener('mouseout', () => {
             tooltip.style.display = 'none';
         });
-
-        targetElement.appendChild(tooltip);
+        element.appendChild(tooltip);
     }
 }
 
@@ -649,27 +642,48 @@ function hideInstalled(toggleValue) {
 // Runs all functions when the page is fully loaded
 function onPageLoad() {
     const divElement = document.getElementById('setting_custom_api_key');
-    var civitaiDiv = document.getElementById('civitai_preview_html');
+    let civitaiDiv = document.getElementById('civitai_preview_html');
     const infoElement = divElement?.querySelector('.info');
     if (!infoElement) {
         return;
     }
 
-    var subfolderDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
-    var subfolders = subfolderDiv.querySelectorAll("[id$='subfolder']");
-
-    createAccordion(subfolderDiv, subfolders, "Default sub folders");
-
-    var upscalerDiv = document.querySelector("#settings_civitai_browser_plus > div > div > #settings-accordion > div");
-    var upscalers = upscalerDiv.querySelectorAll("[id$='upscale_subfolder']");
-
-    createAccordion(upscalerDiv, upscalers, "Upscalers");
-    
-    observer.observe(civitaiDiv);
     clearInterval(intervalID);
     updateSVGIcons();
+
+    let subfolderDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
+    let downloadDiv = document.querySelector("#settings_civitai_browser_download > div > div");
+    if (subfolderDiv || downloadDiv) {
+        let div = subfolderDiv || downloadDiv;
+        let subfolders = div.querySelectorAll("[id$='subfolder']");
+        createAccordion(div, subfolders, "Default sub folders");
+    }
+
+    let upscalerDiv = document.querySelector("#settings_civitai_browser_plus > div > div > #settings-accordion > div");
+    let downloadDivSub = document.querySelector("#settings_civitai_browser_download > div > div > #settings-accordion > div");
+    if (upscalerDiv || downloadDivSub) {
+        let div = upscalerDiv || downloadDivSub;
+        let upscalers = div.querySelectorAll("[id$='upscale_subfolder']");
+        createAccordion(div, upscalers, "Upscalers");
+    }
+    
+    let toggle4L = document.getElementById('toggle4L');
+    let toggle4 = document.getElementById('toggle4');
+    if (toggle4L || toggle4) {
+        let like_toggle = toggle4L || toggle4;
+        let insertText = 'Requires an API Key\nConfigurable in CivitAI settings tab';
+        createTooltip(like_toggle, like_toggle, insertText);
+    }
+
+    let hash_toggle_hover = document.querySelector('#skip_hash_toggle > label');
+    let hash_toggle = document.querySelector('#skip_hash_toggle');
+    if (hash_toggle) {
+        let insertText = 'This option generates unique hashes for models that were not downloaded with this extension.\nA hash is required for any of the options below to work, a model with no hash will be skipped.\nInitial hash generation is a one-time process per file.';
+        createTooltip(hash_toggle, hash_toggle_hover, insertText);
+    }
+
+    observer.observe(civitaiDiv);
     adjustFilterBoxAndButtons();
-    createTooltipOnHover();
     setupClickOutsideListener();
     createLink(infoElement);
     updateBackToTopVisibility([{isIntersecting: false}]);
