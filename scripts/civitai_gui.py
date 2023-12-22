@@ -5,6 +5,7 @@ import os
 import json
 import fnmatch
 import re
+import requests
 import subprocess
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
@@ -101,6 +102,19 @@ def txt2img_output(image_url):
         geninfo = nr + geninfo
         return gr.Textbox.update(value=geninfo)
 
+def getBaseModelOptions():
+    baseModelReturn = requests.get("https://civitai.com/api/v1/models?baseModels=checkOptions")
+    if baseModelReturn.status_code == 400:
+        pattern = r'"options":\s*(\[[^\]]*\])'
+        match = re.search(pattern, baseModelReturn.text)
+
+        if match:
+            options_str = match.group(1)
+            options_list = json.loads(options_str)
+            return options_list
+    else:
+        return ["SD 1.4", "SD 1.5", "SD 1.5 LCM", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", "SDXL 0.9", "SDXL 1.0", "SDXL 1.0 LCM", "SDXL Distilled", "SDXL Turbo", "SVD", "SVD XT", "Playground v2", "PixArt a", "Other"]
+
 def on_ui_tabs():    
     page_header = getattr(opts, "page_header", False)
     lobe_directory = None
@@ -134,7 +148,6 @@ def on_ui_tabs():
         
     content_choices = _file.get_content_choices()
     scan_choices = _file.get_content_choices(True)
-    
     with gr.Blocks() as civitai_interface:
         with gr.Tab(label="Browser", elem_id="browserTab"):
             with gr.Row(elem_id="searchRow"):
@@ -144,7 +157,7 @@ def on_ui_tabs():
                     with gr.Row():
                         content_type = gr.Dropdown(label='Content type:', choices=content_choices, value=None, type="value", multiselect=True, elem_id="centerText")
                     with gr.Row():
-                        base_filter = gr.Dropdown(label='Base model:', multiselect=True, choices=["SD 1.4", "SD 1.5", "SD 1.5 LCM", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", "SDXL 0.9", "SDXL 1.0", "SDXL 1.0 LCM", "SDXL Distilled", "SDXL Turbo", "SVD", "SVD XT", "Playground v2", "PixArt a", "Other"], value=None, type="value", elem_id="centerText")
+                        base_filter = gr.Dropdown(label='Base model:', multiselect=True, choices=getBaseModelOptions(), value=None, type="value", elem_id="centerText")
                     with gr.Row():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
                         sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked", "Most Buzz","Most Discussed","Most Collected","Most Images"], value="Most Downloaded", type="value", elem_id="centerText")

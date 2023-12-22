@@ -109,7 +109,7 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 <h3>v3.2.1</h3>
 
-* Feature: Updated available Base Models, added "Playground v2" and "PixArt a".
+* Feature: Extension now automatically retrieves latest base models from CivitAI.
 * Bug fix: Hotfix for functionality with SD.Next
 
 ---
