@@ -107,6 +107,11 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.2.1</h3>
+
+* Bug fix: Hotfix for functionality with SD.Next
+
+---
 <h3>v3.2.0</h3>
 
 * Feature: A toggle for One-Time hash generation for externally downloaded models.

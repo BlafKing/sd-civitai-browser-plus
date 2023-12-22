@@ -1,10 +1,11 @@
 from click import launch
 import gradio as gr
-from modules import script_callbacks, shared, launch_utils
+from modules import script_callbacks, shared
 import os
 import json
 import fnmatch
 import re
+import subprocess
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
 import scripts.civitai_global as gl
@@ -12,9 +13,15 @@ import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
 import scripts.civitai_api as _api
 
+def git_tag():
+    try:
+        return subprocess.check_output([os.environ.get('GIT', "git"), "describe", "--tags"], shell=False, encoding='utf8').strip()
+    except:
+        return "None"
+
 try:
     from packaging import version
-    ver = launch_utils.git_tag()
+    ver = git_tag()
     ver_bool = version.parse(ver[1:]) >= version.parse("1.5")
 except:
     print(f"{gl.print} Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
