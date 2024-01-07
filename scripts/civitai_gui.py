@@ -773,7 +773,12 @@ def on_ui_tabs():
             outputs=browser_list
         )
 
-    return (civitai_interface, "CivitAI Browser+", "civitai_interface"),
+    if ver_bool:
+        tab_name = "CivitAI Browser+"
+    else:
+        tab_name = "Civitai Browser+"
+    
+    return (civitai_interface, tab_name, "civitai_interface"),
 
 def subfolder_list(folder, desc=None):
     insert_sub = getattr(opts, "insert_sub", True)
