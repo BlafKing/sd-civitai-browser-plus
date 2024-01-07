@@ -107,6 +107,15 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.2.2</h3>
+
+* Bug fix: Fixed an `api_response` issue in the update model functions
+* Bug fix: Reverted automatically retrieving base models to fix startup issues
+* Bug fix: Better error description if a model no longer exists on CivitAI
+* Bug fix: Primary file is now used as default file.
+* Bug fix: Search after updating models no longer returns errors.
+
+---
 <h3>v3.2.1</h3>
 
 * Feature: Extension now automatically retrieves latest base models from CivitAI.
@@ -128,7 +137,7 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 * Bug fix: Early Access models now get correctly hidden/detected.
 * Bug fix: Better timeout/offline server detection for options in "Update Models" tab.
 * Bug fix: Better error detection if required packages were not installed/imported.
-* Bug fix: Download button displays as "Add to queue" during active download.
+* Bug fix: Download button now displays as "Add to queue" during active download.
 
 ---
 <h3>v3.1.0</h3>
