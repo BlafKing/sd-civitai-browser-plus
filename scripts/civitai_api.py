@@ -222,7 +222,7 @@ def model_list_html(json_data, model_dict):
         versions_to_keep = []
 
         for version in item['modelVersions']:
-            if not version['publishedAt'] or not version['files']:
+            if not version['files']:
                 continue
             if hide_early_access:
                 early_access_days = version['earlyAccessTimeFrame']
@@ -373,14 +373,12 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
         inputs_changed = True
     else:
         inputs_changed = False
-    
-    gl.previous_inputs = current_inputs
+
+    if inputs_changed:
+        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count)
+        return return_values
 
     if not gl.file_scan:
-        if inputs_changed:
-            return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count)
-            return return_values
-    
         if isNext:
             if gl.json_data['metadata']['nextPage'] is not None:
                 gl.json_data = request_civit_api(gl.json_data['metadata']['nextPage'])
@@ -493,16 +491,14 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             
     if not from_ver and not from_installed:
         gl.ver_json = None
-        if not gl.file_scan:
         
-            current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
-            
-            if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
-                inputs_changed = True
-            else:
-                inputs_changed = False
-            
-            gl.previous_inputs = current_inputs
+        current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
+        if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
+            inputs_changed = True
+        else:
+            inputs_changed = False
+        
+        gl.previous_inputs = current_inputs
         
         gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, tile_count, search_term, nsfw, timeOut, isNext, inputs_changed)
         if gl.json_data == "timeout":
@@ -558,7 +554,6 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
 
 def update_model_versions(model_name):
     item_names_and_types = {item['name']: (item['type'], item['description']) for item in gl.json_data['items']}
-
     if model_name is not None:
         selected_content_type, desc = item_names_and_types.get(model_name, (None, None))
         if selected_content_type is None:
@@ -575,7 +570,7 @@ def update_model_versions(model_name):
         if item is None:
             return
         versions = item['modelVersions']
-
+        
         version_files = set()
         for version in versions:
             versions_dict[version['name']].append(item["name"])
@@ -653,6 +648,7 @@ def update_model_info(model_name=None, model_version=None):
         dl_dict = {}
         is_LORA = False
         file_list = []
+        default_file = None
         model_filename = None
         model_id = None
         sha256_value = None
@@ -697,7 +693,10 @@ def update_model_info(model_name=None, model_version=None):
                             filesize = _download.convert_size(sizeKB)
                             
                             unique_file_name = f"{size} {format} {fp} ({filesize})"
+                            is_primary = file.get('primary', False)
                             file_list.append(unique_file_name)
+                            if is_primary:
+                                default_file = unique_file_name
                         
                         if is_LORA and file_list:
                             extracted_formats = [file.split(' ')[1] for file in file_list]
@@ -831,8 +830,6 @@ def update_model_info(model_name=None, model_version=None):
                         </div>
                         <div align=center>{img_html}</div>
                         '''
-                
-                default_file = file_list[0] if file_list else None
                                     
         folder_location = "None"
         default_subfolder = "None"
@@ -1084,7 +1081,7 @@ def update_file_info(model_name, model_version, file_metadata):
             gr.Dropdown.update(choices=None, value=None, interactive=False) # Sub Folder List
     )
 
-def request_civit_api(api_url=None):
+def get_headers():
     api_key = getattr(opts, "custom_api_key", "")
     if not api_key:
         api_key = "eaee11648ef4c72efb2333d5ebc68b98"
@@ -1105,6 +1102,10 @@ def request_civit_api(api_url=None):
         'Upgrade-Insecure-Requests': '1',
         'Authorization': f'Bearer {api_key}'
     }
+    return headers
+
+def request_civit_api(api_url=None):
+    headers = get_headers()
     try:
         response = requests.get(api_url, headers=headers, timeout=(10, 30))
         response.raise_for_status()

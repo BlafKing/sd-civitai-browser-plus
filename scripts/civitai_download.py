@@ -29,10 +29,8 @@ current_count = 0
 
 def random_number(prev=None):
     number = str(random.randint(10000, 99999))
-    
-    if prev:
-        while number == prev:
-            number = str(random.randint(10000, 99999))
+    while number == prev:
+        number = str(random.randint(10000, 99999))
     
     return number
 
@@ -115,7 +113,7 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
             
     model_json = {"items": filtered_items}
     
-    gr_components = _api.update_model_versions(model_name)
+    model_versions = _api.update_model_versions(model_name)
     
     for item in gl.download_queue:
         if item['dl_url'] == dl_url:
@@ -131,7 +129,7 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
         "model_id" : model_id,
         "create_json" : create_json,
         "model_json" : model_json,
-        "gr_components" : gr_components
+        "model_versions" : model_versions
     }
     
     return item
@@ -282,22 +280,7 @@ def convert_size(size):
     return f"{size:.2f} GB"
 
 def get_download_link(url):
-    api_key = getattr(opts, "custom_api_key", "")
-    if not api_key:
-        api_key = "eaee11648ef4c72efb2333d5ebc68b98"
-    headers = {
-        'User-Agent': UserAgent().chrome,
-        'Sec-Ch-Ua': '"Brave";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Sec-Gpc': '1',
-        'Upgrade-Insecure-Requests': '1',
-        'Authorization': f'Bearer {api_key}'
-    }
+    headers = _api.get_headers()
 
     response = requests.get(url, headers=headers, allow_redirects=False)
     if 300 <= response.status_code <= 308:
@@ -313,16 +296,16 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
     gl.download_fail = False
     aria2_rpc_url = "http://localhost:24000/jsonrpc"
 
+    file_name = os.path.basename(file_path)
+    
     download_link = get_download_link(url)
     if not download_link:
-        print(f"{gl.print} Couldn't retrieve download link")
+        print(f'{gl.print} File: "{file_name}" not found on CivitAI servers, it looks like the file is not available for download.')
         gl.download_fail = True
         return
     
     if os.path.exists(file_path):
         os.remove(file_path)
-
-    file_name = os.path.basename(file_path)
     
     if disable_dns:
         dns = "false"
@@ -445,7 +428,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
         os.remove(file_path)
         
     downloaded_size = 0
-    tokens = re.split(re.escape('\\'), file_path)
+    tokens = re.split(re.escape(os.sep), file_path)
     file_name_display = tokens[-1]
     start_time = time.time()
     last_update_time = 0
@@ -453,7 +436,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
     
     download_link = get_download_link(url)
     if not download_link:
-        print(f"{gl.print} Couldn't retrieve download link")
+        print(f'{gl.print} File: "{file_name_display}" not found on CivitAI servers, it looks like the file is not available for download.')
         gl.download_fail = True
         return
     
@@ -627,7 +610,7 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
     if gl.cancel_status:
         card_name = None
     else:
-        (card_name, _, _) = _file.card_update(item['gr_components'], item['model_name'], item['version_name'], True)
+        (card_name, _, _) = _file.card_update(item['model_versions'], item['model_name'], item['version_name'], True)
     
     if len(gl.download_queue) != 0:
         gl.download_queue.pop(0)

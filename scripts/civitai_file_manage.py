@@ -169,7 +169,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     for item in api_response["items"]:
         for version in item["modelVersions"]:
             for file_entry in version["files"]:
-                if file_entry["hashes"]["SHA256"] == sha256:
+                if file_entry["hashes"].get("SHA256") == sha256:
                     for image in version["images"]:
                         if image["type"] == "image":
                             url_with_width = re.sub(r'/width=\d+', f'/width={image["width"]}', image["url"])
@@ -751,6 +751,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         if len(all_model_ids) % 100 != 0:
             url_count += 1
         url_done = 0
+        api_response = {}
         for url in url_list:
             while url:
                 try:
@@ -758,10 +759,10 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                         progress(url_done / url_count, desc=f"Sending API request... {url_done}/{url_count}")
                     response = requests.get(url, timeout=(10, 30))
                     if response.status_code == 200:
-                        api_response = response.json()
+                        api_response_json = response.json()
 
-                        all_items.extend(api_response['items'])
-                        metadata = api_response.get('metadata', {})
+                        all_items.extend(api_response_json['items'])
+                        metadata = api_response_json.get('metadata', {})
                         url = metadata.get('nextPage', None)
                     elif response.status_code == 503:
                         return  (
@@ -783,6 +784,11 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                     url = None
         
         api_response['items'] = all_items
+        if api_response['items'] == []:
+            return  (
+                gr.HTML.update(value=offlineHTML),
+                gr.Textbox.update(value=number)
+            )
         
     if progress != None:
         progress(1, desc="Processing final results...")
@@ -978,12 +984,24 @@ def scan_finish():
         gr.Button.update(interactive=not no_update, visible=not no_update)
     )
 
-def load_to_browser(tile_count):
+def load_to_browser(content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw):
     global from_ver, from_installed
     if from_ver:
         model_list_return = _api.update_model_list(from_ver=True, tile_count=tile_count)
     if from_installed:
         model_list_return = _api.update_model_list(from_installed=True, tile_count=tile_count)
+    
+    use_LORA = getattr(opts, "use_LORA", False)
+    if content_type:
+        if use_LORA and 'LORA & LoCon' in content_type:
+            content_type.remove('LORA & LoCon')
+            if 'LORA' not in content_type:
+                content_type.append('LORA')
+            if 'LoCon' not in content_type:
+                content_type.append('LoCon')
+    
+    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
+    gl.previous_inputs = current_inputs
     
     gl.file_scan = True
     from_ver, from_installed = False, False
