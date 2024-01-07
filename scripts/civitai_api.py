@@ -791,11 +791,11 @@ def update_model_info(model_name=None, model_version=None):
                         deny_svg = f'{perms_svg("red")}<path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path></svg></span>'
                         perms_html= '<p style="line-height: 2; font-weight: bold;">'\
                                     f'{allow_svg if item.get("allowNoCredit") else deny_svg} Use the model without crediting the creator<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") == "Image" else deny_svg} Sell images they generate<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") == "Rent" else deny_svg} Run on services that generate images for money<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") == "RentCivit" else deny_svg} Run on Civitai<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") == "Sell" else deny_svg} Sell this model or merges using this model<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") in ["Image", "Rent", "RentCivit", "Sell"] else deny_svg} Sell images they generate<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") in ["Rent", "Sell"] else deny_svg} Run on services that generate images for money<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") in ["RentCivit", "Rent", "Sell"] else deny_svg} Run on Civitai<br/>'\
                                     f'{allow_svg if item.get("allowDerivatives") else deny_svg} Share merges using this model<br/>'\
+                                    f'{allow_svg if item.get("allowCommercialUse") == "Sell" else deny_svg} Sell this model or merges using this model<br/>'\
                                     f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
                                     '</p>'
                         output_html = f'''

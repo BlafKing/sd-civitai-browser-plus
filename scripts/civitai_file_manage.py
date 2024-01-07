@@ -823,29 +823,38 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
 
     url_error = False
     api_url = gl.url_list_with_numbers.get(1)
-    response = requests.get(api_url, timeout=(10,30))
-    try:
-        if response.status_code == 200:
-            response.encoding = "utf-8"
-            gl.ver_json = json.loads(response.text)
-            
-            highest_number = max(gl.url_list_with_numbers.keys())
-            gl.ver_json["metadata"]["totalPages"] = highest_number
-            
-            if highest_number > 1:
-                gl.ver_json["metadata"]["nextPage"] = gl.url_list_with_numbers.get(2)
-        else:
-            print(f"Error: Received status code {response.status_code} for URL: {url}")
+    if not api_url:
+        print(f"{gl.print} ERROR: api_url is {api_url}")
+        print(f"model IDs: {all_model_ids}")
+        print(f"model chunks: {model_chunks}")
+        print(f"URL index: {gl.url_list_with_numbers}")
+        print(f"{gl.print} An error occured, could not retrieve the API URL: {api_url}")
+        url_error = True
+    
+    if not url_error:
+        response = requests.get(api_url, timeout=(10,30))
+        try:
+            if response.status_code == 200:
+                response.encoding = "utf-8"
+                gl.ver_json = json.loads(response.text)
+                
+                highest_number = max(gl.url_list_with_numbers.keys())
+                gl.ver_json["metadata"]["totalPages"] = highest_number
+                
+                if highest_number > 1:
+                    gl.ver_json["metadata"]["nextPage"] = gl.url_list_with_numbers.get(2)
+            else:
+                print(f"Error: Received status code {response.status_code} for URL: {url}")
+                url_error = True
+        except requests.exceptions.Timeout:
+            print(f"Request timed out for {url}. Skipping...")
             url_error = True
-    except requests.exceptions.Timeout:
-        print(f"Request timed out for {url}. Skipping...")
-        url_error = True
-    except requests.exceptions.ConnectionError:
-        print("Failed to connect to the API. The servers might be offline.")
-        url_error = True
-    except Exception as e:  
-        print(f"An unexpected error occurred: {e}")
-        url_error = True
+        except requests.exceptions.ConnectionError:
+            print("Failed to connect to the API. The servers might be offline.")
+            url_error = True
+        except Exception as e:  
+            print(f"An unexpected error occurred: {e}")
+            url_error = True
         
     if url_error:
         gl.scan_files = False
