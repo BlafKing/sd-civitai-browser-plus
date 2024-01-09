@@ -107,6 +107,13 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.2.3</h3>
+
+* Bug fix: Generate hash toggle in update models was inverted (silly mistake, sry bout that)
+* Bug fix: Better error detection if no model IDs were retrieved during update functions.
+* Bug fix: Better error handling if a local model does not exist on CivitAI
+
+---
 <h3>v3.2.2</h3>
 
 * Bug fix: Fixed an `api_response` issue in the update model functions

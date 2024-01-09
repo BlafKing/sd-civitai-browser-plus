@@ -13,6 +13,7 @@ import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
 from modules.shared import cmd_opts, opts
+from scripts.civitai_global import print
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
@@ -21,11 +22,11 @@ import scripts.civitai_download as _download
 try:
     from send2trash import send2trash
 except:
-    print(f"{gl.print} Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
+    print("Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
 try:
     from bs4 import BeautifulSoup
 except:
-    print(f"{gl.print} Python module 'BeautifulSoup' has not been imported correctly, please try to restart or install it manually.")
+    print("Python module 'BeautifulSoup' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
@@ -57,7 +58,7 @@ def delete_model(delete_finish=None, model_filename=None, model_name=None, list_
                 break
         
         if selected_content_type is None:
-            print(f"{gl.print} Model name not found in json_data. (delete_model)")
+            print("Model name not found in json_data. (delete_model)")
             return
     
     model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
@@ -74,7 +75,7 @@ def delete_model(delete_finish=None, model_filename=None, model_name=None, list_
                             data = json.load(json_file)
                             file_sha256 = data.get('sha256', '').upper()
                     except Exception as e:
-                        print(f"{gl.print} Failed to open: {file_path}: {e}")
+                        print(f"Failed to open: {file_path}: {e}")
                         file_sha256 = "0"
                         
                     if file_sha256 == sha256_upper:
@@ -84,19 +85,19 @@ def delete_model(delete_finish=None, model_filename=None, model_name=None, list_
                             if os.path.isfile(unpacked_file_path):
                                 try:
                                     send2trash(unpacked_file_path)
-                                    print(f"{gl.print} File moved to trash based on unpackList: {unpacked_file_path}")
+                                    print(f"File moved to trash based on unpackList: {unpacked_file_path}")
                                 except:
                                     os.remove(unpacked_file_path)
-                                    print(f"{gl.print} File deleted based on unpackList: {unpacked_file_path}")
+                                    print(f"File deleted based on unpackList: {unpacked_file_path}")
                         
                         base_name, _ = os.path.splitext(file)
                         if os.path.isfile(file_path):
                             try:
                                 send2trash(file_path)
-                                print(f"{gl.print} Model moved to trash based on SHA-256: {file_path}")
+                                print(f"Model moved to trash based on SHA-256: {file_path}")
                             except:
                                 os.remove(file_path)
-                                print(f"{gl.print} Model deleted based on SHA-256: {file_path}")
+                                print(f"Model deleted based on SHA-256: {file_path}")
                             delete_associated_files(root, base_name)
                             deleted = True
 
@@ -111,10 +112,10 @@ def delete_model(delete_finish=None, model_filename=None, model_name=None, list_
                     if os.path.isfile(path_file):
                         try:
                             send2trash(path_file)
-                            print(f"{gl.print} Model moved to trash based on filename: {path_file}")
+                            print(f"Model moved to trash based on filename: {path_file}")
                         except:
                             os.remove(path_file)
-                            print(f"{gl.print} Model deleted based on filename: {path_file}")
+                            print(f"Model deleted based on filename: {path_file}")
                         delete_associated_files(root, current_file)
 
     number = _download.random_number(delete_finish)
@@ -138,10 +139,10 @@ def delete_associated_files(directory, base_name):
             path_to_delete = os.path.join(directory, file)
             try:
                 send2trash(path_to_delete)
-                print(f"{gl.print} Associated file moved to trash: {path_to_delete}")
+                print(f"Associated file moved to trash: {path_to_delete}")
             except:
                 os.remove(path_to_delete)
-                print(f"{gl.print} Associated file deleted: {path_to_delete}")
+                print(f"Associated file deleted: {path_to_delete}")
 
 def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     json_file = os.path.splitext(file_path)[0] + ".json"
@@ -162,7 +163,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                     if 'sha256' in data:
                         sha256 = data['sha256'].upper()
             except Exception as e:
-                print(f"{gl.print} Failed to open {json_file}: {e}")
+                print(f"Failed to open {json_file}: {e}")
     else:
         sha256 = sha256.upper()
 
@@ -178,12 +179,12 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                             if response.status_code == 200:
                                 with open(image_path, 'wb') as img_file:
                                     img_file.write(response.content)
-                                print(f"{gl.print} Preview saved at \"{image_path}\"")
+                                print(f"Preview saved at \"{image_path}\"")
                             else:
-                                print(f"{gl.print} Failed to save preview. Status code: {response.status_code}")
+                                print(f"Failed to save preview. Status code: {response.status_code}")
 
                             return
-                    print(f"{gl.print} No preview images found for \"{name}\"")
+                    print(f"No preview images found for \"{name}\"")
                     return
 
 def save_images(preview_html, model_filename, model_name, install_path, sub_folder):
@@ -230,7 +231,7 @@ def save_images(preview_html, model_filename, model_name, install_path, sub_fold
                     f.write(url.read())
                     if i == 0 and not os.path.exists(os.path.join(install_path, filenamethumb)):
                         shutil.copy2(os.path.join(install_path, filename),os.path.join(install_path, filenamethumb))
-                    print(f"{gl.print} Downloaded image {image_count}")
+                    print(f"Downloaded image {image_count}")
                     
         except urllib.error.URLError as e:
             print(f'Error: {e.reason}')
@@ -254,7 +255,7 @@ def card_update(gr_components, model_name, list_versions, is_install):
     if gr_components:
         version_choices = gr_components['choices']
     else:
-        print(f"{gl.print} Couldn't retrieve version, defaulting to installed")
+        print("Couldn't retrieve version, defaulting to installed")
         model_name += ".New"
         return model_name, None, None
     
@@ -306,7 +307,7 @@ def gen_sha256(file_path):
                 hash_value = data['sha256']
                 return hash_value
         except Exception as e:
-            print(f"{gl.print} Failed to open {json_file}: {e}")
+            print(f"Failed to open {json_file}: {e}")
         
     def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         while True:
@@ -336,7 +337,7 @@ def gen_sha256(file_path):
             with open(json_file, 'w') as f:
                 json.dump(data, f, indent=4)
         except Exception as e:
-            print(f"{gl.print} Failed to open {json_file}: {e}")
+            print(f"Failed to open {json_file}: {e}")
     else:
         data = {'sha256': hash_value}
         with open(json_file, 'w') as f:
@@ -408,7 +409,7 @@ def clean_description(desc):
 
         cleaned_text = soup.get_text()
     except ImportError:
-        print(f"{gl.print} Python module 'BeautifulSoup' was not imported correctly, cannot clean description. Please try to restart or install it manually.")
+        print("Python module 'BeautifulSoup' was not imported correctly, cannot clean description. Please try to restart or install it manually.")
         cleaned_text = desc
     return cleaned_text
 
@@ -424,7 +425,7 @@ def save_model_info(install_path, file_name, sha256=None, overwrite_toggle=False
                     if 'sha256' in data:
                         sha256 = data['sha256'].upper()
             except Exception as e:
-                print(f"{gl.print} Failed to open {json_file}: {e}")
+                print(f"Failed to open {json_file}: {e}")
     
     if not api_response:
         api_response = gl.json_data
@@ -501,12 +502,12 @@ def find_and_save(api_response, sha256, file_name, json_file, no_hash, overwrite
                     with open(json_file, 'w') as f:
                         json.dump(content, f, indent=4)
                         
-                    if changed: print(f"{gl.print} Model info saved to \"{json_file}\"")
+                    if changed: print(f"Model info saved to \"{json_file}\"")
                     return "found"
     
     return "not found"
 
-def get_models(file_path, skip_hash=None):
+def get_models(file_path, gen_hash=None):
     modelId = None
     sha256 = None
     json_file = os.path.splitext(file_path)[0] + ".json"
@@ -521,10 +522,11 @@ def get_models(file_path, skip_hash=None):
                 if 'sha256' in data:
                     sha256 = data['sha256']
         except Exception as e:
-            print(f"{gl.print} Failed to open {json_file}: {e}")
+            print(f"Failed to open {json_file}: {e}")
     
     if not modelId or not sha256:
-        if not skip_hash:
+        if gen_hash:
+            print("modelId of sha256 niette vonde")
             sha256 = gen_sha256(file_path)
             by_hash = f"https://civitai.com/api/v1/model-versions/by-hash/{sha256}"
         else:
@@ -539,12 +541,15 @@ def get_models(file_path, skip_hash=None):
             if response.status_code == 200:
                 api_response = response.json()
                 if 'error' in api_response:
-                    print(f"{gl.print} \"{file_path}\": {api_response['error']}")
+                    print(f"\"{file_path}\": {api_response['error']}")
                     return None
                 else:
                     modelId = api_response.get("modelId", "")
             elif response.status_code == 503:
                 return "offline"
+            elif response.status_code == 404:
+                api_response = response.json()
+                modelId = api_response.get("error", "")
             
             if os.path.exists(json_file):
                 try:
@@ -557,7 +562,7 @@ def get_models(file_path, skip_hash=None):
                     with open(json_file, 'w') as f:
                         json.dump(data, f, indent=4)
                 except Exception as e:
-                    print(f"{gl.print} Failed to open {json_file}: {e}")
+                    print(f"Failed to open {json_file}: {e}")
             else:
                 data = {
                     'modelId': modelId,
@@ -568,13 +573,14 @@ def get_models(file_path, skip_hash=None):
         
         return modelId
     except requests.exceptions.Timeout:
-        print(f"{gl.print} Request timed out for {file_path}. Skipping...")
+        print(f"Request timed out for {file_path}. Skipping...")
         return "offline"
     except requests.exceptions.ConnectionError:
         print("Failed to connect to the API. The CivitAI servers might be offline.")
         return "offline"
     except Exception as e:
-        print(f"{gl.print} An error occurred for {file_path}: {str(e)}")
+        print(f"An error occurred for {file_path}: {str(e)}")
+        return None
 
 def version_match(file_paths, api_response):
     updated_models = []
@@ -590,7 +596,7 @@ def version_match(file_paths, api_response):
                     if sha256:
                         sha256_hashes[os.path.basename(file_path)] = sha256.upper()
                 except Exception as e:
-                    print(f"{gl.print} Failed to open {json_path}: {e}")
+                    print(f"Failed to open {json_path}: {e}")
         
     file_names_and_hashes = set()
     for file_path in file_paths:
@@ -636,7 +642,7 @@ def get_content_choices(scan_choices=False):
         return content_list
     return content_list
     
-def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, skip_hash, progress=gr.Progress() if queue else None):
+def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, gen_hash, progress=gr.Progress() if queue else None):
     global from_ver, from_installed, no_update
     update_log = getattr(opts, "update_log", True)
     gl.scan_files = True
@@ -717,7 +723,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     for file_path in files:
         if gl.cancel_status:
             if progress != None:
-                progress(files_done / total_files, desc=f"Saving tags cancelled.")
+                progress(files_done / total_files, desc=f"Processing files cancelled.")
             no_update = True
             gl.scan_files = False
             from_ver, from_installed = False, False
@@ -727,16 +733,33 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         file_name = os.path.basename(file_path)
         if progress != None:
             progress(files_done / total_files, desc=f"Processing file: {file_name}")
-        model_id = get_models(file_path, skip_hash)
-        if model_id != None:
+        
+        model_id = get_models(file_path, gen_hash)
+        if model_id == "offline":
+            print("The CivitAI servers did not respond, unable to retrieve Model ID")
+        elif model_id == "Model not found" and update_log:
+            print(f"model: \"{file_name}\" not found on CivitAI servers.")
+        elif model_id != None:
             all_model_ids.append(f"&ids={model_id}")
             file_paths.append(file_path)
+        elif not model_id and update_log:
+            print(f"model ID not found for: \"{file_name}\"")
         files_done += 1
         
     all_items = []
 
     all_model_ids = list(set(all_model_ids))
-
+    
+    if not all_model_ids:
+        progress(1, desc=f"No model IDs could be retrieved.")
+        print("Could not retrieve any Model IDs, please make sure to turn on the \"One-Time Hash Generation for externally downloaded models.\" option if you haven't already.")
+        no_update = True
+        gl.scan_files = False
+        from_ver, from_installed = False, False
+        time.sleep(2)
+        return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
+                gr.Textbox.update(value=number))
+    
     def chunks(lst, n):
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
@@ -805,7 +828,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         
         if update_log:
             for model_name in all_model_names:
-                print(f'{gl.print} "{model_name}" is currently outdated.')
+                print(f'"{model_name}" is currently outdated.')
         
         if len(all_model_ids) == 0:
             no_update = True
@@ -823,13 +846,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
 
     url_error = False
     api_url = gl.url_list_with_numbers.get(1)
-    if not api_url:
-        print(f"{gl.print} ERROR: api_url is {api_url}")
-        print(f"model IDs: {all_model_ids}")
-        print(f"model chunks: {model_chunks}")
-        print(f"URL index: {gl.url_list_with_numbers}")
-        print(f"{gl.print} An error occured, could not retrieve the API URL: {api_url}")
-        url_error = True
     
     if not url_error:
         response = requests.get(api_url, timeout=(10,30))

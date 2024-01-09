@@ -14,13 +14,14 @@ from collections import defaultdict
 from modules.images import read_info_from_image
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
-from html import escape 
+from html import escape
+from scripts.civitai_global import print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 try:
     from fake_useragent import UserAgent
 except:
-    print(f"{gl.print} Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
+    print("Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
@@ -263,9 +264,9 @@ def model_list_html(json_data, model_dict):
                                 if sha256:
                                     existing_files_sha256.add(sha256.upper())
                             else:
-                                print(f"{gl.print} Invalid JSON data in {json_path}. Expected a dictionary.")
+                                print(f"Invalid JSON data in {json_path}. Expected a dictionary.")
                         except Exception as e:
-                            print(f"{gl.print} Error decoding JSON in {json_path}: {e}")
+                            print(f"Error decoding JSON in {json_path}: {e}")
     
     for item in json_data['items']:
         for k, model in model_dict.items():
@@ -480,6 +481,7 @@ def pagecontrol(json_data):
 
 def update_model_list(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, tile_count=None, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     use_LORA = getattr(opts, "use_LORA", False)
+    model_dict = {}
     
     if content_type:
         if use_LORA and 'LORA & LoCon' in content_type:
@@ -505,7 +507,6 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
             hasPrev = current_page not in [0, 1]
             hasNext = current_page == 1 or hasPrev
-            model_dict = {}
         
         if gl.json_data is None:
             return
@@ -521,7 +522,6 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             total_pages = 1
             hasPrev = False
             hasNext = False
-        model_dict = {}
         for item in gl.json_data['items']:
             model_dict[item['name']] = item['name']
         
@@ -557,7 +557,7 @@ def update_model_versions(model_name):
     if model_name is not None:
         selected_content_type, desc = item_names_and_types.get(model_name, (None, None))
         if selected_content_type is None:
-            print(f"{gl.print} Model name not found in json_data. (update_model_versions)")
+            print("Model name not found in json_data. (update_model_versions)")
             return
 
         versions_dict = defaultdict(list)
@@ -594,7 +594,7 @@ def update_model_versions(model_name):
                                             installed_versions.add(version_name)
                                             break
                     except Exception as e:
-                        print(f"{gl.print} failed to read: \"{file}\": {e}")
+                        print(f"failed to read: \"{file}\": {e}")
 
                 for version_name, version_filename, _ in version_files:
                     if file == version_filename:
@@ -785,8 +785,8 @@ def update_model_info(model_name=None, model_version=None):
                         img_html = img_html + '</div>'
                         tags_html = ''.join([f'<span class="civitai-tag">{escape(str(tag))}</span>' for tag in tags])
                         def perms_svg(color):
-                            return f'<span style="display:inline-block;vertical-align:middle;">'\
-                        f'<svg width="15" height="15" viewBox="0 1.5 24 24" stroke-width="4" stroke-linecap="round" stroke="{color}">'
+                            return  f'<span style="display:inline-block;vertical-align:middle;">'\
+                                    f'<svg width="15" height="15" viewBox="0 1.5 24 24" stroke-width="4" stroke-linecap="round" stroke="{color}">'
                         allow_svg = f'{perms_svg("lime")}<path d="M5 12l5 5l10 -10"></path></svg></span>'
                         deny_svg = f'{perms_svg("red")}<path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path></svg></span>'
                         perms_html= '<p style="line-height: 2; font-weight: bold;">'\
@@ -852,7 +852,7 @@ def update_model_info(model_name=None, model_version=None):
                                 
                                 break
                         except Exception as e:
-                            print(f"{gl.print} Error decoding JSON: {str(e)}")
+                            print(f"Error decoding JSON: {str(e)}")
             else:
                 for filename in files:
                     if filename == model_filename or filename == cleaned_name(model_filename):
@@ -1038,7 +1038,7 @@ def update_file_info(model_name, model_version, file_metadata):
                                                                 installed = True
                                                                 break
                                                     except Exception as e:
-                                                        print(f"{gl.print} Error decoding JSON: {str(e)}")
+                                                        print(f"Error decoding JSON: {str(e)}")
                                 default_sub = sub_folder_value(content_type, desc)
                                 if folder_location == "None":
                                     folder_location = model_folder
@@ -1110,13 +1110,13 @@ def request_civit_api(api_url=None):
         response = requests.get(api_url, headers=headers, timeout=(10, 30))
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        print(f"{gl.print} Error: {e}")
+        print(f"Error: {e}")
         return "timeout"
     else:
         response.encoding = "utf-8"
         try:
             data = json.loads(response.text)
         except json.JSONDecodeError:
-            print(f"{gl.print} The CivitAI servers are currently offline. Please try again later.")
+            print("The CivitAI servers are currently offline. Please try again later.")
             return "timeout"
     return data

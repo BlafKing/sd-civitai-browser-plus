@@ -12,6 +12,7 @@ import ast
 from pathlib import Path
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
+from scripts.civitai_global import print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
@@ -28,7 +29,7 @@ try:
     ver = git_tag()
     ver_bool = version.parse(ver[1:]) >= version.parse("1.7")
 except:
-    print(f"{gl.print} Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
+    print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
     ver_bool = False
 
 gl.init()
@@ -57,7 +58,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, hi, sn, ss, ts):
         with open(config, "r", encoding="utf8") as file:
             data = json.load(file)
     except:
-        print(f"{gl.print} Cannot save settings, failed to open \"{file}\"")
+        print(f"Cannot save settings, failed to open \"{file}\"")
         print("Please try to manually repair the file or remove it to reset settings.")
         return
 
@@ -72,7 +73,7 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, hi, sn, ss, ts):
     # Save the modified content back to the file
     with open(config, 'w') as file:
         json.dump(data, file, indent=4)
-        print(f"{gl.print} Updated settings to: {config}")
+        print(f"Updated settings to: {config}")
 
 def all_visible(html_check):
     return gr.Button.update(visible="model-checkbox" in html_check)
@@ -830,23 +831,170 @@ def on_ui_settings():
             return self
         shared.OptionInfo.info = info
     
-    shared.opts.add_option("use_aria2", shared.OptionInfo(True, "Download models using Aria2", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Disable this option if you're experiencing any issues with downloads."))
-    shared.opts.add_option("disable_dns", shared.OptionInfo(False, "Disable Async DNS for Aria2", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Useful for users who use PortMaster or other software that controls the DNS"))
-    shared.opts.add_option("show_log", shared.OptionInfo(False, "Show Aria2 logs in console", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Requires UI reload"))
-    shared.opts.add_option("split_aria2", shared.OptionInfo(64, "Number of connections to use for downloading a model", gr.Slider, lambda: {"maximum": "64", "minimum": "1", "step": "1"}, section=download, **({'category_id': cat_id} if ver_bool else {})).info("Only applies to Aria2"))
-    shared.opts.add_option("aria2_flags", shared.OptionInfo(r"", "Custom Aria2 command line flags", section=download, **({'category_id': cat_id} if ver_bool else {})).info("Requires UI reload"))
-    shared.opts.add_option("unpack_zip", shared.OptionInfo(False, "Automatically unpack .zip files after downloading", section=download, **({'category_id': cat_id} if ver_bool else {})))
-    
-    shared.opts.add_option("custom_api_key", shared.OptionInfo(r"", "Personal CivitAI API key", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("You can create your own API key in your CivitAI account settings, Requires UI reload"))
-    shared.opts.add_option("hide_early_access", shared.OptionInfo(True, "Hide early access models", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Early access models are only downloadable for supporter tier members"))
-    shared.opts.add_option("use_LORA", shared.OptionInfo(ver_bool, "Treat LoCon's as LORA's", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload"))
-    shared.opts.add_option("insert_sub", shared.OptionInfo(True, f"Insert [{os.sep}Author Name] &  [{os.sep}Model Name] & [{os.sep}Model Name{os.sep}Version Name] as sub folder options", section=browser, **({'category_id': cat_id} if ver_bool else {})))
-    shared.opts.add_option("dot_subfolders", shared.OptionInfo(True, "Hide sub-folders that start with a '.'", section=browser, **({'category_id': cat_id} if ver_bool else {})))
-    shared.opts.add_option("page_header", shared.OptionInfo(False, "Page navigation as header", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Keeps the page navigation always visible at the top, Requires UI reload"))
-    shared.opts.add_option("video_playback", shared.OptionInfo(True, 'Enable gif/video playback in the browser', section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Disable this option if you're experiencing high CPU usage during video/gif playback"))
-    shared.opts.add_option("update_log", shared.OptionInfo(True, 'Show console logs during update scanning', section=browser, **({'category_id': cat_id} if ver_bool else {})).info('Shows the "is currently outdated" messages in the console when scanning models for available updates"'))
-    shared.opts.add_option("image_location", shared.OptionInfo(r"", "Custom save images location", section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Overrides the download folder location when saving images."))
-    shared.opts.add_option("sub_image_location", shared.OptionInfo(True, 'Use sub folders inside custom images location', section=browser, **({'category_id': cat_id} if ver_bool else {})).info("Will append any content type and sub folders to the custom path."))
+    # Download Options
+    shared.opts.add_option(
+        "use_aria2",
+        shared.OptionInfo(
+            True,
+            "Download models using Aria2",
+            section=download,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Disable this option if you're experiencing any issues with downloads.")
+    )
+
+    shared.opts.add_option(
+        "disable_dns",
+        shared.OptionInfo(
+            False,
+            "Disable Async DNS for Aria2",
+            section=download,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Useful for users who use PortMaster or other software that controls the DNS")
+    )
+
+    shared.opts.add_option(
+        "show_log",
+        shared.OptionInfo(
+            False,
+            "Show Aria2 logs in console",
+            section=download,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Requires UI reload")
+    )
+
+    shared.opts.add_option(
+        "split_aria2",
+        shared.OptionInfo(
+            64,
+            "Number of connections to use for downloading a model",
+            gr.Slider,
+            lambda: {"maximum": "64", "minimum": "1", "step": "1"},
+            section=download,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Only applies to Aria2")
+    )
+
+    shared.opts.add_option(
+        "aria2_flags",
+        shared.OptionInfo(
+            r"",
+            "Custom Aria2 command line flags",
+            section=download,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Requires UI reload")
+    )
+
+    shared.opts.add_option(
+        "unpack_zip",
+        shared.OptionInfo(
+            False,
+            "Automatically unpack .zip files after downloading",
+            section=download,
+            **({'category_id': cat_id} if ver_bool else {})
+        )
+    )
+
+    # Browser Options
+    shared.opts.add_option(
+        "custom_api_key",
+        shared.OptionInfo(
+            r"",
+            "Personal CivitAI API key",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("You can create your own API key in your CivitAI account settings, Requires UI reload")
+    )
+
+    shared.opts.add_option(
+        "hide_early_access",
+        shared.OptionInfo(
+            True,
+            "Hide early access models",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Early access models are only downloadable for supporter tier members")
+    )
+
+    shared.opts.add_option(
+        "use_LORA",
+        shared.OptionInfo(
+            ver_bool,
+            "Treat LoCon's as LORA's",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload")
+    )
+
+    shared.opts.add_option(
+        "insert_sub",
+        shared.OptionInfo(
+            True,
+            f"Insert [{os.sep}Author Name] &  [{os.sep}Model Name] & [{os.sep}Model Name{os.sep}Version Name] as sub folder options",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        )
+    )
+
+    shared.opts.add_option(
+        "dot_subfolders",
+        shared.OptionInfo(
+            True,
+            "Hide sub-folders that start with a '.'",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        )
+    )
+
+    shared.opts.add_option(
+        "page_header",
+        shared.OptionInfo(
+            False,
+            "Page navigation as header",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Keeps the page navigation always visible at the top, Requires UI reload")
+    )
+
+    shared.opts.add_option(
+        "video_playback",
+        shared.OptionInfo(
+            True,
+            'Enable gif/video playback in the browser',
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Disable this option if you're experiencing high CPU usage during video/gif playback")
+    )
+
+    shared.opts.add_option(
+        "update_log",
+        shared.OptionInfo(
+            True,
+            'Show console logs during update scanning',
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info('Shows the "is currently outdated" messages in the console when scanning models for available updates"')
+    )
+
+    shared.opts.add_option(
+        "image_location",
+        shared.OptionInfo(
+            r"",
+            "Custom save images location",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Overrides the download folder location when saving images.")
+    )
+
+    shared.opts.add_option(
+        "sub_image_location",
+        shared.OptionInfo(
+            True,
+            'Use sub folders inside custom images location',
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Will append any content type and sub folders to the custom path.")
+    )
+
     
     
     use_LORA = getattr(opts, "use_LORA", False)
