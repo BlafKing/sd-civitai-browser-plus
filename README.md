@@ -46,12 +46,7 @@
 <details>
 <summary><h1>Known Issues 🐛</h1></summary>
 
-<h3>Incompatible Extension</h3>
-
-* This extension is currently not compatible with [SignalFlagZ's CivBrowser](https://github.com/SignalFlagZ/sd-webui-civbrowser) please uninstall it if you're experiencing issues.
-
-<details>
-<summary><h3>Unable to download / Frozen download</h3></summary>
+<h3>Unable to download / Frozen download:</h3>
 
 **If you're experiencing issues with broken or frozen downloads, there are two possible solutions you can try:**
 
@@ -66,9 +61,7 @@ This will switch back to the old download method, which may resolve the issue.
 
    ![Disable Async DNS for Aria2](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/3cf7fab3-0df5-4995-9543-d9824b7931ff)
 
-These settings can be found under the "Settings" tab in Web-UI and then under the "Civit AI" tile.
-
-</details>
+These settings can be found under the "Settings" tab in Web-UI and then under the "CivitAI Browser+" tile.
 
 </details>
 
