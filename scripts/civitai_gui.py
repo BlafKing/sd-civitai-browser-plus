@@ -31,6 +31,7 @@ try:
             print("Failed to fetch SD-WebUI version")
             ver_bool = False
     if ver:
+        ver = ver.split('-')[0].rsplit('-', 1)[0]
         ver_bool = version.parse(ver[1:]) >= version.parse("1.7")
 except ImportError:
     print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
