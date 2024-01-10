@@ -95,6 +95,10 @@
     position: relative;
 }
 
+#browserTab > div {
+    gap: var(--layout-gap) !important;
+}
+
 #browserTab > div > #header {
     position: -webkit-sticky;
     position: sticky;
