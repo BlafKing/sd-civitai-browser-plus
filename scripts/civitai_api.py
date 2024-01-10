@@ -20,7 +20,7 @@ import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 try:
     from fake_useragent import UserAgent
-except:
+except ImportError:
     print("Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()

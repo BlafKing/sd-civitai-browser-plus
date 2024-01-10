@@ -18,7 +18,7 @@ import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
 try:
     from zip_unicode import ZipHandler
-except:
+except ImportError:
     print("Python module 'ZipUnicode' has not been imported correctly, please try to restart or install it manually.")
     
 total_count = 0

@@ -21,11 +21,11 @@ import scripts.civitai_download as _download
 
 try:
     from send2trash import send2trash
-except:
+except ImportError:
     print("Python module 'send2trash' has not been imported correctly, please try to restart or install it manually.")
 try:
     from bs4 import BeautifulSoup
-except:
+except ImportError:
     print("Python module 'BeautifulSoup' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()

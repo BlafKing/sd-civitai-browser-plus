@@ -1,14 +1,10 @@
-from genericpath import exists
-from click import launch
 import gradio as gr
 from modules import script_callbacks, shared
 import os
 import json
 import fnmatch
 import re
-import requests
 import subprocess
-import ast
 from pathlib import Path
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
@@ -22,13 +18,21 @@ def git_tag():
     try:
         return subprocess.check_output([os.environ.get('GIT', "git"), "describe", "--tags"], shell=False, encoding='utf8').strip()
     except:
-        return "None"
+        return None
 
 try:
     from packaging import version
     ver = git_tag()
-    ver_bool = version.parse(ver[1:]) >= version.parse("1.7")
-except:
+    if not ver:
+        try:
+            from modules import launch_utils
+            ver = launch_utils.git_tag()
+        except:
+            print("Failed to fetch SD-WebUI version")
+            ver_bool = False
+    if ver:
+        ver_bool = version.parse(ver[1:]) >= version.parse("1.7")
+except ImportError:
     print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
     ver_bool = False
 
