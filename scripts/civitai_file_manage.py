@@ -524,9 +524,10 @@ def get_models(file_path, gen_hash=None):
         except Exception as e:
             print(f"Failed to open {json_file}: {e}")
     
-    if not modelId or not sha256:
+    if not modelId or not sha256 or modelId == "Model not found":
         if gen_hash:
-            sha256 = gen_sha256(file_path)
+            if not sha256:
+                sha256 = gen_sha256(file_path)
             by_hash = f"https://civitai.com/api/v1/model-versions/by-hash/{sha256}"
         else:
             if modelId:
@@ -535,7 +536,7 @@ def get_models(file_path, gen_hash=None):
                 return None
     
     try:
-        if not modelId:
+        if not modelId or modelId == "Model not found":
             response = requests.get(by_hash, timeout=(10,30))
             if response.status_code == 200:
                 api_response = response.json()
