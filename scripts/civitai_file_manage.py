@@ -526,7 +526,6 @@ def get_models(file_path, gen_hash=None):
     
     if not modelId or not sha256:
         if gen_hash:
-            print("modelId of sha256 niette vonde")
             sha256 = gen_sha256(file_path)
             by_hash = f"https://civitai.com/api/v1/model-versions/by-hash/{sha256}"
         else:
