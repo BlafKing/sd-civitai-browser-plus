@@ -587,7 +587,7 @@ def update_model_versions(model_name):
                         with open(json_path, 'r') as f:
                             json_data = json.load(f)
                             if isinstance(json_data, dict):
-                                if 'sha256' in json_data:
+                                if 'sha256' in json_data and json_data['sha256']:
                                     sha256 = json_data.get('sha256', "").upper()
                                     for version_name, _, file_sha256 in version_files:
                                         if sha256 == file_sha256:

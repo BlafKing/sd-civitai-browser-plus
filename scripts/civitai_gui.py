@@ -32,7 +32,7 @@ try:
             ver_bool = False
     if ver:
         ver = ver.split('-')[0].rsplit('-', 1)[0]
-        ver_bool = version.parse(ver[1:]) >= version.parse("1.7")
+        ver_bool = version.parse(ver[0:]) >= version.parse("1.7")
 except ImportError:
     print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
     ver_bool = False
@@ -94,7 +94,6 @@ def show_multi_buttons(input_list, version_value, model_id):
     if len(gl.download_queue) > 0:
             for item in gl.download_queue:
                 if int(model_id) == int(item['model_id']):
-                    print("match found")
                     BtnDwnInt = False
                     break
     
@@ -203,7 +202,7 @@ def on_ui_tabs():
                 save_images = gr.Button(value="Save images", interactive=False)
                 delete_model = gr.Button(value="Delete model", interactive=False, visible=False)
                 download_model = gr.Button(value="Download model", interactive=False)
-                download_selected = gr.Button(value="Download all seleceted", interactive=False, visible=False)
+                download_selected = gr.Button(value="Download all selected", interactive=False, visible=False)
             with gr.Row():
                 cancel_all_model = gr.Button(value="Cancel all downloads", interactive=False, visible=False)
                 cancel_model = gr.Button(value="Cancel current download", interactive=False, visible=False)

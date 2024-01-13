@@ -100,6 +100,16 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.2.4</h3>
+
+* Bug fix: Fix version detection for non standard SD-WebUI versions.
+* Bug fix: Retry to fetch ModelID if previously not found in update functions.
+* Bug fix: Style fix for when the Lobe theme is used in SD-WebUI
+* Bug fix: Better required packages import error catching.
+* Bug fix: Fixed CivitAI button scaling in txt2img and img2img tabs.
+* Bug fix: Added ability to handle models that have no hashes saved.
+
+---
 <h3>v3.2.3</h3>
 
 * Bug fix: Generate hash toggle in update models was inverted (silly mistake, sry bout that)

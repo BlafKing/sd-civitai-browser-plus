@@ -397,6 +397,9 @@ function createCardButtons(event) {
 
             if (cardDivs.length > 0) {
                 clearInterval(checkForCardDivs);
+                
+                const cardScale = document.querySelector('#setting_extra_networks_card_text_scale > div > div > input').valueAsNumber * 100;
+                const viewBoxHeight = (cardScale < 100) ? (100 - cardScale) * 2 : -(cardScale - 100) * 2;
 
                 cardDivs.forEach(cardDiv => {
                     const buttonRow = cardDiv.querySelector('.button-row');
@@ -444,9 +447,11 @@ function createCardButtons(event) {
                         }
                         svgIcon.setAttribute('width', '40');
                         svgIcon.setAttribute('height', '40');
+                        newDiv.setAttribute('style', 'width: 42px !important;');
                     }
-                    svgIcon.setAttribute('viewBox', '75 0 500 500');
+                    svgIcon.setAttribute('viewBox', `75 ${viewBoxHeight} 500 500`);
                     svgIcon.setAttribute('fill', 'white');
+                    svgIcon.setAttribute('style', `scale: ${cardScale}%;`);
 
                     svgIcon.innerHTML = `
                         <path d="M 352.79 218.85 L 319.617 162.309 L 203.704 162.479 L 146.28 259.066 L 203.434 355.786 L 319.373 355.729 L 352.773 299.386 L 411.969 299.471 L 348.861 404.911 L 174.065 404.978 L 87.368 259.217 L 174.013 113.246 L 349.147 113.19 L 411.852 218.782 L 352.79 218.85 Z"/>
@@ -467,7 +472,7 @@ function sendModelToBrowser(modelName, content_type) {
     const tabNav = document.querySelector('.tab-nav');
     const buttons = tabNav.querySelectorAll('button');
     for (const button of buttons) {
-        if (button.textContent.includes('Civitai')) {
+        if (button.textContent.includes('Browser+')) {
             button.click();
             
             const firstButton = document.querySelector('#tab_civitai_interface > div > div > div > button');

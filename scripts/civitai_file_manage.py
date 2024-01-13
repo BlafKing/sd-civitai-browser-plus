@@ -160,7 +160,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
             try:
                 with open(json_file, 'r') as f:
                     data = json.load(f)
-                    if 'sha256' in data:
+                    if 'sha256' in data and data['sha256']:
                         sha256 = data['sha256'].upper()
             except Exception as e:
                 print(f"Failed to open {json_file}: {e}")
@@ -303,7 +303,7 @@ def gen_sha256(file_path):
             with open(json_file, 'r') as f:
                 data = json.load(f)
         
-            if 'sha256' in data:
+            if 'sha256' in data and data['sha256']:
                 hash_value = data['sha256']
                 return hash_value
         except Exception as e:
@@ -331,7 +331,7 @@ def gen_sha256(file_path):
             with open(json_file, 'r') as f:
                 data = json.load(f)
     
-            if 'sha256' not in data:
+            if 'sha256' in data and data['sha256']:
                 data['sha256'] = hash_value
                 
             with open(json_file, 'w') as f:
@@ -422,7 +422,7 @@ def save_model_info(install_path, file_name, sha256=None, overwrite_toggle=False
             try:
                 with open(json_file, 'r') as f:
                     data = json.load(f)
-                    if 'sha256' in data:
+                    if 'sha256' in data and data['sha256']:
                         sha256 = data['sha256'].upper()
             except Exception as e:
                 print(f"Failed to open {json_file}: {e}")
@@ -436,7 +436,7 @@ def save_model_info(install_path, file_name, sha256=None, overwrite_toggle=False
     else:
         result = find_and_save(api_response, sha256, file_name, json_file, True, overwrite_toggle)
     
-def find_and_save(api_response, sha256, file_name, json_file, no_hash, overwrite_toggle):
+def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_hash=None, overwrite_toggle=None):
     for item in api_response.get('items', []):
         for model_version in item.get('modelVersions', []):
             for file in model_version.get('files', []):
@@ -519,7 +519,7 @@ def get_models(file_path, gen_hash=None):
                 
                 if 'modelId' in data:
                     modelId = data['modelId']
-                if 'sha256' in data:
+                if 'sha256' in data and data['sha256']:
                     sha256 = data['sha256']
         except Exception as e:
             print(f"Failed to open {json_file}: {e}")

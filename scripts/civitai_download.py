@@ -146,13 +146,14 @@ def selected_to_queue(model_list, download_start, create_json):
         for item in gl.json_data['items']:
             if item['name'] == model_name:
                 model_id, desc, content_type = item['id'], item['description'], item['type']
-                version = item['modelVersions'][0]
-                version_name = version['name']
-                model_filename = _api.cleaned_name(version['files'][0]['name'])
-                model_sha256 = version['files'][0]['hashes']['SHA256']
-                dl_url = version['files'][0]['downloadUrl']
+                version = item.get('modelVersions', [])[0]
+                version_name = version.get('name')
+                files = version.get('files', [])
+                model_filename = _api.cleaned_name(files[0].get('name'))
+                model_sha256 = files[0].get('hashes', {}).get('SHA256')
+                dl_url = files[0].get('downloadUrl')
                 break
-        
+                
         model_folder = _api.contenttype_folder(content_type, desc)
         
         sub_opt1 = os.path.join(os.sep, _api.cleaned_name(model_name))
@@ -244,11 +245,14 @@ def download_cancel():
     gl.cancel_status = True
     gl.download_fail = True
     
-    item = gl.download_queue[0]
+    if gl.download_queue:
+        item = gl.download_queue[0]
     
     while True:        
         if not gl.isDownloading:
-            _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
+            if item:
+                _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
+            gl.download_queue = []
             break
         else:
             time.sleep(0.5)
@@ -258,11 +262,13 @@ def download_cancel_all():
     gl.cancel_status = True
     gl.download_fail = True
     
-    item = gl.download_queue[0]
+    if gl.download_queue:
+        item = gl.download_queue[0]
     
     while True:
         if not gl.isDownloading:
-            _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
+            if item:
+                _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
             gl.download_queue = []
             break
         else:
