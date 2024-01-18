@@ -144,7 +144,6 @@ def selected_to_queue(model_list, download_start, create_json):
         current_count = 0
         
     model_list = json.loads(model_list)
-    print(model_list)
     
     for model_string in model_list:
         model_name, model_id = _api.extract_model_info(model_string)

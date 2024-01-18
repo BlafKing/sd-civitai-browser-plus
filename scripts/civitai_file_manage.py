@@ -373,11 +373,13 @@ def model_from_sent(model_name, content_type, click_first_item, tile_count):
     }
     content_type = content_mapping.get(content_type, content_type)
     
+    extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
+    
     for content_type_item in content_type:
         folder = _api.contenttype_folder(content_type_item)
         for folder_path, _, files in os.walk(folder):
             for file in files:
-                if file.startswith(model_name) and not file.endswith(".json"):
+                if file.startswith(model_name) and file.endswith(tuple(extensions)):
                     model_file = os.path.join(folder_path, file)
     
     modelID = get_models(model_file, True)
