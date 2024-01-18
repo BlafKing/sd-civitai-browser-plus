@@ -11,6 +11,7 @@ import stat
 import json
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 from modules.shared import opts, cmd_opts
 from scripts.civitai_global import print
 import scripts.civitai_global as gl
@@ -98,19 +99,21 @@ class TimeOutFunction(Exception):
     pass
 
 def create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json):
+    if model_id:
+        model_id = int(model_id)
     if model_sha256:
         model_sha256 = model_sha256.upper()
     
     filtered_items = []
     
     for item in gl.json_data['items']:
-        if item['id'] == int(model_id):
+        if item['id'] == model_id:
             filtered_items.append(item)
             break
             
     model_json = {"items": filtered_items}
     
-    model_versions = _api.update_model_versions(model_name)
+    model_versions = _api.update_model_versions(model_id)
     
     for item in gl.download_queue:
         if item['dl_url'] == dl_url:
@@ -141,10 +144,12 @@ def selected_to_queue(model_list, download_start, create_json):
         current_count = 0
         
     model_list = json.loads(model_list)
+    print(model_list)
     
-    for model_name in model_list:
+    for model_string in model_list:
+        model_name, model_id = _api.extract_model_info(model_string)
         for item in gl.json_data['items']:
-            if item['name'] == model_name:
+            if item['id'] == model_id:
                 model_id, desc, content_type = item['id'], item['description'], item['type']
                 version = item.get('modelVersions', [])[0]
                 version_name = version.get('name')
@@ -183,9 +188,10 @@ def selected_to_queue(model_list, download_start, create_json):
             gr.HTML.update(value='<div style="min-height: 100px;"></div>') # Download Progress
     )
     
-def download_start(download_start, dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json):
+def download_start(download_start, dl_url, model_filename, install_path, model_string, version_name, model_sha256, model_id, create_json):
     global total_count, current_count
-    
+    if model_string:
+        model_name, _ = _api.extract_model_info(model_string)
     model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json)
     
     gl.download_queue.append(model_item)
@@ -206,9 +212,10 @@ def download_start(download_start, dl_url, model_filename, install_path, model_n
             gr.HTML.update(value='<div style="min-height: 100px;"></div>') # Download Progress
     )
 
-def download_finish(model_filename, version, model_name):
-    if model_name:
-        gr_components = _api.update_model_versions(model_name)
+def download_finish(model_filename, version, model_id):
+    if model_id:
+        model_id = int(model_id)
+        gr_components = _api.update_model_versions(model_id)
     else:
         gr_components = None
     if gr_components:
@@ -251,8 +258,8 @@ def download_cancel():
     while True:        
         if not gl.isDownloading:
             if item:
-                _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
-            gl.download_queue = []
+                model_string = f"{item['model_name']} ({item['model_id']})"
+                _file.delete_model(0, item['model_filename'], model_string, item['version_name'], False, model_ver=item['model_versions'], model_json=item['model_json'])
             break
         else:
             time.sleep(0.5)
@@ -268,7 +275,8 @@ def download_cancel_all():
     while True:
         if not gl.isDownloading:
             if item:
-                _file.delete_model(0, item['model_filename'], item['model_name'], item['version_name'], item['model_sha256'])
+                model_string = f"{item['model_name']} ({item['model_id']})"
+                _file.delete_model(0, item['model_filename'], model_string, item['version_name'], False, model_ver=item['model_versions'], model_json=item['model_json'])
             gl.download_queue = []
             break
         else:
@@ -286,7 +294,11 @@ def get_download_link(url):
     headers = _api.get_headers()
 
     response = requests.get(url, headers=headers, allow_redirects=False)
+    
     if 300 <= response.status_code <= 308:
+        if "login?returnUrl" in response.text and "reason=download-auth" in response.text:
+            return "NO_API"
+        
         download_link = response.headers["Location"]
         return download_link
     else:
@@ -305,6 +317,14 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
     if not download_link:
         print(f'File: "{file_name}" not found on CivitAI servers, it looks like the file is not available for download.')
         gl.download_fail = True
+        return
+    
+    elif download_link == "NO_API":
+        print(f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+        gl.download_fail = "NO_API"
+        if progress != None:
+            progress(0, desc=f'File: "{file_name}" requires a personal CivitAI API to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+            time.sleep(5)
         return
     
     if os.path.exists(file_path):
@@ -441,6 +461,14 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
     if not download_link:
         print(f'File: "{file_name_display}" not found on CivitAI servers, it looks like the file is not available for download.')
         gl.download_fail = True
+        return
+    
+    elif download_link == "NO_API":
+        print(f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+        gl.download_fail = "NO_API"
+        if progress != None:
+            progress(0, desc=f'File: "{file_name_display}" requires a personal CivitAI API key to be downloaded, you can set your own API key in the CivitAI Browser+ settings in the SD-WebUI settings tab')
+            time.sleep(5)
         return
     
     while True:
@@ -605,15 +633,18 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
                 if file_base_name == base_name or file_base_name == base_name_preview:
                     path_file = os.path.join(root, file)
                     os.remove(path_file)
+        
         if gl.cancel_status:
             print(f'Cancelled download of "{item["model_filename"]}"')
         else:
-            print(f'Error occured during download of "{item["model_filename"]}"')
+            if not gl.download_fail == "NO_API":
+                print(f'Error occured during download of "{item["model_filename"]}"')
     
     if gl.cancel_status:
         card_name = None
     else:
-        (card_name, _, _) = _file.card_update(item['model_versions'], item['model_name'], item['version_name'], True)
+        model_string = f"{item['model_name']} ({item['model_id']})"
+        (card_name, _, _) = _file.card_update(item['model_versions'], model_string, item['version_name'], True)
     
     if len(gl.download_queue) != 0:
         gl.download_queue.pop(0)

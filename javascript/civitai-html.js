@@ -300,7 +300,7 @@ function setupClickOutsideListener() {
 // Create hyperlink in settings to CivitAI account settings
 function createLink(infoElement) {
 
-    const existingText = "(You can create your own API key in your CivitAI account settings, Requires UI reload)";
+    const existingText = "(You can create your own API key in your CivitAI account settings, this required for some downloads, Requires UI reload)";
     const linkText = "CivitAI account settings";
     
     const [textBefore, textAfter] = existingText.split(linkText);
@@ -638,7 +638,6 @@ function genInfo_to_txt2img(genInfo) {
 // Hide installed models
 function hideInstalled(toggleValue) {
     const modelList =  document.querySelectorAll('.column.civmodellist > .civmodelcardinstalled')
-    console.log(modelList)
     modelList.forEach(item => {
         item.style.display = toggleValue ? 'none' : 'block';
     });

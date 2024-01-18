@@ -100,6 +100,18 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.2.5</h3>
+
+* Bug fix: Removed default API Key since it gets blocked after many downloads.
+   - Because of this it's now required for some downloads to use a personal CivitAI key, this can be set in the the settings tab of SD-WebUI under the CivitAI Browser+ tab.
+* Bug fix: Fixed bug when selecting a model from txt2img/img2img that doesn't exist on CivitAI.
+* Bug fix: Changed model selection to Model ID instead of model name
+   - This previously caused issues when 2 models were named the same.
+* Bug fix: Fixed an issue where the default file was not properly used by default.
+* Bug fix: Fixed some tiles not being selectable due to having "'" in it's title
+* Bug fix: Now automatically removes residual Aria2 files.
+
+---
 <h3>v3.2.4</h3>
 
 * Bug fix: Fix version detection for non standard SD-WebUI versions.

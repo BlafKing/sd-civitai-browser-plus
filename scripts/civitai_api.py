@@ -210,7 +210,7 @@ def api_to_data(content_type, sort_type, period_type, use_search_term, current_p
         
     return data
 
-def model_list_html(json_data, model_dict):
+def model_list_html(json_data):
     video_playback = getattr(opts, "video_playback", True)
     playback = ""
     if video_playback: playback = "autoplay loop"
@@ -269,73 +269,75 @@ def model_list_html(json_data, model_dict):
                             print(f"Error decoding JSON in {json_path}: {e}")
     
     for item in json_data['items']:
-        for k, model in model_dict.items():
-            if model_dict[k].lower() == item['name'].lower():
-                model_name = escape(item["name"].replace("\\", "\\\\").replace("'", "\\'"), quote=True)
-                
-                nsfw = ""
-                installstatus = ""
-                baseModel = ""
-                try:
-                    if 'baseModel' in item['modelVersions'][0]:
-                        baseModel = item['modelVersions'][0]['baseModel']
-                except:
-                    baseModel = "Not Found"
-                
-                try:
-                    if 'updatedAt' in item['modelVersions'][0]:
-                        date = item['modelVersions'][0]['updatedAt'].split('T')[0]
-                except:
-                    baseModel = "Not Found"
-                    
-                if gl.sortNewest:
-                    if date not in sorted_models:
-                        sorted_models[date] = []
-                
-                if any(item['modelVersions']):
-                    if len(item['modelVersions'][0]['images']) > 0:
-                        if item["modelVersions"][0]["images"][0]['nsfw'] not in ["None", "Soft"]:
-                            nsfw = "civcardnsfw"
-                        media_type = item["modelVersions"][0]["images"][0]["type"]
-                        image = item["modelVersions"][0]["images"][0]["url"]
-                        if media_type == "video":
-                            image = image.replace("width=", "transcode=true,width=")
-                            imgtag = f'<video class="video-bg" {playback} muted playsinline><source src="{image}" type="video/mp4"></video>'
-                        else:
-                            imgtag = f'<img src="{image}"></img>'
-                    else:
-                        imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
-                    
-                    installstatus = None
-                    
-                    for version in reversed(item['modelVersions']):
-                        for file in version.get('files', []):
-                            file_name = file['name']
-                            file_sha256 = file.get('hashes', {}).get('SHA256', "").upper()
-                            
-                            name_match = file_name in existing_files
-                            sha256_match = file_sha256 in existing_files_sha256
-                            if name_match or sha256_match:
-                                if version == item['modelVersions'][0]:
-                                    installstatus = "civmodelcardinstalled"
-                                else:
-                                    installstatus = "civmodelcardoutdated"
-                    model_card = f'<figure class="civmodelcard {nsfw} {installstatus}" base-model="{baseModel}" date="{date}" onclick="select_model(\'{model_name}\', event)">'
-                    if installstatus != "civmodelcardinstalled":
-                        model_card += f'<input type="checkbox" class="model-checkbox" id="checkbox-{model_name}" onchange="multi_model_select(\'{model_name}\', this.checked)" style="opacity: 0; position: absolute; top: 10px; right: 10px;">' \
-                                    + f'<label for="checkbox-{model_name}" class="custom-checkbox"></label>'
-                    if len(item["name"]) > 40:
-                        display_name = item["name"][:40] + '...'
-                    else:
-                        display_name = item["name"]
-                    
-                    model_card += imgtag \
-                                + f'<figcaption title="{item["name"]}">{display_name}</figcaption></figure>'
-                
-                if gl.sortNewest:
-                    sorted_models[date].append(model_card)
+        model_id = item.get('id')
+        model_name = item.get('name')
+        nsfw = ""
+        installstatus = ""
+        baseModel = ""
+        try:
+            if 'baseModel' in item['modelVersions'][0]:
+                baseModel = item['modelVersions'][0]['baseModel']
+        except:
+            baseModel = "Not Found"
+        
+        try:
+            if 'updatedAt' in item['modelVersions'][0]:
+                date = item['modelVersions'][0]['updatedAt'].split('T')[0]
+        except:
+            baseModel = "Not Found"
+            
+        if gl.sortNewest:
+            if date not in sorted_models:
+                sorted_models[date] = []
+        
+        if any(item['modelVersions']):
+            if len(item['modelVersions'][0]['images']) > 0:
+                if item["modelVersions"][0]["images"][0]['nsfw'] not in ["None", "Soft"]:
+                    nsfw = "civcardnsfw"
+                media_type = item["modelVersions"][0]["images"][0]["type"]
+                image = item["modelVersions"][0]["images"][0]["url"]
+                if media_type == "video":
+                    image = image.replace("width=", "transcode=true,width=")
+                    imgtag = f'<video class="video-bg" {playback} muted playsinline><source src="{image}" type="video/mp4"></video>'
                 else:
-                    HTML += model_card
+                    imgtag = f'<img src="{image}"></img>'
+            else:
+                imgtag = f'<img src="./file=html/card-no-preview.png"></img>'
+            
+            installstatus = None
+            
+            for version in reversed(item['modelVersions']):
+                for file in version.get('files', []):
+                    file_name = file['name']
+                    file_sha256 = file.get('hashes', {}).get('SHA256', "").upper()
+                    
+                    name_match = file_name in existing_files
+                    sha256_match = file_sha256 in existing_files_sha256
+                    if name_match or sha256_match:
+                        if version == item['modelVersions'][0]:
+                            installstatus = "civmodelcardinstalled"
+                        else:
+                            installstatus = "civmodelcardoutdated"
+            model_name_js = model_name.replace("'", "\\'")
+            model_string = escape(f"{model_name_js} ({model_id})")
+            model_card = f'<figure class="civmodelcard {nsfw} {installstatus}" base-model="{baseModel}" date="{date}" onclick="select_model(\'{model_string}\', event)">'
+            if installstatus != "civmodelcardinstalled":
+                model_card += f'<input type="checkbox" class="model-checkbox" id="checkbox-{model_string}" onchange="multi_model_select(\'{model_string}\', this.checked)" style="opacity: 0; position: absolute; top: 10px; right: 10px;">' \
+                            + f'<label for="checkbox-{model_string}" class="custom-checkbox"></label>'
+            if len(item["name"]) > 40:
+                display_name = item["name"][:40] + '...'
+            else:
+                display_name = item["name"]
+            
+            display_name = escape(display_name)
+            full_name = escape(item['name'])
+            model_card += imgtag \
+                        + f'<figcaption title="{full_name}">{display_name}</figcaption></figure>'
+        
+        if gl.sortNewest:
+            sorted_models[date].append(model_card)
+        else:
+            HTML += model_card
     
     if gl.sortNewest:
         for date, cards in sorted(sorted_models.items(), reverse=True):
@@ -441,10 +443,8 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             gl.json_data['items']
         except TypeError:
             return gr.Dropdown.update(choices=[], value=None)
-
-        for item in gl.json_data['items']:
-            model_dict[item['name']] = item['name']
-        HTML = model_list_html(gl.json_data, model_dict)
+        
+        HTML = model_list_html(gl.json_data)
 
     page_string = f"Page: {current_page}/{total_pages}"
     
@@ -481,7 +481,8 @@ def pagecontrol(json_data):
 
 def update_model_list(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, tile_count=None, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     use_LORA = getattr(opts, "use_LORA", False)
-    model_dict = {}
+    model_list = []
+    id_list = []
     
     if content_type:
         if use_LORA and 'LORA & LoCon' in content_type:
@@ -523,9 +524,9 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             hasPrev = False
             hasNext = False
         for item in gl.json_data['items']:
-            model_dict[item['name']] = item['name']
+            model_list.append(f"{item['name']} ({item['id']})")
         
-        HTML = model_list_html(gl.json_data, model_dict)
+        HTML = model_list_html(gl.json_data)
     else:
         current_page = 1
         total_pages = 1
@@ -533,7 +534,7 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
     page_string = f"Page: {current_page}/{total_pages}"
     
     return  (
-            gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value="", interactive=True), # Model List
+            gr.Dropdown.update(choices=model_list, value="", interactive=True), # Model List
             gr.Dropdown.update(choices=[], value=""), # Version List
             gr.HTML.update(value=HTML), # HTML Tiles
             gr.Button.update(interactive=hasPrev), # Prev Page Button
@@ -552,12 +553,11 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             gr.Textbox.update(value=None) # Model Filename
     )
 
-def update_model_versions(model_name):
-    item_names_and_types = {item['name']: (item['type'], item['description']) for item in gl.json_data['items']}
-    if model_name is not None:
-        selected_content_type, desc = item_names_and_types.get(model_name, (None, None))
+def update_model_versions(model_id):
+    item_id_and_types = {item['id']: (item['type'], item['description']) for item in gl.json_data['items']}
+    if model_id is not None:
+        selected_content_type, desc = item_id_and_types.get(model_id, (None, None))
         if selected_content_type is None:
-            print("Model name not found in json_data. (update_model_versions)")
             return
 
         versions_dict = defaultdict(list)
@@ -566,7 +566,7 @@ def update_model_versions(model_name):
         model_folder = os.path.join(contenttype_folder(selected_content_type, desc))
         gl.main_folder = model_folder
 
-        item = next((item for item in gl.json_data['items'] if item['name'] == model_name), None)
+        item = next((item for item in gl.json_data['items'] if item['id'] == model_id), None)
         if item is None:
             return
         versions = item['modelVersions']
@@ -629,7 +629,16 @@ def fetch_and_process_image(image_url):
         return geninfo
     return None
 
-def update_model_info(model_name=None, model_version=None):
+def extract_model_info(input_string):
+    last_open_parenthesis = input_string.rfind("(")
+    last_close_parenthesis = input_string.rfind(")")
+
+    name = input_string[:last_open_parenthesis].strip()
+    id_number = input_string[last_open_parenthesis + 1:last_close_parenthesis]
+
+    return name, int(id_number)
+
+def update_model_info(model_string=None, model_version=None):
     video_playback = getattr(opts, "video_playback", True)
     playback = ""
     if video_playback: playback = "autoplay loop"
@@ -637,10 +646,14 @@ def update_model_info(model_name=None, model_version=None):
     BtnDownInt = True
     BtnDel = False
     BtnImage = False
+    model_id = None
+    model_name = None
+    
+    model_name, model_id = extract_model_info(model_string)
     
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
-    if model_name and model_version:
+    if model_id and model_version:
         output_html = ""
         output_training = ""
         output_basemodel = ""
@@ -650,15 +663,13 @@ def update_model_info(model_name=None, model_version=None):
         file_list = []
         default_file = None
         model_filename = None
-        model_id = None
         sha256_value = None
         for item in gl.json_data['items']:
-            if item['name'] == model_name:
+            if item['id'] == model_id:
                 content_type = item['type']
                 if content_type == "LORA":
                     is_LORA = True
                 desc = item['description']
-                model_id = item['id']
                 model_folder = os.path.join(contenttype_folder(content_type, desc))
                 model_uploader = item['creator']['username']
                 uploader_avatar = item['creator']['image']
@@ -697,6 +708,10 @@ def update_model_info(model_name=None, model_version=None):
                             file_list.append(unique_file_name)
                             if is_primary:
                                 default_file = unique_file_name
+                                model_filename = file['name']
+                                dl_url = file['downloadUrl']
+                                gl.json_info = item
+                                sha256_value = file['hashes'].get('SHA256', 'Unknown')
                         
                         if is_LORA and file_list:
                             extracted_formats = [file.split(' ')[1] for file in file_list]
@@ -914,7 +929,7 @@ def update_model_info(model_name=None, model_version=None):
         default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if BtnDel == False else "None"
         if gl.isDownloading:
             item = gl.download_queue[0]
-            if model_name == item['model_name']:
+            if model_id == item['model_id']:
                 BtnDel = False
         BtnDownTxt = "Download model"
         if len(gl.download_queue) > 0:
@@ -971,15 +986,19 @@ def sub_folder_value(content_type, desc=None):
         return "None"
     return folder
 
-def update_file_info(model_name, model_version, file_metadata):
+def update_file_info(model_string, model_version, file_metadata):
     file_list = []
     is_LORA = False
     embed_check = False
+    model_name = None
+    model_id = None
+    model_name, model_id = extract_model_info(model_string)
+    
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
-    if model_name and model_version:
+    if model_id and model_version:
         for item in gl.json_data['items']:
-            if item['name'] == model_name:
+            if item['id'] == model_id:
                 content_type = item['type']
                 if content_type == "LORA":
                     is_LORA = True
@@ -1032,11 +1051,11 @@ def update_file_info(model_name, model_version, file_metadata):
                                                 with open(os.path.join(root, filename), 'r') as f:
                                                     try:
                                                         data = json.load(f)
-                                                        if "sha256" in data:
-                                                            if data.get('sha256').upper() == sha256:
-                                                                folder_location = root
-                                                                installed = True
-                                                                break
+                                                        sha256_value = data.get('sha256')
+                                                        if sha256_value != None and sha256_value.upper() == sha256:
+                                                            folder_location = root
+                                                            installed = True
+                                                            break
                                                     except Exception as e:
                                                         print(f"Error decoding JSON: {str(e)}")
                                 default_sub = sub_folder_value(content_type, desc)
@@ -1083,8 +1102,6 @@ def update_file_info(model_name, model_version, file_metadata):
 
 def get_headers():
     api_key = getattr(opts, "custom_api_key", "")
-    if not api_key:
-        api_key = "eaee11648ef4c72efb2333d5ebc68b98"
     try:
         user_agent = UserAgent().chrome
     except ImportError:
@@ -1100,8 +1117,10 @@ def get_headers():
         'Sec-Fetch-User': '?1',
         'Sec-Gpc': '1',
         'Upgrade-Insecure-Requests': '1',
-        'Authorization': f'Bearer {api_key}'
     }
+    if api_key:
+        headers['Authorization'] = f'Bearer {api_key}'
+    
     return headers
 
 def request_civit_api(api_url=None):

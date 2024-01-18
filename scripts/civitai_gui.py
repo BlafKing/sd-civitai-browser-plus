@@ -337,12 +337,13 @@ def on_ui_tabs():
         
         list_html.change(fn=all_visible,inputs=list_html,outputs=select_all)
         
-        def update_models_dropdown(model_name):
-            model_name = re.sub(r'\.\d{3}$', '', model_name)
-            ret_versions = _api.update_model_versions(model_name)
-            (html, tags, base_mdl, DwnButton, SaveImages, DelButton, filelist, filename, dl_url, model_id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_name,ret_versions['value'])
-            return (gr.Dropdown.update(value=model_name),
-                    ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,SaveImages,DelButton,filelist,dl_url,model_id,current_sha256,
+        def update_models_dropdown(input):
+            model_string = re.sub(r'\.\d{3}$', '', input)
+            model_name, model_id = _api.extract_model_info(model_string)
+            ret_versions = _api.update_model_versions(model_id)
+            (html, tags, base_mdl, DwnButton, SaveImages, DelButton, filelist, filename, dl_url, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_string, ret_versions['value'])
+            return (gr.Dropdown.update(value=model_string, interactive=True),
+                    ret_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,SaveImages,DelButton,filelist,dl_url,id,current_sha256,
                     gr.Button.update(interactive=True))
         
         model_select.change(
@@ -486,7 +487,7 @@ def on_ui_tabs():
             inputs=[
                 model_filename,
                 list_versions,
-                list_models
+                model_id
                 ],
             outputs=[
                 download_model,
@@ -906,7 +907,7 @@ def on_ui_settings():
             "Personal CivitAI API key",
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
-        ).info("You can create your own API key in your CivitAI account settings, Requires UI reload")
+        ).info("You can create your own API key in your CivitAI account settings, this required for some downloads, Requires UI reload")
     )
 
     shared.opts.add_option(

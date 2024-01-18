@@ -43,26 +43,37 @@ except AttributeError:
 except:
     queue = True
 
-def delete_model(delete_finish=None, model_filename=None, model_name=None, list_versions=None, sha256=None, selected_list=None):
+def delete_model(delete_finish=None, model_filename=None, model_string=None, list_versions=None, sha256=None, selected_list=None, model_ver=None, model_json=None):
     deleted = False
-    gr_components = _api.update_model_versions(model_name)
-    model_name_search = model_name
-    
-    (model_name, ver_value, ver_choices) = _file.card_update(gr_components, model_name, list_versions, False)
-    if model_name_search is not None:
-        selected_content_type = None
-        for item in gl.json_data['items']:
-            if item['name'] == model_name_search:
-                selected_content_type = item['type']
-                desc = item['description']
-                break
+    model_id = None
         
-        if selected_content_type is None:
-            print("Model name not found in json_data. (delete_model)")
-            return
+    if model_string:
+        _, model_id = _api.extract_model_info(model_string)
+    
+    if not model_ver:
+        gr_components = _api.update_model_versions(model_id)
+    else: gr_components = model_ver
+    
+    (model_name, ver_value, ver_choices) = _file.card_update(gr_components, model_string, list_versions, False)
+    if not model_json:
+        if model_id != None:
+            selected_content_type = None
+            for item in gl.json_data['items']:
+                if item['id'] == model_id:
+                    selected_content_type = item['type']
+                    desc = item['description']
+                    break
+            
+            if selected_content_type is None:
+                print("Model ID not found in json_data. (delete_model)")
+                return
+    else:
+        for item in model_json["items"]:
+            selected_content_type = item['type']
+            desc = item['description']
     
     model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
-
+    
     # Delete based on provided SHA-256 hash
     if sha256:
         sha256_upper = sha256.upper()
@@ -102,12 +113,13 @@ def delete_model(delete_finish=None, model_filename=None, model_name=None, list_
                             deleted = True
 
     # Fallback to delete based on filename if not deleted based on SHA-256
-    file_to_delete = os.path.splitext(model_filename)[0]
+    filename_to_delete = os.path.splitext(model_filename)[0]
+    aria2_file = model_filename + ".aria2"
     if not deleted:
         for root, dirs, files in os.walk(model_folder):
             for file in files:
-                current_file = os.path.splitext(file)[0]
-                if file_to_delete == current_file:
+                current_file_name = os.path.splitext(file)[0]
+                if filename_to_delete == current_file_name or aria2_file == file:
                     path_file = os.path.join(root, file)
                     if os.path.isfile(path_file):
                         try:
@@ -116,7 +128,7 @@ def delete_model(delete_finish=None, model_filename=None, model_name=None, list_
                         except:
                             os.remove(path_file)
                             print(f"Model deleted based on filename: {path_file}")
-                        delete_associated_files(root, current_file)
+                        delete_associated_files(root, current_file_name)
 
     number = _download.random_number(delete_finish)
 
@@ -187,7 +199,11 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                     print(f"No preview images found for \"{name}\"")
                     return
 
-def save_images(preview_html, model_filename, model_name, install_path, sub_folder):
+def save_images(preview_html, model_filename, model_string, install_path, sub_folder):
+    
+    if model_string:
+        model_name, model_id = _api.extract_model_info(model_string)
+    
     image_location = getattr(opts, "image_location", r"")
     sub_image_location = getattr(opts, "sub_image_location", True)
     if image_location:
@@ -217,9 +233,9 @@ def save_images(preview_html, model_filename, model_name, install_path, sub_fold
         image_count += 1
         filename = f'{name}_{i}.png'
         filenamethumb = f'{name}.png'
-        if model_name is not None:
+        if model_id is not None:
             for item in gl.json_data['items']:
-                if item['name'] == model_name:
+                if item['id'] == model_id:
                     if item['type'] == "TextualInversion":
                         filename = f'{name}_{i}.preview.png'
                         filenamethumb = f'{name}.preview.png'
@@ -346,6 +362,7 @@ def gen_sha256(file_path):
     return hash_value
 
 def model_from_sent(model_name, content_type, click_first_item, tile_count):
+    modelID_failed = False
     model_name = re.sub(r'\.\d{3}$', '', model_name)
     content_type = re.sub(r'\.\d{3}$', '', content_type)
     content_mapping = {
@@ -363,22 +380,26 @@ def model_from_sent(model_name, content_type, click_first_item, tile_count):
                 if file.startswith(model_name) and not file.endswith(".json"):
                     model_file = os.path.join(folder_path, file)
     
-    modelID = get_models(model_file)
+    modelID = get_models(model_file, True)
+    if not modelID or modelID == "Model not found":
+        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">Model ID not found.<br>maybe the model doesn\'t exist on CivitAI?</div>'
+        modelID_failed = True
     if modelID == "offline":
         HTML = offlineHTML
-    gl.json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
+        modelID_failed = True
+    if not modelID_failed: 
+        gl.json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
+    else: gl.json_data = None
+    
     if gl.json_data == "timeout":
         HTML = offlineHTML
-        number = click_first_item
     if gl.json_data != None and gl.json_data != "timeout":
-        model_dict = {}
-        for item in gl.json_data['items']:
-            model_dict[item['name']] = item['name']
-        HTML = _api.model_list_html(gl.json_data, model_dict)
+        HTML = _api.model_list_html(gl.json_data)
         (hasPrev, hasNext, current_page, total_pages) = _api.pagecontrol(gl.json_data)
         page_string = f"Page: {current_page}/{total_pages}"
         number = _download.random_number(click_first_item)
     else:
+        number = click_first_item
         hasPrev = False
         hasNext = False
         page_string = "Page: 0/0"
