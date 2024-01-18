@@ -534,7 +534,6 @@ def get_models(file_path, gen_hash=None):
     modelId = None
     sha256 = None
     json_file = os.path.splitext(file_path)[0] + ".json"
-    
     if os.path.exists(json_file):
         try:
             with open(json_file, 'r') as f:

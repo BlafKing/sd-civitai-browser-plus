@@ -250,7 +250,6 @@ def download_finish(model_filename, version, model_id):
 def download_cancel():
     gl.cancel_status = True
     gl.download_fail = True
-    
     if gl.download_queue:
         item = gl.download_queue[0]
     
