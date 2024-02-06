@@ -107,6 +107,7 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 * Feature: Ability to multi-download to selected folder.
 * Feature: Use the same folder as older versions when updating using multi-download.
 * Feature: txt2img and img2img CivitAI buttons can use local HTML file, toggle in settings.
+* Note: Save images no longer saves .html and API info, save model info does this instead now.
 * New setting: Save API info of model when saving model info.
 * New setting: Automatically save all images after download.
 * New setting: Use local HTML file for model info.
