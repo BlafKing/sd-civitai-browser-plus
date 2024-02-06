@@ -12,6 +12,8 @@ import requests
 import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
+
+from sympy import preview
 from modules.shared import cmd_opts, opts
 from scripts.civitai_global import print
 import scripts.civitai_global as gl
@@ -46,20 +48,20 @@ except:
 def delete_model(delete_finish=None, model_filename=None, model_string=None, list_versions=None, sha256=None, selected_list=None, model_ver=None, model_json=None):
     deleted = False
     model_id = None
-        
+    
     if model_string:
         _, model_id = _api.extract_model_info(model_string)
     
     if not model_ver:
-        gr_components = _api.update_model_versions(model_id)
-    else: gr_components = model_ver
+        model_versions = _api.update_model_versions(model_id)
+    else: model_versions = model_ver
     
-    (model_name, ver_value, ver_choices) = _file.card_update(gr_components, model_string, list_versions, False)
+    (model_name, ver_value, ver_choices) = _file.card_update(model_versions, model_string, list_versions, False)
     if not model_json:
         if model_id != None:
             selected_content_type = None
             for item in gl.json_data['items']:
-                if item['id'] == model_id:
+                if int(item['id']) == int(model_id):
                     selected_content_type = item['type']
                     desc = item['description']
                     break
@@ -82,9 +84,11 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
                 if file.endswith('.json'):
                     file_path = os.path.join(root, file)
                     try:
-                        with open(file_path, 'r') as json_file:
+                        with open(file_path, 'r', encoding="utf-8") as json_file:
                             data = json.load(json_file)
-                            file_sha256 = data.get('sha256', '').upper()
+                            file_sha256 = data.get('sha256', '')
+                            if file_sha256:
+                                file_sha256 = file_sha256.upper()
                     except Exception as e:
                         print(f"Failed to open: {file_path}: {e}")
                         file_sha256 = "0"
@@ -170,7 +174,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
     if not sha256:
         if os.path.exists(json_file):
             try:
-                with open(json_file, 'r') as f:
+                with open(json_file, 'r', encoding="utf-8") as f:
                     data = json.load(f)
                     if 'sha256' in data and data['sha256']:
                         sha256 = data['sha256'].upper()
@@ -199,26 +203,25 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                     print(f"No preview images found for \"{name}\"")
                     return
 
-def save_images(preview_html, model_filename, model_string, install_path, sub_folder):
-    
-    if model_string:
-        model_name, model_id = _api.extract_model_info(model_string)
-    
+def save_images(preview_html, model_filename, install_path, sub_folder=None):
     image_location = getattr(opts, "image_location", r"")
     sub_image_location = getattr(opts, "sub_image_location", True)
+    image_path = install_path
     if image_location:
         if sub_image_location:
             desc = gl.json_info['description']
             content_type = gl.json_info['type']
-            install_path = os.path.join(_api.contenttype_folder(content_type, desc, custom_folder=image_location))
-            if sub_folder and sub_folder != "None":
-                install_path = os.path.join(install_path, sub_folder.lstrip("/").lstrip("\\"))
-        else:
-            install_path = Path(image_location)
+            image_path = os.path.join(_api.contenttype_folder(content_type, desc, custom_folder=image_location))
+            if not sub_folder:
+                sub_folder = os.path.relpath(install_path, image_path)
             
-        
-    if not os.path.exists(install_path):
-        os.makedirs(install_path)
+            if sub_folder and sub_folder != "None":
+                image_path = os.path.join(image_path, sub_folder.lstrip("/").lstrip("\\"))
+        else:
+            image_path = Path(image_location)
+            
+    if not os.path.exists(image_path):
+        os.makedirs(image_path)
     img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
     
     name = os.path.splitext(model_filename)[0]
@@ -227,45 +230,20 @@ def save_images(preview_html, model_filename, model_string, install_path, sub_fo
     opener.addheaders = [('User-agent', 'Mozilla/5.0')]
     urllib.request.install_opener(opener)
 
-    HTML = preview_html
-    image_count = 0
     for i, img_url in enumerate(img_urls):
-        image_count += 1
-        filename = f'{name}_{i}.png'
-        filenamethumb = f'{name}.png'
-        if model_id is not None:
-            for item in gl.json_data['items']:
-                if item['id'] == model_id:
-                    if item['type'] == "TextualInversion":
-                        filename = f'{name}_{i}.preview.png'
-                        filenamethumb = f'{name}.preview.png'
-        HTML = HTML.replace(img_url,f'{filename}')
-        img_url = urllib.parse.quote(img_url,  safe=':/=')
+        if i == 0:
+            filename = f'{name}.preview.png'
+        else:
+            filename = f'{name}_{i}.png'
+        img_url = urllib.parse.quote(img_url, safe=':/=')
         try:
             with urllib.request.urlopen(img_url) as url:
-                with open(os.path.join(install_path, filename), 'wb') as f:
+                with open(os.path.join(install_path if i == 0 else image_path, filename), 'wb') as f:
                     f.write(url.read())
-                    if i == 0 and not os.path.exists(os.path.join(install_path, filenamethumb)):
-                        shutil.copy2(os.path.join(install_path, filename),os.path.join(install_path, filenamethumb))
-                    print(f"Downloaded image {image_count}")
+                    print(f"Downloaded {filename}")
                     
         except urllib.error.URLError as e:
             print(f'Error: {e.reason}')
-    match = re.search(r'(\s*)<div class="model-block">', preview_html)
-    if match:
-        indentation = match.group(1)
-    else:
-        indentation = ''
-    css_link = f'<link rel="stylesheet" type="text/css" href="{css_path}">'
-    head_section = f'{indentation}<head>{indentation}    {css_link}{indentation}</head>'
-    
-    HTML = head_section + HTML
-    path_to_new_file = os.path.join(install_path, f'{name}.html')
-    with open(path_to_new_file, 'wb') as f:
-        f.write(HTML.encode('utf8'))
-    path_to_new_file = os.path.join(install_path, f'{name}.civitai.info')
-    with open(path_to_new_file, mode="w", encoding="utf-8") as f:
-        json.dump(gl.json_info, f, indent=4, ensure_ascii=False)
 
 def card_update(gr_components, model_name, list_versions, is_install):
     if gr_components:
@@ -316,7 +294,7 @@ def gen_sha256(file_path):
     
     if os.path.exists(json_file):
         try:
-            with open(json_file, 'r') as f:
+            with open(json_file, 'r', encoding="utf-8") as f:
                 data = json.load(f)
         
             if 'sha256' in data and data['sha256']:
@@ -344,25 +322,27 @@ def gen_sha256(file_path):
     
     if os.path.exists(json_file):
         try:
-            with open(json_file, 'r') as f:
+            with open(json_file, 'r', encoding="utf-8") as f:
                 data = json.load(f)
     
             if 'sha256' in data and data['sha256']:
                 data['sha256'] = hash_value
                 
-            with open(json_file, 'w') as f:
+            with open(json_file, 'w', encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
         except Exception as e:
             print(f"Failed to open {json_file}: {e}")
     else:
         data = {'sha256': hash_value}
-        with open(json_file, 'w') as f:
+        with open(json_file, 'w', encoding="utf-8") as f:
             json.dump(data, f, indent=4)
     
     return hash_value
 
-def model_from_sent(model_name, content_type, click_first_item, tile_count):
+def model_from_sent(model_name, content_type, tile_count):
     modelID_failed = False
+    output_html = None
+    use_local_html = getattr(opts, "use_local_html", False)
     model_name = re.sub(r'\.\d{3}$', '', model_name)
     content_type = re.sub(r'\.\d{3}$', '', content_type)
     content_mapping = {
@@ -382,38 +362,68 @@ def model_from_sent(model_name, content_type, click_first_item, tile_count):
                 if file.startswith(model_name) and file.endswith(tuple(extensions)):
                     model_file = os.path.join(folder_path, file)
     
-    modelID = get_models(model_file, True)
-    if not modelID or modelID == "Model not found":
-        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">Model ID not found.<br>maybe the model doesn\'t exist on CivitAI?</div>'
-        modelID_failed = True
-    if modelID == "offline":
-        HTML = offlineHTML
-        modelID_failed = True
-    if not modelID_failed: 
-        gl.json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
-    else: gl.json_data = None
+    if use_local_html:
+        html_file = os.path.splitext(model_file)[0] + ".html"
+        if os.path.exists(html_file):
+            with open(html_file, 'r', encoding='utf-8') as html:
+                output_html = html.read()
+                index = output_html.find("</head>")
+                if index != -1:
+                    output_html = output_html[index + len("</head>"):]
+                
+    fail_html = '<div style="color: white; font-family: var(--font); font-size: 24px; text-align: center; margin: 50px !important;">Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>'
     
-    if gl.json_data == "timeout":
-        HTML = offlineHTML
-    if gl.json_data != None and gl.json_data != "timeout":
-        HTML = _api.model_list_html(gl.json_data)
-        (hasPrev, hasNext, current_page, total_pages) = _api.pagecontrol(gl.json_data)
-        page_string = f"Page: {current_page}/{total_pages}"
-        number = _download.random_number(click_first_item)
-    else:
-        number = click_first_item
-        hasPrev = False
-        hasNext = False
-        page_string = "Page: 0/0"
-        current_page = 0
-        total_pages = 0
+    if not output_html:
+        modelID = get_models(model_file, True)
+        if not modelID or modelID == "Model not found":
+            output_html = fail_html
+            modelID_failed = True
+        if modelID == "offline":
+            output_html = fail_html
+            modelID_failed = True
+        if not modelID_failed: 
+            json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
+        else: json_data = None
         
+        if json_data == "timeout":
+            output_html = fail_html
+        if json_data != None and json_data != "timeout":
+            model_versions = _api.update_model_versions(modelID, json_data)
+            output_html = _api.update_model_info(None, model_versions.get('value'), True, modelID, json_data)
+    
+    css_path = Path(__file__).resolve().parents[1] / "style_html.css"
+    with open(css_path, 'r', encoding='utf-8') as css_file:
+        css = css_file.read()
+    replacements = {
+        '#0b0f19': 'var(--body-background-fill)',
+        '#F3F4F6': 'var(--body-text-color)',
+        'white': 'var(--body-text-color)',
+        '#80a6c8': 'var(--secondary-300)',
+        '#60A5FA': 'var(--link-text-color-hover)',
+        '#1F2937': 'var(--input-background-fill)',
+        '#374151': 'var(--input-border-color)',
+        'top: 50%;': '',
+        'padding-top: 0px;': 'padding-top: 475px;',
+        '.civitai_txt2img': '.civitai_placeholder'
+    }
+
+    for old, new in replacements.items():
+        css = css.replace(old, new)
+    
+    style_tag = f'<style>{css}</style>'
+    head_section = f'<head>{style_tag}</head>'
+
+    output_html = output_html.replace('display:flex;align-items:flex-start;', 'display:flex;align-items:flex-start;flex-wrap:wrap;justify-content:center;')
+    output_html = str(head_section + output_html)
+    output_html = output_html.replace('zoom-radio', 'zoom-preview-radio')   
+    output_html = output_html.replace('zoomRadio', 'zoomPreviewRadio')
+    output_html = output_html.replace('zoom-overlay', 'zoom-preview-overlay')
+    output_html = output_html.replace('resetZoom', 'resetPreviewZoom')
+    
+    number = _download.random_number()
+    
     return (
-        gr.HTML.update(HTML), # Card HTML
-        gr.Button.update(interactive=hasPrev), # Prev Button
-        gr.Button.update(interactive=hasNext), # Next Button 
-        gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Slider
-        gr.Textbox.update(number) # Click first card trigger 
+        gr.Textbox.update(value=output_html, placeholder=number), # Preview HTML
     )
     
 def is_image_url(url):
@@ -436,28 +446,48 @@ def clean_description(desc):
         cleaned_text = desc
     return cleaned_text
 
-def save_model_info(install_path, file_name, sha256=None, overwrite_toggle=False, api_response=None):
-    file_path = os.path.join(install_path, file_name)
-    json_file = os.path.splitext(file_path)[0] + ".json"
+def save_model_info(install_path, file_name, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
+    filename = os.path.splitext(file_name)[0]
+    json_file = os.path.join(install_path, f'{filename}.json')
+    if not os.path.exists(install_path):
+        os.makedirs(install_path)
     
+    save_api_info = getattr(opts, "save_api_info", False)
+        
     if not sha256:
         if os.path.exists(json_file):
             try:
-                with open(json_file, 'r') as f:
+                with open(json_file, 'r', encoding="utf-8") as f:
                     data = json.load(f)
                     if 'sha256' in data and data['sha256']:
                         sha256 = data['sha256'].upper()
             except Exception as e:
                 print(f"Failed to open {json_file}: {e}")
     
-    if not api_response:
-        api_response = gl.json_data
-
+    
     result = find_and_save(api_response, sha256, file_name, json_file, False, overwrite_toggle)
-    if result == "found":
-        return
-    else:
-        result = find_and_save(api_response, sha256, file_name, json_file, True, overwrite_toggle)
+    if result != "found":
+        result = find_and_save(api_response, sha256, file_name, json_file, True, overwrite_toggle)            
+    
+    if preview_html:
+        match = re.search(r'(\s*)<div class="model-block">', preview_html)
+        if match:
+            indentation = match.group(1)
+        else:
+            indentation = ''
+        css_link = f'<link rel="stylesheet" type="text/css" href="{css_path}">'
+        utf8_meta_tag = f'{indentation}<meta charset="UTF-8">'
+        head_section = f'{indentation}<head>{indentation}    {utf8_meta_tag}{indentation}    {css_link}{indentation}</head>'
+        HTML = head_section + preview_html
+        path_to_new_file = os.path.join(install_path, f'{filename}.html')
+        with open(path_to_new_file, 'wb') as f:
+            f.write(HTML.encode('utf8'))
+        
+    if save_api_info:
+        path_to_new_file = os.path.join(install_path, f'{filename}.api_info.json')
+        with open(path_to_new_file, mode="w", encoding="utf-8") as f:
+            json.dump(gl.json_info, f, indent=4, ensure_ascii=False)
+
     
 def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_hash=None, overwrite_toggle=None):
     for item in api_response.get('items', []):
@@ -467,6 +497,7 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                 sha256_api = file.get('hashes', {}).get('SHA256', '')
                 
                 if file_name == file_name_api if no_hash else sha256 == sha256_api:
+                    gl.json_info = item
                     trained_words = model_version.get('trainedWords', [])
                     model_id = model_version.get('modelId', '')
                     
@@ -498,7 +529,7 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                         trained_tags = trained_words
                     
                     if os.path.exists(json_file):
-                        with open(json_file, 'r') as f:
+                        with open(json_file, 'r', encoding="utf-8") as f:
                             try:
                                 content = json.load(f)
                             except:
@@ -522,7 +553,7 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                         content["sd version"] = base_model
                         changed = True
                     
-                    with open(json_file, 'w') as f:
+                    with open(json_file, 'w', encoding="utf-8") as f:
                         json.dump(content, f, indent=4)
                         
                     if changed: print(f"Model info saved to \"{json_file}\"")
@@ -536,7 +567,7 @@ def get_models(file_path, gen_hash=None):
     json_file = os.path.splitext(file_path)[0] + ".json"
     if os.path.exists(json_file):
         try:
-            with open(json_file, 'r') as f:
+            with open(json_file, 'r', encoding="utf-8") as f:
                 data = json.load(f)
                 
                 if 'modelId' in data:
@@ -575,13 +606,13 @@ def get_models(file_path, gen_hash=None):
             
             if os.path.exists(json_file):
                 try:
-                    with open(json_file, 'r') as f:
+                    with open(json_file, 'r', encoding="utf-8") as f:
                         data = json.load(f)
 
                     data['modelId'] = modelId
                     data['sha256'] = sha256.upper()
                         
-                    with open(json_file, 'w') as f:
+                    with open(json_file, 'w', encoding="utf-8") as f:
                         json.dump(data, f, indent=4)
                 except Exception as e:
                     print(f"Failed to open {json_file}: {e}")
@@ -590,7 +621,7 @@ def get_models(file_path, gen_hash=None):
                     'modelId': modelId,
                     'sha256': sha256.upper()
                     }
-                with open(json_file, 'w') as f:
+                with open(json_file, 'w', encoding="utf-8") as f:
                     json.dump(data, f, indent=4)
         
         return modelId
@@ -611,7 +642,7 @@ def version_match(file_paths, api_response):
     for file_path in file_paths:
         json_path = f"{os.path.splitext(file_path)[0]}.json"
         if os.path.exists(json_path):
-            with open(json_path, 'r') as f:
+            with open(json_path, 'r', encoding="utf-8") as f:
                 try:
                     json_data = json.load(f)
                     sha256 = json_data.get('sha256')
@@ -624,7 +655,8 @@ def version_match(file_paths, api_response):
     for file_path in file_paths:
         file_name = os.path.basename(file_path)
         file_name_without_ext = os.path.splitext(file_name)[0]
-        file_sha256 = sha256_hashes.get(file_name, "").upper()
+        file_sha256 = sha256_hashes.get(file_name, "")
+        if file_sha256: file_sha256 = file_sha256.upper()
         file_names_and_hashes.add((file_name_without_ext, file_sha256))
     
     for item in api_response.get('items', []):
@@ -638,7 +670,8 @@ def version_match(file_paths, api_response):
             match_found = False
             for file_entry in files:
                 entry_name = os.path.splitext(file_entry.get('name', ''))[0]
-                entry_sha256 = file_entry.get('hashes', {}).get('SHA256', "").upper()
+                entry_sha256 = file_entry.get('hashes', {}).get('SHA256', "")
+                if entry_sha256: entry_sha256 = entry_sha256.upper()
                 
                 if (entry_name, entry_sha256) in file_names_and_hashes:
                     match_found = True
@@ -741,6 +774,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     outdated_models = []
     all_model_ids = []
     file_paths = []
+    all_ids = []
     
     for file_path in files:
         if gl.cancel_status:
@@ -763,6 +797,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             print(f"model: \"{file_name}\" not found on CivitAI servers.")
         elif model_id != None:
             all_model_ids.append(f"&ids={model_id}")
+            all_ids.append(model_id)
             file_paths.append(file_path)
         elif not model_id and update_log:
             print(f"model ID not found for: \"{file_name}\"")
@@ -915,9 +950,11 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             )
 
     elif from_tag:
-        for file in file_paths:
-            install_path, file_name = os.path.split(file)
-            save_model_info(install_path, file_name, api_response=api_response, overwrite_toggle=overwrite_toggle)
+        for file_path, id_value in zip(file_paths, all_ids):
+            install_path, file_name = os.path.split(file_path)
+            model_versions = _api.update_model_versions(id_value, api_response)
+            preview_html = _api.update_model_info(None, model_versions.get('value'), True, id_value, api_response)
+            save_model_info(install_path, file_name, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
         if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
         gl.scan_files = False

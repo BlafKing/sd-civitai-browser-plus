@@ -11,7 +11,6 @@ import stat
 import json
 import time
 from pathlib import Path
-from urllib.parse import urlsplit
 from modules.shared import opts, cmd_opts
 from scripts.civitai_global import print
 import scripts.civitai_global as gl
@@ -62,7 +61,7 @@ def start_aria2_rpc():
             os.rename(start_file, running_file)
             return
         else:
-            with open(start_file, 'w'):
+            with open(start_file, 'w', encoding="utf-8"):
                 pass
 
     try:
@@ -98,7 +97,7 @@ elif os_type == 'Linux':
 class TimeOutFunction(Exception):
     pass
 
-def create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json):
+def create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json, from_batch=False):
     if model_id:
         model_id = int(model_id)
     if model_sha256:
@@ -107,13 +106,13 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
     filtered_items = []
     
     for item in gl.json_data['items']:
-        if item['id'] == model_id:
+        if int(item['id']) == int(model_id):
             filtered_items.append(item)
             break
             
     model_json = {"items": filtered_items}
-    
     model_versions = _api.update_model_versions(model_id)
+    (preview_html,_,_,_,_,_,_,_,_,_,_,existing_path,_) = _api.update_model_info(None, model_versions.get('value'), False, model_id)
     
     for item in gl.download_queue:
         if item['dl_url'] == dl_url:
@@ -129,12 +128,15 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
         "model_id" : model_id,
         "create_json" : create_json,
         "model_json" : model_json,
-        "model_versions" : model_versions
+        "model_versions" : model_versions,
+        "preview_html" : preview_html['value'],
+        "existing_path": existing_path['value'],
+        "from_batch" : from_batch
     }
     
     return item
 
-def selected_to_queue(model_list, download_start, create_json):
+def selected_to_queue(model_list, subfolder, download_start, create_json):
     global total_count, current_count
     if gl.download_queue:
         number = download_start
@@ -144,18 +146,24 @@ def selected_to_queue(model_list, download_start, create_json):
         current_count = 0
         
     model_list = json.loads(model_list)
-    
+
     for model_string in model_list:
         model_name, model_id = _api.extract_model_info(model_string)
         for item in gl.json_data['items']:
-            if item['id'] == model_id:
+            if int(item['id']) == int(model_id):
                 model_id, desc, content_type = item['id'], item['description'], item['type']
                 version = item.get('modelVersions', [])[0]
                 version_name = version.get('name')
                 files = version.get('files', [])
-                model_filename = _api.cleaned_name(files[0].get('name'))
-                model_sha256 = files[0].get('hashes', {}).get('SHA256')
-                dl_url = files[0].get('downloadUrl')
+                primary_file = next((file for file in files if file.get('primary', False)), None)
+                if primary_file:
+                    model_filename = _api.cleaned_name(primary_file.get('name'))
+                    model_sha256 = primary_file.get('hashes', {}).get('SHA256')
+                    dl_url = primary_file.get('downloadUrl')
+                else:
+                    model_filename = _api.cleaned_name(files[0].get('name'))
+                    model_sha256 = files[0].get('hashes', {}).get('SHA256')
+                    dl_url = files[0].get('downloadUrl')
                 break
                 
         model_folder = _api.contenttype_folder(content_type, desc)
@@ -168,13 +176,23 @@ def selected_to_queue(model_list, download_start, create_json):
             default_sub = sub_opt1
         elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
             default_sub = sub_opt2
+           
+        if subfolder and subfolder != "None":
+            from_batch = False
+            if platform.system() == "Windows":
+                subfolder = re.sub(r'[/:*?"<>|]', '', subfolder)
             
-        if default_sub != "None":
-            install_path = model_folder + default_sub
+            if not subfolder.startswith(os.sep):
+                subfolder = os.sep + subfolder
+            install_path = model_folder + subfolder
         else:
-            install_path = model_folder
+            from_batch = True
+            if default_sub != "None":
+                install_path = model_folder + default_sub
+            else:
+                install_path = model_folder
         
-        model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json)
+        model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json, from_batch)
         if model_item:
             gl.download_queue.append(model_item)
             total_count += 1
@@ -214,11 +232,11 @@ def download_start(download_start, dl_url, model_filename, install_path, model_s
 def download_finish(model_filename, version, model_id):
     if model_id:
         model_id = int(model_id)
-        gr_components = _api.update_model_versions(model_id)
+        model_versions = _api.update_model_versions(model_id)
     else:
-        gr_components = None
-    if gr_components:
-        version_choices = gr_components['choices']
+        model_versions = None
+    if model_versions:
+        version_choices = model_versions.get('choices', [])
     else:
         version_choices = []
     prev_version = gl.last_version + " [Installed]"
@@ -427,7 +445,7 @@ def info_to_json(install_path, model_id, model_sha256, unpackList=None):
     json_file = os.path.splitext(install_path)[0] + ".json"
     if os.path.exists(json_file):
         try:
-            with open(json_file, 'r') as f:
+            with open(json_file, 'r', encoding="utf-8") as f:
                 data = json.load(f)
         except Exception as e:
             print(f"Failed to open {json_file}: {e}")
@@ -439,7 +457,7 @@ def info_to_json(install_path, model_id, model_sha256, unpackList=None):
     if unpackList:
         data['unpackList'] = unpackList
 
-    with open(json_file, 'w') as f:
+    with open(json_file, 'w', encoding="utf-8") as f:
         json.dump(data, f, indent=4)
 
 def download_file_old(url, file_path, progress=gr.Progress() if queue else None):
@@ -479,7 +497,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
             headers = {"Range": f"bytes={downloaded_size}-"}
         else:
             headers = {}
-        with open(file_path, "ab") as f:
+        with open(file_path, "ab", encoding="utf-8") as f:
             while gl.isDownloading:
                 try:
                     if gl.cancel_status:
@@ -578,9 +596,13 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
     gl.cancel_status = False
     use_aria2 = getattr(opts, "use_aria2", True)
     unpack_zip = getattr(opts, "unpack_zip", False)
+    save_all_images = getattr(opts, "auto_save_all_img", False)
     gl.recent_model = item['model_name']
     gl.last_version = item['version_name']
-    
+        
+    if item['from_batch']:
+        item['install_path'] = item['existing_path']
+        
     gl.isDownloading = True
     if not os.path.exists(item['install_path']):
         os.makedirs(item['install_path'])
@@ -617,9 +639,12 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
                     print(f"Failed to extract {item['model_filename']} with error: {e}")
             if not gl.cancel_status:
                 if item['create_json']:
-                    _file.save_model_info(item['install_path'], item['model_filename'], item['model_sha256'], api_response=item['model_json'])
+                    _file.save_model_info(item['install_path'], item['model_filename'], item['model_sha256'], item['preview_html'], api_response=item['model_json'])
                 info_to_json(path_to_new_file, item['model_id'], item['model_sha256'], unpackList)
-                _file.save_preview(path_to_new_file, item['model_json'], True, item['model_sha256'])
+                if save_all_images:
+                    _file.save_images(item['preview_html'], item['model_filename'], item['install_path'], )
+                else:
+                    _file.save_preview(path_to_new_file, item['model_json'], True, item['model_sha256'])
                 
     base_name = os.path.splitext(item['model_filename'])[0]
     base_name_preview = base_name + '.preview'

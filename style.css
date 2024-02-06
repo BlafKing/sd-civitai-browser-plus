@@ -143,6 +143,13 @@
     min-height: 650px;
 }
 
+#download_all_button {
+    max-height: 40px;
+    height: 40px;
+    align-self: end;
+    margin-bottom: 1px;
+}
+
 #searchBox > label > textarea {
     padding-top: 11px !important;
 }

@@ -228,9 +228,11 @@ def model_list_html(json_data):
             if hide_early_access:
                 early_access_days = version['earlyAccessTimeFrame']
                 if early_access_days != 0:
-                    published_at = datetime.datetime.strptime(version['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
-                    adjusted_date = published_at + datetime.timedelta(days=early_access_days)
-                    if not current_time > adjusted_date:
+                    published_at_str = version.get('publishedAt')
+                    if published_at_str is not None:
+                        published_at = datetime.datetime.strptime(version['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                        adjusted_date = published_at + datetime.timedelta(days=early_access_days)
+                    if not current_time > adjusted_date or not published_at_str:
                         continue
             versions_to_keep.append(version)
 
@@ -256,7 +258,7 @@ def model_list_html(json_data):
                 existing_files.add(file)
                 if file.endswith('.json'):
                     json_path = os.path.join(root, file)
-                    with open(json_path, 'r') as f:
+                    with open(json_path, 'r', encoding="utf-8") as f:
                         try:
                             json_file = json.load(f)
                             if isinstance(json_file, dict):
@@ -322,7 +324,7 @@ def model_list_html(json_data):
             model_string = escape(f"{model_name_js} ({model_id})")
             model_card = f'<figure class="civmodelcard {nsfw} {installstatus}" base-model="{baseModel}" date="{date}" onclick="select_model(\'{model_string}\', event)">'
             if installstatus != "civmodelcardinstalled":
-                model_card += f'<input type="checkbox" class="model-checkbox" id="checkbox-{model_string}" onchange="multi_model_select(\'{model_string}\', this.checked)" style="opacity: 0; position: absolute; top: 10px; right: 10px;">' \
+                model_card += f'<input type="checkbox" class="model-checkbox" id="checkbox-{model_string}" onchange="multi_model_select(\'{model_string}\', \'{item["type"]}\', this.checked)" style="opacity: 0; position: absolute; top: 10px; right: 10px;">' \
                             + f'<label for="checkbox-{model_string}" class="custom-checkbox"></label>'
             if len(item["name"]) > 40:
                 display_name = item["name"][:40] + '...'
@@ -553,62 +555,61 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             gr.Textbox.update(value=None) # Model Filename
     )
 
-def update_model_versions(model_id):
-    item_id_and_types = {item['id']: (item['type'], item['description']) for item in gl.json_data['items']}
-    if model_id is not None:
-        selected_content_type, desc = item_id_and_types.get(model_id, (None, None))
-        if selected_content_type is None:
-            return
-
-        versions_dict = defaultdict(list)
-        installed_versions = set()
-
-        model_folder = os.path.join(contenttype_folder(selected_content_type, desc))
-        gl.main_folder = model_folder
-
-        item = next((item for item in gl.json_data['items'] if item['id'] == model_id), None)
-        if item is None:
-            return
-        versions = item['modelVersions']
-        
-        version_files = set()
-        for version in versions:
-            versions_dict[version['name']].append(item["name"])
-            for version_file in version['files']:
-                file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
-                version_filename = version_file['name']
-                version_files.add((version['name'], version_filename, file_sha256))
-
-        for root, _, files in os.walk(model_folder):
-            for file in files:
-                if file.endswith('.json'):
-                    try:
-                        json_path = os.path.join(root, file)
-                        with open(json_path, 'r') as f:
-                            json_data = json.load(f)
-                            if isinstance(json_data, dict):
-                                if 'sha256' in json_data and json_data['sha256']:
-                                    sha256 = json_data.get('sha256', "").upper()
-                                    for version_name, _, file_sha256 in version_files:
-                                        if sha256 == file_sha256:
-                                            installed_versions.add(version_name)
-                                            break
-                    except Exception as e:
-                        print(f"failed to read: \"{file}\": {e}")
-
-                for version_name, version_filename, _ in version_files:
-                    if file == version_filename:
-                        installed_versions.add(version_name)
-                        break
-
-        version_names = list(versions_dict.keys())
-        display_version_names = [f"{v} [Installed]" if v in installed_versions else v for v in version_names]
-        default_installed = next((f"{v} [Installed]" for v in installed_versions), None)
-        default_value = default_installed or next(iter(version_names), None)
-        
-        return gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True) # Version List
+def update_model_versions(model_id, json_input=None):
+    if json_input:
+        api_json = json_input
     else:
-        return gr.Dropdown.update(choices=[], value=None, interactive=False) # Version List
+        api_json = gl.json_data
+    for item in api_json['items']:
+        if int(item['id']) == int(model_id):
+            content_type = item['type']
+            desc = item.get('description', "None")
+            
+            versions_dict = defaultdict(list)
+            installed_versions = set()
+
+            model_folder = os.path.join(contenttype_folder(content_type, desc))
+            gl.main_folder = model_folder
+            versions = item['modelVersions']
+            
+            version_files = set()
+            for version in versions:
+                versions_dict[version['name']].append(item["name"])
+                for version_file in version['files']:
+                    file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
+                    version_filename = version_file['name']
+                    version_files.add((version['name'], version_filename, file_sha256))
+
+            for root, _, files in os.walk(model_folder):
+                for file in files:
+                    if file.endswith('.json'):
+                        try:
+                            json_path = os.path.join(root, file)
+                            with open(json_path, 'r', encoding="utf-8") as f:
+                                json_data = json.load(f)
+                                if isinstance(json_data, dict):
+                                    if 'sha256' in json_data and json_data['sha256']:
+                                        sha256 = json_data.get('sha256', "").upper()
+                                        for version_name, _, file_sha256 in version_files:
+                                            if sha256 == file_sha256:
+                                                installed_versions.add(version_name)
+                                                break
+                        except Exception as e:
+                            print(f"failed to read: \"{file}\": {e}")
+
+                    for version_name, version_filename, _ in version_files:
+                        if file == version_filename:
+                            installed_versions.add(version_name)
+                            break
+
+            version_names = list(versions_dict.keys())
+            display_version_names = [f"{v} [Installed]" if v in installed_versions else v for v in version_names]
+            default_installed = next((f"{v} [Installed]" for v in installed_versions), None)
+            default_value = default_installed or next(iter(version_names), None)
+            
+            return gr.Dropdown.update(choices=display_version_names, value=default_value, interactive=True) # Version List
+    
+    return gr.Dropdown.update(choices=[], value=None, interactive=False) # Version List
 
 def cleaned_name(file_name):
     if platform.system() == "Windows":
@@ -638,22 +639,29 @@ def extract_model_info(input_string):
 
     return name, int(id_number)
 
-def update_model_info(model_string=None, model_version=None):
+def update_model_info(model_string=None, model_version=None, only_html=False, input_id=None, json_input=None, from_preview=False):
     video_playback = getattr(opts, "video_playback", True)
     playback = ""
     if video_playback: playback = "autoplay loop"
+    
+    if json_input:
+        api_data = json_input
+    else:
+        api_data = gl.json_data
     
     BtnDownInt = True
     BtnDel = False
     BtnImage = False
     model_id = None
-    model_name = None
     
-    model_name, model_id = extract_model_info(model_string)
+    if not input_id:
+        _, model_id = extract_model_info(model_string)
+    else:
+        model_id = input_id
     
     if model_version and "[Installed]" in model_version:
         model_version = model_version.replace(" [Installed]", "")
-    if model_id and model_version:
+    if model_id:
         output_html = ""
         output_training = ""
         output_basemodel = ""
@@ -664,12 +672,13 @@ def update_model_info(model_string=None, model_version=None):
         default_file = None
         model_filename = None
         sha256_value = None
-        for item in gl.json_data['items']:
-            if item['id'] == model_id:
+        for item in api_data['items']:
+            if int(item['id']) == int(model_id):
                 content_type = item['type']
                 if content_type == "LORA":
                     is_LORA = True
                 desc = item['description']
+                model_name = item['name']
                 model_folder = os.path.join(contenttype_folder(content_type, desc))
                 model_uploader = item['creator']['username']
                 uploader_avatar = item['creator']['image']
@@ -679,173 +688,182 @@ def update_model_info(model_string=None, model_version=None):
                     uploader_avatar = f'<div class="avatar"><img src={uploader_avatar}></div>'
                 tags = item.get('tags', "")
                 model_desc = item.get('description', "")
-                for model in item['modelVersions']:
-                    if model['name'] == model_version:
-                        if model['trainedWords']:
-                            output_training = ",".join(model['trainedWords'])
-                            output_training = re.sub(r'<[^>]*:[^>]*>', '', output_training)
-                            output_training = re.sub(r', ?', ', ', output_training)
-                            output_training = output_training.strip(', ')
-                        if model['baseModel']:
-                            output_basemodel = model['baseModel']
-                        for file in model['files']:
-                            dl_dict[file['name']] = file['downloadUrl']
-                            
-                            if not model_filename:
-                                model_filename = file['name']
-                                dl_url = file['downloadUrl']
-                                gl.json_info = item
-                                sha256_value = file['hashes'].get('SHA256', 'Unknown')
-                                
-                            size = file['metadata'].get('size', 'Unknown')
-                            format = file['metadata'].get('format', 'Unknown')
-                            fp = file['metadata'].get('fp', 'Unknown')
-                            sizeKB = file.get('sizeKB', 0) * 1024
-                            filesize = _download.convert_size(sizeKB)
-                            
-                            unique_file_name = f"{size} {format} {fp} ({filesize})"
-                            is_primary = file.get('primary', False)
-                            file_list.append(unique_file_name)
-                            if is_primary:
-                                default_file = unique_file_name
-                                model_filename = file['name']
-                                dl_url = file['downloadUrl']
-                                gl.json_info = item
-                                sha256_value = file['hashes'].get('SHA256', 'Unknown')
+                if model_version is None:
+                    selected_version = item['modelVersions'][0]
+                else:
+                    for model in item['modelVersions']:
+                        if model['name'] == model_version:
+                            selected_version = model
+                            break
+                    
+                if selected_version['trainedWords']:
+                    output_training = ",".join(selected_version['trainedWords'])
+                    output_training = re.sub(r'<[^>]*:[^>]*>', '', output_training)
+                    output_training = re.sub(r', ?', ', ', output_training)
+                    output_training = output_training.strip(', ')
+                if selected_version['baseModel']:
+                    output_basemodel = selected_version['baseModel']
+                for file in selected_version['files']:
+                    dl_dict[file['name']] = file['downloadUrl']
+                    
+                    if not model_filename:
+                        model_filename = file['name']
+                        dl_url = file['downloadUrl']
+                        gl.json_info = item
+                        sha256_value = file['hashes'].get('SHA256', 'Unknown')
                         
-                        if is_LORA and file_list:
-                            extracted_formats = [file.split(' ')[1] for file in file_list]
+                    size = file['metadata'].get('size', 'Unknown')
+                    format = file['metadata'].get('format', 'Unknown')
+                    fp = file['metadata'].get('fp', 'Unknown')
+                    sizeKB = file.get('sizeKB', 0) * 1024
+                    filesize = _download.convert_size(sizeKB)
+                    
+                    unique_file_name = f"{size} {format} {fp} ({filesize})"
+                    is_primary = file.get('primary', False)
+                    file_list.append(unique_file_name)
+                    if is_primary:
+                        default_file = unique_file_name
+                        model_filename = file['name']
+                        dl_url = file['downloadUrl']
+                        gl.json_info = item
+                        sha256_value = file['hashes'].get('SHA256', 'Unknown')
+                
+                if is_LORA and file_list:
+                    extracted_formats = [file.split(' ')[1] for file in file_list]
 
-                            if "SafeTensor" in extracted_formats and "PickleTensor" in extracted_formats:
-                                if "PickleTensor" in file_list[0].split(' ')[1]:
-                                    if float(file_list[0].split(' ')[0]) <= 100:
-                                        model_folder = os.path.join(contenttype_folder("TextualInversion"))
+                    if "SafeTensor" in extracted_formats and "PickleTensor" in extracted_formats:
+                        if "PickleTensor" in file_list[0].split(' ')[1]:
+                            if float(file_list[0].split(' ')[0]) <= 100:
+                                model_folder = os.path.join(contenttype_folder("TextualInversion"))
+                
+                model_url = selected_version['downloadUrl']
+                model_main_url = f"https://civitai.com/models/{item['id']}"
+                img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
+                for index, pic in enumerate(selected_version['images']):
+                    meta_button = False
+                    meta = pic['meta']
+                    if meta and meta.get('prompt'):
+                        meta_button = True
+                    BtnImage = True 
+                    # Change width value in URL to original image width
+                    image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
+                    if pic['type'] == "video":
+                        image_url = image_url.replace("width=", "transcode=true,width=")
+                    nsfw = 'class="model-block"'
+                    
+                    if pic['nsfw'] not in ["None", "Soft"]:
+                        nsfw = 'class="civnsfw model-block"'
+
+                    img_html += f'''
+                    <div {nsfw} style="display:flex;align-items:flex-start;">
+                    <div class="civitai-image-container">
+                    <input type="radio" name="zoomRadio" id="zoomRadio{index}" class="zoom-radio">
+                    <label for="zoomRadio{index}" class="zoom-img-container">
+                    '''
+                    
+                    # Check if the pic is an image or video
+                    if pic['type'] == "video":
+                        img_html += f'<video data-sampleimg="true" {playback} muted playsinline><source src="{image_url}" type="video/mp4"></video>'
+                        meta_button = False
+                    else:
+                        img_html += f'<img data-sampleimg="true" src="{image_url}">'
+
+                    img_html += '''
+                        </label>
+                        <label for="resetZoom" class="zoom-overlay"></label>
+                    '''
+                    
+                    if meta_button:
+                        img_html += f'''
+                            <div class="civitai_txt2img" style="margin-top:30px;margin-bottom:30px;">
+                            <label onclick='sendImgUrl("{escape(image_url)}")' class="civitai-txt2img-btn" style="max-width:fit-content;cursor:pointer;">Send to txt2img</label>
+                            </div></div>
+                        '''
+                    else:
+                        img_html += '</div>'
                         
-                        model_url = model['downloadUrl']
-                        model_main_url = f"https://civitai.com/models/{item['id']}"
-                        img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
-                        for index, pic in enumerate(model['images']):
-                            meta_button = False
-                            meta = pic['meta']
-                            if meta and meta.get('prompt'):
-                                meta_button = True
-                            BtnImage = True 
-                            # Change width value in URL to original image width
-                            image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
-                            if pic['type'] == "video":
-                                image_url = image_url.replace("width=", "transcode=true,width=")
-                            nsfw = 'class="model-block"'
-                            
-                            if pic['nsfw'] not in ["None", "Soft"]:
-                                nsfw = 'class="civnsfw model-block"'
+                    if meta:
+                        img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height:1.5em;" id="image_info"><dl>'
+                        # Define the preferred order of keys and convert them to lowercase
+                        preferred_order = ["prompt", "negativePrompt", "seed", "Size", "Model", "clipSkip", "sampler", "steps", "cfgScale"]
+                        preferred_order_lower = [key.lower() for key in preferred_order]
+                        # Loop through the keys in the preferred order and add them to the HTML
+                        for key in preferred_order:
+                            if key in meta:
+                                value = meta[key]
+                                img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
+                        # Check if there are remaining keys in meta
+                        remaining_keys = [key for key in meta if key.lower() not in preferred_order_lower]
 
-                            img_html += f'''
-                            <div {nsfw} style="display:flex;align-items:flex-start;">
-                            <div class="civitai-image-container">
-                            <input type="radio" name="zoomRadio" id="zoomRadio{index}" class="zoom-radio">
-                            <label for="zoomRadio{index}" class="zoom-img-container">
-                            '''
-                            
-                            # Check if the pic is an image or video
-                            if pic['type'] == "video":
-                                img_html += f'<video data-sampleimg="true" {playback} muted playsinline><source src="{image_url}" type="video/mp4"></video>'
-                                meta_button = False
-                            else:
-                                img_html += f'<img data-sampleimg="true" src="{image_url}">'
+                        # Add the rest
+                        if remaining_keys:
+                            img_html += f"""
+                            <div class="tabs">
+                                <div class="tab">
+                                    <input type="checkbox" class="accordionCheckbox" id="chck{index}">
+                                    <label class="tab-label" for="chck{index}">More details...</label>
+                                    <div class="tab-content">
+                            """
+                            for key in remaining_keys:
+                                value = meta[key]
+                                img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
+                            img_html = img_html + '</div></div></div>'
 
-                            img_html += '''
-                                </label>
-                                <label for="resetZoom" class="zoom-overlay"></label>
-                            '''
-                            
-                            if meta_button:
-                                img_html += f'''
-                                    <div class="civitai_txt2img" style="margin-top:30px;margin-bottom:30px;">
-                                    <label onclick='sendImgUrl("{escape(image_url)}")' class="civitai-txt2img-btn" style="max-width:fit-content;cursor:pointer;">Send to txt2img</label>
-                                    </div></div>
-                                '''
-                            else:
-                                img_html += '</div>'
-                                
-                            if meta:
-                                img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height:1.5em;" id="image_info"><dl>'
-                                # Define the preferred order of keys and convert them to lowercase
-                                preferred_order = ["prompt", "negativePrompt", "seed", "Size", "Model", "clipSkip", "sampler", "steps", "cfgScale"]
-                                preferred_order_lower = [key.lower() for key in preferred_order]
-                                # Loop through the keys in the preferred order and add them to the HTML
-                                for key in preferred_order:
-                                    if key in meta:
-                                        value = meta[key]
-                                        img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
-                                # Check if there are remaining keys in meta
-                                remaining_keys = [key for key in meta if key.lower() not in preferred_order_lower]
+                        img_html += '</dl></div>'
 
-                                # Add the rest
-                                if remaining_keys:
-                                    img_html += f"""
-                                    <div class="tabs">
-                                        <div class="tab">
-                                            <input type="checkbox" class="accordionCheckbox" id="chck{index}">
-                                            <label class="tab-label" for="chck{index}">More details...</label>
-                                            <div class="tab-content">
-                                    """
-                                    for key in remaining_keys:
-                                        value = meta[key]
-                                        img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
-                                    img_html = img_html + '</div></div></div>'
-
-                                img_html += '</dl></div>'
-
-                            img_html = img_html + '</div>'
-                        img_html = img_html + '</div>'
-                        tags_html = ''.join([f'<span class="civitai-tag">{escape(str(tag))}</span>' for tag in tags])
-                        def perms_svg(color):
-                            return  f'<span style="display:inline-block;vertical-align:middle;">'\
-                                    f'<svg width="15" height="15" viewBox="0 1.5 24 24" stroke-width="4" stroke-linecap="round" stroke="{color}">'
-                        allow_svg = f'{perms_svg("lime")}<path d="M5 12l5 5l10 -10"></path></svg></span>'
-                        deny_svg = f'{perms_svg("red")}<path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path></svg></span>'
-                        perms_html= '<p style="line-height: 2; font-weight: bold;">'\
-                                    f'{allow_svg if item.get("allowNoCredit") else deny_svg} Use the model without crediting the creator<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") in ["Image", "Rent", "RentCivit", "Sell"] else deny_svg} Sell images they generate<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") in ["Rent", "Sell"] else deny_svg} Run on services that generate images for money<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") in ["RentCivit", "Rent", "Sell"] else deny_svg} Run on Civitai<br/>'\
-                                    f'{allow_svg if item.get("allowDerivatives") else deny_svg} Share merges using this model<br/>'\
-                                    f'{allow_svg if item.get("allowCommercialUse") == "Sell" else deny_svg} Sell this model or merges using this model<br/>'\
-                                    f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
-                                    '</p>'
-                        output_html = f'''
-                        <div class="model-block">
-                            <h2><a href={model_main_url} target="_blank" id="model_header">{escape(str(model_name))}</a></h2>
-                            <h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>
-                            <div class="civitai-version-info" style="display:flex; flex-wrap:wrap; justify-content:space-between;">
-                                <dl id="info_block">
-                                    <dt>Version</dt>
-                                    <dd>{escape(str(model_version))}</dd>
-                                    <dt>Base Model</dt>
-                                    <dd>{escape(str(output_basemodel))}</dd>
-                                    <dt>CivitAI Tags</dt>
-                                    <dd>
-                                        <div class="civitai-tags-container">
-                                            {tags_html}
-                                        </div>
-                                    </dd>
-                                    <dt>Download Link</dt>
-                                    <dd><a href={model_url} target="_blank">{model_url}</a></dd>
-                                </dl>
-                                <div style="align-self:center; min-width:320px;">
-                                    <div>
-                                        {perms_html}
-                                    </div>
+                    img_html = img_html + '</div>'
+                img_html = img_html + '</div>'
+                tags_html = ''.join([f'<span class="civitai-tag">{escape(str(tag))}</span>' for tag in tags])
+                def perms_svg(color):
+                    return  f'<span style="display:inline-block;vertical-align:middle;">'\
+                            f'<svg width="15" height="15" viewBox="0 1.5 24 24" stroke-width="4" stroke-linecap="round" stroke="{color}">'
+                allow_svg = f'{perms_svg("lime")}<path d="M5 12l5 5l10 -10"></path></svg></span>'
+                deny_svg = f'{perms_svg("red")}<path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path></svg></span>'
+                perms_html= '<p style="line-height: 2; font-weight: bold;">'\
+                            f'{allow_svg if item.get("allowNoCredit") else deny_svg} Use the model without crediting the creator<br/>'\
+                            f'{allow_svg if item.get("allowCommercialUse") in ["Image", "Rent", "RentCivit", "Sell"] else deny_svg} Sell images they generate<br/>'\
+                            f'{allow_svg if item.get("allowCommercialUse") in ["Rent", "Sell"] else deny_svg} Run on services that generate images for money<br/>'\
+                            f'{allow_svg if item.get("allowCommercialUse") in ["RentCivit", "Rent", "Sell"] else deny_svg} Run on Civitai<br/>'\
+                            f'{allow_svg if item.get("allowDerivatives") else deny_svg} Share merges using this model<br/>'\
+                            f'{allow_svg if item.get("allowCommercialUse") == "Sell" else deny_svg} Sell this model or merges using this model<br/>'\
+                            f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
+                            '</p>'
+                output_html = f'''
+                <div class="model-block">
+                    <h2><a href={model_main_url} target="_blank" id="model_header">{escape(str(model_name))}</a></h2>
+                    <h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>
+                    <div class="civitai-version-info" style="display:flex; flex-wrap:wrap; justify-content:space-between;">
+                        <dl id="info_block">
+                            <dt>Version</dt>
+                            <dd>{escape(str(model_version))}</dd>
+                            <dt>Base Model</dt>
+                            <dd>{escape(str(output_basemodel))}</dd>
+                            <dt>CivitAI Tags</dt>
+                            <dd>
+                                <div class="civitai-tags-container">
+                                    {tags_html}
                                 </div>
-                            </div>
-                            <div class="model-description">
-                                <h2>Description</h2>
-                                {model_desc}
+                            </dd>
+                            <dt>Download Link</dt>
+                            <dd><a href={model_url} target="_blank">{model_url}</a></dd>
+                        </dl>
+                        <div style="align-self:center; min-width:320px;">
+                            <div>
+                                {perms_html}
                             </div>
                         </div>
-                        <div align=center>{img_html}</div>
-                        '''
-                                    
+                    </div>
+                    <div class="model-description">
+                        <h2>Description</h2>
+                        {model_desc}
+                    </div>
+                </div>
+                <div align=center>{img_html}</div>
+                '''
+        
+        if only_html:
+            return output_html
+                          
         folder_location = "None"
         default_subfolder = "None"
         sub_folders = ["None"]
@@ -854,7 +872,7 @@ def update_model_info(model_string=None, model_version=None):
             for filename in files:
                 if filename.endswith('.json'):
                     json_file_path = os.path.join(root, filename)
-                    with open(json_file_path, 'r') as f:
+                    with open(json_file_path, 'r', encoding="utf-8") as f:
                         try:
                             data = json.load(f)
                             sha256 = data.get('sha256')
@@ -896,13 +914,15 @@ def update_model_info(model_string=None, model_version=None):
             sub_folders.remove("None")
             sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
             sub_folders.insert(0, "None")
-            sub_opt1 = os.path.join(os.sep, cleaned_name(model_uploader))
-            sub_opt2 = os.path.join(os.sep, cleaned_name(model_name))
-            sub_opt3 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
+            sub_opt1 = os.path.join(os.sep, cleaned_name(output_basemodel))
+            sub_opt2 = os.path.join(os.sep, cleaned_name(model_uploader))
+            sub_opt3 = os.path.join(os.sep, cleaned_name(model_name))
+            sub_opt4 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
             if insert_sub:
                 sub_folders.insert(1, sub_opt1)
                 sub_folders.insert(2, sub_opt2)
                 sub_folders.insert(3, sub_opt3)
+                sub_folders.insert(4, sub_opt4)
             
             list = set()
             sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -910,12 +930,14 @@ def update_model_info(model_string=None, model_version=None):
             sub_folders = ["None"]
             
         default_sub = sub_folder_value(content_type, desc)
-        if default_sub == f"{os.sep}Author Name":
+        if default_sub == f"{os.sep}Base Model":
             default_sub = sub_opt1
-        elif default_sub == f"{os.sep}Model Name":
+        elif default_sub == f"{os.sep}Author Name":
             default_sub = sub_opt2
-        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+        elif default_sub == f"{os.sep}Model Name":
             default_sub = sub_opt3
+        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+            default_sub = sub_opt4
             
         if folder_location == "None":
             folder_location = model_folder
@@ -929,7 +951,7 @@ def update_model_info(model_string=None, model_version=None):
         default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if BtnDel == False else "None"
         if gl.isDownloading:
             item = gl.download_queue[0]
-            if model_id == item['model_id']:
+            if int(model_id) == int(item['model_id']):
                 BtnDel = False
         BtnDownTxt = "Download model"
         if len(gl.download_queue) > 0:
@@ -998,7 +1020,7 @@ def update_file_info(model_string, model_version, file_metadata):
         model_version = model_version.replace(" [Installed]", "")
     if model_id and model_version:
         for item in gl.json_data['items']:
-            if item['id'] == model_id:
+            if int(item['id']) == int(model_id):
                 content_type = item['type']
                 if content_type == "LORA":
                     is_LORA = True
@@ -1048,7 +1070,7 @@ def update_file_info(model_string, model_version, file_metadata):
                                     for root, _, files in os.walk(model_folder):
                                         for filename in files:
                                             if filename.endswith('.json'):
-                                                with open(os.path.join(root, filename), 'r') as f:
+                                                with open(os.path.join(root, filename), 'r', encoding="utf-8") as f:
                                                     try:
                                                         data = json.load(f)
                                                         sha256_value = data.get('sha256')

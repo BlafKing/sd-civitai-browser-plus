@@ -100,6 +100,22 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.3.0</h3>
+
+* Feature: New txt2img and img2img model info overlay on CivitAI button press.
+* Feature: Base Model as sub folder option.
+* Feature: Ability to multi-download to selected folder.
+* Feature: Use the same folder as older versions when updating using multi-download.
+* Feature: txt2img and img2img CivitAI buttons can use local HTML file, toggle in settings.
+* New setting: Save API info of model when saving model info.
+* New setting: Automatically save all images after download.
+* New setting: Use local HTML file for model info.
+* Bug fix: better JSON decode, now forces UTF-8
+* Bug fix: Now uses the proper default file when using multi-download
+* Bug fix: Hide early access models fix, now works when published_at does not exist in API.
+* Bug fix: Fix attempt for queue clearing upon download fail.
+
+---
 <h3>v3.2.5</h3>
 
 * Bug fix: Removed default API Key since it gets blocked after many downloads.

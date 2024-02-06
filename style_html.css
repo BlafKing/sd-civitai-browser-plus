@@ -51,7 +51,7 @@ p {
 
 dt {
 	font-size: medium;
-    color: #80a6c8!important;
+    color: #80a6c8 !important;
     font-size: 16px;
 }
 
@@ -78,7 +78,7 @@ a:hover {
 
 /* Preview Image zoom */
 .zoom-radio {
-    display: none!important;
+    display: none !important;
 }
 
 /* Style for when the image is clicked (radio button checked) */
@@ -184,6 +184,19 @@ a:hover {
     font-weight: bold;
     cursor: pointer;
     font-size: large;
+}
+
+.civitai-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.civitai-tag {
+    background-color: #1F2937;
+    border-radius: 8px;
+    padding: 4px 6px;
+    border: 1px solid #374151;
 }
 
 /* Icon */
