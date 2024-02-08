@@ -497,7 +497,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
             headers = {"Range": f"bytes={downloaded_size}-"}
         else:
             headers = {}
-        with open(file_path, "ab", encoding="utf-8") as f:
+        with open(file_path, "ab") as f:
             while gl.isDownloading:
                 try:
                     if gl.cancel_status:
