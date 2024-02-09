@@ -192,11 +192,17 @@ a:hover {
     gap: 5px;
 }
 
-.civitai-tag {
-    background-color: #1F2937;
+.civitai-tag,
+.civitai-meta-btn {
+    background-color: #111827;
     border-radius: 8px;
     padding: 4px 6px;
     border: 1px solid #374151;
+}
+
+.civitai-meta-btn:hover {
+    cursor: pointer;
+    background-color: #1F2937;
 }
 
 /* Icon */

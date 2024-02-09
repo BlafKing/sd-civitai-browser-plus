@@ -100,6 +100,20 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.3.1</h3>
+
+* Feature: Ability to send individual parts of image generation data to txt2img.
+* Feature: Added compatibility for [stable-diffusion-webui-forge](https://github.com/lllyasviel/stable-diffusion-webui-forge) fork.
+* New setting: Use local images in the HTML 
+   - Does not work in combination with the "Use local HTML file for model info" option!
+* New setting: Store the HTML and api_info in the custom images location
+* Bug fix: New HTML model info now scales with width so it should always fit.
+* Bug fix: Various bug fixes to the "Update model info & tags" function.
+* Bug fix: Auto save all images now uses correctly uses custom image path if set.
+* Bug fix: "Save model info" button should no longer return errors.
+* Bug fix: Old download method (non Aria2) should now work again.
+
+---
 <h3>v3.3.0</h3>
 
 * Feature: New txt2img and img2img model info overlay on CivitAI button press.

@@ -465,15 +465,14 @@ function createCardButtons(event) {
         }, 100);
     }
 }
-
 document.addEventListener('click', createCardButtons);
-// Sends the selected model list to a python function
+
 function modelInfoPopUp(modelName, content_type) {
     select_model(modelName, null, true, content_type);
 
     // Create the overlay
     var overlay = document.createElement('div');
-    overlay.classList.add('civitaiOverlayGlobal');
+    overlay.classList.add('civitai-overlay');
     overlay.style.position = 'fixed';
     overlay.style.top = '0';
     overlay.style.left = '0';
@@ -483,38 +482,13 @@ function modelInfoPopUp(modelName, content_type) {
     overlay.style.zIndex = '1001';
     overlay.style.overflowY = 'auto';
 
-    // Create the pop-up window
-    var popup = document.createElement('div');
-    popup.classList.add('civitaiOverlay');
-    popup.style.display = 'flex';
-    popup.style.justifyContent = 'center';
-    popup.style.position = 'absolute';
-    popup.style.top = '50%';
-    popup.style.left = '50%';
-    popup.style.width = '56em';
-    popup.style.transform = 'translate(-50%, -50%)';
-    popup.style.background = 'var(--body-background-fill)';
-    popup.style.padding = '2em';
-    popup.style.borderRadius = 'var(--block-radius)';
-    popup.style.borderStyle = 'solid';
-    popup.style.borderWidth = 'var(--block-border-width)';
-    popup.style.borderColor = 'var(--block-border-color)';
-    popup.style.zIndex = '1001';
-
-    // Add content to the popup
-    var popupContent = document.createElement('div');  // Change from <p> to <div>
-    popupContent.classList.add('civitaiLoadingText');
-    popupContent.textContent = 'Loading model info, please wait!';
-    popupContent.style.fontSize = '24px';
-    popupContent.style.color = 'white';
-    popupContent.style.fontFamily = 'var(--font)';
-    popup.appendChild(popupContent);
-
     // Create the close button
     var closeButton = document.createElement('div');
+    closeButton.classList.add('civitai-overlay-close');
     closeButton.textContent = '×';
+    closeButton.style.zIndex = '1011';
     closeButton.style.position = 'fixed';
-    closeButton.style.right = '0.25em';
+    closeButton.style.right = '22px';
     closeButton.style.top = '0';
     closeButton.style.cursor = 'pointer';
     closeButton.style.color = 'white';
@@ -522,29 +496,63 @@ function modelInfoPopUp(modelName, content_type) {
     closeButton.addEventListener('click', hidePopup);
     document.addEventListener('keydown', handleKeyPress);
 
-    // Append the close button to the overlay
-    overlay.appendChild(closeButton);
+    // Create the pop-up window
+    var inner = document.createElement('div');
+    inner.classList.add('civitai-overlay-inner');
+    inner.style.position = 'absolute';
+    inner.style.top = '50%';
+    inner.style.left = '50%';
+    inner.style.width = 'auto';
+    inner.style.transform = 'translate(-50%, -50%)';
+    inner.style.background = 'var(--body-background-fill)';
+    inner.style.padding = '2em';
+    inner.style.borderRadius = 'var(--block-radius)';
+    inner.style.borderStyle = 'solid';
+    inner.style.borderWidth = 'var(--block-border-width)';
+    inner.style.borderColor = 'var(--block-border-color)';
+    inner.style.zIndex = '1001';
 
-    // Append the popup to the overlay
-    overlay.appendChild(popup);
+    // Placeholder model content until model is loaded by other function
+    var modelInfo = document.createElement('div');
+    modelInfo.classList.add('civitai-overlay-text');
+    modelInfo.textContent = 'Loading model info, please wait!';
+    modelInfo.style.fontSize = '24px';
+    modelInfo.style.color = 'white';
+    modelInfo.style.fontFamily = 'var(--font)';
 
-    // Append the overlay to the body
-    document.body.style.overflow = 'hidden';  // Prevent scrolling on the main page
+    document.body.style.overflow = 'hidden';
     document.body.appendChild(overlay);
+    overlay.appendChild(closeButton);
+    overlay.appendChild(inner);
+    inner.appendChild(modelInfo);
 
     overlay.addEventListener('click', function (event) {
         if (event.target === overlay) {
             hidePopup();
         }
     });
+
+    setDynamicWidth(inner);
+
+    // Update width on window resize
+    window.addEventListener('resize', function() {
+        setDynamicWidth(inner);
+    });
+}
+
+function setDynamicWidth(inner) {
+    var windowWidth = window.innerWidth;
+    var dynamicWidth = Math.min(Math.max(windowWidth - 150, 350), 900);
+    inner.style.width = dynamicWidth + 'px';
 }
 
 // Function to hide the popup
 function hidePopup() {
-    var overlay = document.querySelector('.civitaiOverlayGlobal');
+    var overlay = document.querySelector('.civitai-overlay');
     if (overlay) {
         document.body.removeChild(overlay);
         document.body.style.overflow = 'auto';
+        window.removeEventListener('resize', setDynamicWidth);
     }
 }
 
@@ -553,6 +561,102 @@ function handleKeyPress(event) {
     if (event.key === 'Escape') {
         hidePopup();
     }
+}
+
+function inputHTMLPreviewContent(html_input) {
+    var inner = document.querySelector('.civitai-overlay-inner')
+    let startIndex = html_input.indexOf("'value': '");
+    if (startIndex !== -1) {
+        startIndex += "'value': '".length;
+        const endIndex = html_input.indexOf("', 'type': None,", startIndex);
+        if (endIndex !== -1) {
+            let extractedText = html_input.substring(startIndex, endIndex);
+            var modelIdNotFound = extractedText.includes(">Model ID not found.<br>The");
+
+            extractedText = extractedText.replace(/\\n\s*</g, '<');
+            extractedText = extractedText.replace(/\\n/g, ' ');
+            extractedText = extractedText.replace(/\\t/g, '');
+            extractedText = extractedText.replace(/\\'/g, "'");
+            
+            var overlayText = document.querySelector('.civitai-overlay-text');
+            var modelInfo = document.createElement('div');
+            
+            overlayText.parentNode.removeChild(overlayText);
+            if (!modelIdNotFound) {
+                inner.style.top = 0;
+                inner.style.transform = 'translate(-50%, 0)';
+            }
+            modelInfo.innerHTML = extractedText;
+            inner.appendChild(modelInfo);
+        }
+    }
+}
+
+function metaToTxt2Img(type, element) {
+    const genButton = gradioApp().querySelector('#txt2img_extra_tabs > div > button')
+    let input = element.querySelector('dd').textContent;
+    let inf;
+    if (input.endsWith(',')) {
+        inf = input + ' ';
+    } else {
+        inf = input + ', ';
+    }
+    let is_positive = false
+    let is_negative = false
+    switch(type) {
+        case 'prompt':
+            is_positive = true
+            break;
+        case 'negativePrompt':
+            inf = 'Negative prompt: ' + inf;
+            is_negative = true
+            break;
+        case 'seed':
+            inf = 'Seed: ' + inf;
+            inf = inf + inf + inf;
+            break;
+        case 'Size':
+            inf = 'Size: ' + inf;
+            inf = inf + inf + inf;
+            break;
+        case 'Model':
+            inf = 'Model: ' + inf;
+            inf = inf + inf + inf;
+            break;
+        case 'clipSkip':
+            inf = 'Clip skip: ' + inf;
+            inf = inf + inf + inf;
+            break;
+        case 'sampler':
+            inf = 'Sampler: ' + inf;
+            inf = inf + inf + inf;
+            break;
+        case 'steps':
+            inf = 'Steps: ' + inf;
+            inf = inf + inf + inf;
+            break;
+        case 'cfgScale':
+            inf = 'CFG scale: ' + inf;
+            inf = inf + inf + inf;
+            break;
+    }
+    const prompt = gradioApp().querySelector('#txt2img_prompt textarea');
+    const neg_prompt = gradioApp().querySelector('#txt2img_neg_prompt textarea');
+    const cfg_scale = gradioApp().querySelector('#txt2img_cfg_scale > div:nth-child(2) > div > input');
+    let final = '';
+    let cfg = 'CFG scale: ' + cfg_scale.value + ", "
+    let prompt_addon = cfg + cfg + cfg
+    if (is_positive) {
+        final = inf + "\nNegative prompt: " + neg_prompt.value + "\n" + prompt_addon;
+    } else if (is_negative) {
+        final = prompt.value + "\n" + inf + "\n" + prompt_addon;
+    } else {
+        final = prompt.value + "\nNegative prompt: " + neg_prompt.value + "\n" + inf;
+    }
+    console.log(final)
+    genInfo_to_txt2img(final, false)
+    hidePopup();
+    sendClick(genButton);
 }
 
 // Creates a list of the selected models
@@ -604,37 +708,6 @@ document.addEventListener('click', function(event) {
         }
     }
 }, true);
-
-function inputHTMLPreviewContent(html_input) {
-    var overlay = document.querySelector('.civitaiOverlay')
-    let startIndex = html_input.indexOf("'value': '");
-    if (startIndex !== -1) {
-        startIndex += "'value': '".length;
-        const endIndex = html_input.indexOf("', 'type': None,", startIndex);
-        if (endIndex !== -1) {
-            let extractedText = html_input.substring(startIndex, endIndex);
-            var modelIdNotFound = extractedText.includes(">Model ID not found.<br>Maybe");
-
-            extractedText = extractedText.replace(/\\n\s*</g, '<');
-            extractedText = extractedText.replace(/\\n/g, ' ');
-            extractedText = extractedText.replace(/\\t/g, '');
-            
-            var loadingText = document.querySelector('.civitaiLoadingText');
-            var modelInfo = document.createElement('div');
-            
-            loadingText.parentNode.removeChild(loadingText);
-            if (!modelIdNotFound) {
-                overlay.style.top = 0;
-                overlay.style.transform = 'translate(-50%, 0)';
-                extractedText = extractedText.replace(/\\'/g, "");
-            } else {
-                extractedText = extractedText.replace(/\\'/g, "'");
-            }
-            modelInfo.innerHTML = extractedText;
-            overlay.appendChild(modelInfo);
-        }
-    }
-}
 
 // CivitAI Link Button Creation
 function onEditButtonCardClick(nameValue) {
@@ -720,14 +793,12 @@ function sendImgUrl(image_url) {
 }
 
 // Sends txt2img info to txt2img tab
-function genInfo_to_txt2img(genInfo) {
+function genInfo_to_txt2img(genInfo, do_slice=true) {
     let insert = gradioApp().querySelector('#txt2img_prompt textarea');
     let pasteButton = gradioApp().querySelector('#paste');
     if (genInfo) {
-        var cleanGenInfo = genInfo.slice(5);
-        insert.value = cleanGenInfo;
+        insert.value = do_slice ? genInfo.slice(5) : genInfo;
         insert.dispatchEvent(new Event('input', { bubbles: true }));
-
         pasteButton.dispatchEvent(new Event('click', { bubbles: true }));
     }
 }

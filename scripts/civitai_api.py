@@ -669,6 +669,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
         dl_dict = {}
         is_LORA = False
         file_list = []
+        file_dict = []
         default_file = None
         model_filename = None
         sha256_value = None
@@ -688,6 +689,9 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     uploader_avatar = f'<div class="avatar"><img src={uploader_avatar}></div>'
                 tags = item.get('tags', "")
                 model_desc = item.get('description', "")
+                if model_desc:
+                    model_desc = model_desc.replace('<img', '<img style="max-width: -webkit-fill-available;"')
+                    model_desc = model_desc.replace('<code>', '<code style="text-wrap: wrap">')
                 if model_version is None:
                     selected_version = item['modelVersions'][0]
                 else:
@@ -721,6 +725,10 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     unique_file_name = f"{size} {format} {fp} ({filesize})"
                     is_primary = file.get('primary', False)
                     file_list.append(unique_file_name)
+                    file_dict.append({
+                        "format": format,
+                        "sizeKB": sizeKB
+                    })
                     if is_primary:
                         default_file = unique_file_name
                         model_filename = file['name']
@@ -728,15 +736,22 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                         gl.json_info = item
                         sha256_value = file['hashes'].get('SHA256', 'Unknown')
                 
-                if is_LORA and file_list:
-                    extracted_formats = [file.split(' ')[1] for file in file_list]
-
-                    if "SafeTensor" in extracted_formats and "PickleTensor" in extracted_formats:
-                        if "PickleTensor" in file_list[0].split(' ')[1]:
-                            if float(file_list[0].split(' ')[0]) <= 100:
+                safe_tensor_found = False
+                pickle_tensor_found = False
+                if is_LORA and file_dict:
+                    for file_info in file_dict:
+                        file_format = file_info.get("format", "")
+                        if "SafeTensor" in file_format:
+                            safe_tensor_found = True
+                        if "PickleTensor" in file_format:
+                            pickle_tensor_found = True
+                            
+                    if safe_tensor_found and pickle_tensor_found:
+                        if "PickleTensor" in file_dict[0].get("format", ""):
+                            if file_dict[0].get("sizeKB", 0) <= 100:
                                 model_folder = os.path.join(contenttype_folder("TextualInversion"))
                 
-                model_url = selected_version['downloadUrl']
+                model_url = selected_version.get('downloadUrl', '')
                 model_main_url = f"https://civitai.com/models/{item['id']}"
                 img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
                 for index, pic in enumerate(selected_version['images']):
@@ -783,7 +798,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                         img_html += '</div>'
                         
                     if meta:
-                        img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height:1.5em;" id="image_info"><dl>'
+                        img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height:1.5em;" id="image_info"><dl style="gap:10px; display:grid;">'
                         # Define the preferred order of keys and convert them to lowercase
                         preferred_order = ["prompt", "negativePrompt", "seed", "Size", "Model", "clipSkip", "sampler", "steps", "cfgScale"]
                         preferred_order_lower = [key.lower() for key in preferred_order]
@@ -791,7 +806,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                         for key in preferred_order:
                             if key in meta:
                                 value = meta[key]
-                                img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
+                                img_html += f'<div class="civitai-meta-btn" onclick="metaToTxt2Img(\'{escape(str(key))}\', this)"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
                         # Check if there are remaining keys in meta
                         remaining_keys = [key for key in meta if key.lower() not in preferred_order_lower]
 
@@ -806,7 +821,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             """
                             for key in remaining_keys:
                                 value = meta[key]
-                                img_html += f'<dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd>'
+                                img_html += f'<div><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
                             img_html = img_html + '</div></div></div>'
 
                         img_html += '</dl></div>'
@@ -844,8 +859,8 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                                     {tags_html}
                                 </div>
                             </dd>
-                            <dt>Download Link</dt>
-                            <dd><a href={model_url} target="_blank">{model_url}</a></dd>
+                            {"<dt>Download Link</dt>" if model_url else ''}
+                            {f'<dd><a href={model_url} target="_blank">{model_url}</a></dd>' if model_url else ''}
                         </dl>
                         <div style="align-self:center; min-width:320px;">
                             <div>
@@ -853,7 +868,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             </div>
                         </div>
                     </div>
-                    <div class="model-description">
+                    <div class="model-description" style="overflow-wrap: break-word;">
                         <h2>Description</h2>
                         {model_desc}
                     </div>

@@ -20,21 +20,30 @@ def git_tag():
         return None
 
 try:
-    from packaging import version
-    ver = git_tag()
-    if not ver:
-        try:
-            from modules import launch_utils
-            ver = launch_utils.git_tag()
-        except:
-            print("Failed to fetch SD-WebUI version")
-            ver_bool = False
-    if ver:
-        ver = ver.split('-')[0].rsplit('-', 1)[0]
-        ver_bool = version.parse(ver[0:]) >= version.parse("1.7")
+    import modules_forge
+    forge = True
+    ver_bool = True
 except ImportError:
-    print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
-    ver_bool = False
+    forge = False
+
+if not forge:
+    try:
+        from packaging import version
+        ver = git_tag()
+
+        if not ver:
+            try:
+                from modules import launch_utils
+                ver = launch_utils.git_tag()
+            except:
+                print("Failed to fetch SD-WebUI version")
+                ver_bool = False
+        if ver:
+            ver = ver.split('-')[0].rsplit('-', 1)[0]
+            ver_bool = version.parse(ver[0:]) >= version.parse("1.7")
+    except ImportError:
+        print("Python module 'packaging' has not been imported correctly, please try to restart or install it manually.")
+        ver_bool = False
 
 gl.init()
 
@@ -558,6 +567,7 @@ def on_ui_tabs():
             inputs=[
                 install_path,
                 model_filename,
+                sub_folder,
                 current_sha256,
                 preview_html
                 ],
@@ -1011,7 +1021,7 @@ def on_ui_settings():
             **({'category_id': cat_id} if ver_bool else {})
         ).info("Uses the matching local HTML file when pressing CivitAI button on model cards in txt2img and img2img")
     )
-
+    
     shared.opts.add_option(
         "page_header",
         shared.OptionInfo(
@@ -1060,6 +1070,26 @@ def on_ui_settings():
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
         ).info("Will append any content type and sub folders to the custom path.")
+    )
+    
+    shared.opts.add_option(
+        "local_path_in_html",
+        shared.OptionInfo(
+            False,
+            "Use local images in the HTML",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Does not work in combination with the \"Use local HTML file for model info\" option!")
+    )
+    
+    shared.opts.add_option(
+        "save_to_custom",
+        shared.OptionInfo(
+            False,
+            "Store the HTML and api_info in the custom images location",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        )
     )
 
     

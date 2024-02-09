@@ -322,11 +322,17 @@
     gap: 5px;
 }
 
-.civitai-tag {
-    background-color: var(--input-background-fill);
+.civitai-tag,
+.civitai-meta-btn {
+    background-color: var(--error-background-fill);
     border-radius: 8px;
     padding: 4px 6px;
     border: 1px solid var(--input-border-color);
+}
+
+.civitai-meta-btn:hover {
+    cursor: pointer;
+    background-color: var(--input-background-fill);
 }
 
 #select_all_models_container {

@@ -151,7 +151,7 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
 def delete_associated_files(directory, base_name):
     for file in os.listdir(directory):
         current_base_name, ext = os.path.splitext(file)
-        if current_base_name == base_name or current_base_name == f"{base_name}.preview":
+        if current_base_name == base_name or current_base_name == f"{base_name}.preview" or current_base_name == f"{base_name}.api_info":
             path_to_delete = os.path.join(directory, file)
             try:
                 send2trash(path_to_delete)
@@ -203,25 +203,30 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                     print(f"No preview images found for \"{name}\"")
                     return
 
-def save_images(preview_html, model_filename, install_path, sub_folder=None):
+def get_image_path(install_path, api_response, sub_folder):
     image_location = getattr(opts, "image_location", r"")
     sub_image_location = getattr(opts, "sub_image_location", True)
     image_path = install_path
+    if api_response:
+        json_info = api_response['items'][0]
+    else:
+        json_info = gl.json_info
     if image_location:
         if sub_image_location:
-            desc = gl.json_info['description']
-            content_type = gl.json_info['type']
+            desc = json_info['description']
+            content_type = json_info['type']
             image_path = os.path.join(_api.contenttype_folder(content_type, desc, custom_folder=image_location))
-            if not sub_folder:
-                sub_folder = os.path.relpath(install_path, image_path)
             
             if sub_folder and sub_folder != "None":
                 image_path = os.path.join(image_path, sub_folder.lstrip("/").lstrip("\\"))
         else:
             image_path = Path(image_location)
-            
     if not os.path.exists(image_path):
         os.makedirs(image_path)
+    return image_path
+
+def save_images(preview_html, model_filename, install_path, sub_folder, api_response=None):
+    image_path = get_image_path(install_path, api_response, sub_folder)
     img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
     
     name = os.path.splitext(model_filename)[0]
@@ -231,14 +236,11 @@ def save_images(preview_html, model_filename, install_path, sub_folder=None):
     urllib.request.install_opener(opener)
 
     for i, img_url in enumerate(img_urls):
-        if i == 0:
-            filename = f'{name}.preview.png'
-        else:
-            filename = f'{name}_{i}.png'
+        filename = f'{name}_{i}.png'
         img_url = urllib.parse.quote(img_url, safe=':/=')
         try:
             with urllib.request.urlopen(img_url) as url:
-                with open(os.path.join(install_path if i == 0 else image_path, filename), 'wb') as f:
+                with open(os.path.join(image_path, filename), 'wb') as f:
                     f.write(url.read())
                     print(f"Downloaded {filename}")
                     
@@ -343,6 +345,11 @@ def model_from_sent(model_name, content_type, tile_count):
     modelID_failed = False
     output_html = None
     use_local_html = getattr(opts, "use_local_html", False)
+    local_path_in_html = getattr(opts, "local_path_in_html", False)
+    
+    if local_path_in_html:
+        use_local_html = False
+    
     model_name = re.sub(r'\.\d{3}$', '', model_name)
     content_type = re.sub(r'\.\d{3}$', '', content_type)
     content_mapping = {
@@ -371,22 +378,23 @@ def model_from_sent(model_name, content_type, tile_count):
                 if index != -1:
                     output_html = output_html[index + len("</head>"):]
                 
-    fail_html = '<div style="color: white; font-family: var(--font); font-size: 24px; text-align: center; margin: 50px !important;">Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>'
-    
+    div = '<div style="color: white; font-family: var(--font); font-size: 24px; text-align: center; margin: 50px !important;">'
+    not_found = div + "Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>"
+    offline = div + "CivitAI failed to respond.<br>The servers are likely offline."
     if not output_html:
         modelID = get_models(model_file, True)
         if not modelID or modelID == "Model not found":
-            output_html = fail_html
+            output_html = not_found
             modelID_failed = True
         if modelID == "offline":
-            output_html = fail_html
+            output_html = offline
             modelID_failed = True
         if not modelID_failed: 
             json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
         else: json_data = None
         
         if json_data == "timeout":
-            output_html = fail_html
+            output_html = offline
         if json_data != None and json_data != "timeout":
             model_versions = _api.update_model_versions(modelID, json_data)
             output_html = _api.update_model_info(None, model_versions.get('value'), True, modelID, json_data)
@@ -402,6 +410,7 @@ def model_from_sent(model_name, content_type, tile_count):
         '#60A5FA': 'var(--link-text-color-hover)',
         '#1F2937': 'var(--input-background-fill)',
         '#374151': 'var(--input-border-color)',
+        '#111827': 'var(--error-background-fill)',
         'top: 50%;': '',
         'padding-top: 0px;': 'padding-top: 475px;',
         '.civitai_txt2img': '.civitai_placeholder'
@@ -446,30 +455,37 @@ def clean_description(desc):
         cleaned_text = desc
     return cleaned_text
 
-def save_model_info(install_path, file_name, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
+def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None, from_update=False):
     filename = os.path.splitext(file_name)[0]
     json_file = os.path.join(install_path, f'{filename}.json')
     if not os.path.exists(install_path):
         os.makedirs(install_path)
     
     save_api_info = getattr(opts, "save_api_info", False)
-        
-    if not sha256:
-        if os.path.exists(json_file):
-            try:
-                with open(json_file, 'r', encoding="utf-8") as f:
-                    data = json.load(f)
-                    if 'sha256' in data and data['sha256']:
-                        sha256 = data['sha256'].upper()
-            except Exception as e:
-                print(f"Failed to open {json_file}: {e}")
+    use_local = getattr(opts, "local_path_in_html", False)
+    save_to_custom = getattr(opts, "inf_files_in_imgs", False)
     
+    if not api_response:
+        api_response = gl.json_data
+    
+    image_path = get_image_path(install_path, api_response, sub_folder)
+    
+    if save_to_custom:
+        save_path = image_path
+    else:
+        save_path = install_path
     
     result = find_and_save(api_response, sha256, file_name, json_file, False, overwrite_toggle)
     if result != "found":
         result = find_and_save(api_response, sha256, file_name, json_file, True, overwrite_toggle)            
     
     if preview_html:
+        if use_local:
+            img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
+            for i, img_url in enumerate(img_urls):
+                img_name = f'{filename}_{i}.png'
+                preview_html = preview_html.replace(img_url,f'{os.path.join(image_path, img_name)}')
+                
         match = re.search(r'(\s*)<div class="model-block">', preview_html)
         if match:
             indentation = match.group(1)
@@ -479,12 +495,12 @@ def save_model_info(install_path, file_name, sha256=None, preview_html=None, ove
         utf8_meta_tag = f'{indentation}<meta charset="UTF-8">'
         head_section = f'{indentation}<head>{indentation}    {utf8_meta_tag}{indentation}    {css_link}{indentation}</head>'
         HTML = head_section + preview_html
-        path_to_new_file = os.path.join(install_path, f'{filename}.html')
+        path_to_new_file = os.path.join(save_path, f'{filename}.html')
         with open(path_to_new_file, 'wb') as f:
             f.write(HTML.encode('utf8'))
         
     if save_api_info:
-        path_to_new_file = os.path.join(install_path, f'{filename}.api_info.json')
+        path_to_new_file = os.path.join(save_path, f'{filename}.api_info.json')
         with open(path_to_new_file, mode="w", encoding="utf-8") as f:
             json.dump(gl.json_info, f, indent=4, ensure_ascii=False)
 
@@ -954,7 +970,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             install_path, file_name = os.path.split(file_path)
             model_versions = _api.update_model_versions(id_value, api_response)
             preview_html = _api.update_model_info(None, model_versions.get('value'), True, id_value, api_response)
-            save_model_info(install_path, file_name, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
+            sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
+            save_model_info(install_path, file_name, sub_folder, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle, from_update=True)
         if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
         gl.scan_files = False

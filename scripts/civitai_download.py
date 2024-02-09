@@ -108,8 +108,13 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
     for item in gl.json_data['items']:
         if int(item['id']) == int(model_id):
             filtered_items.append(item)
+            content_type = item['type']
+            desc = item['description']
+            main_folder = _api.contenttype_folder(content_type, desc)
             break
-            
+    
+    sub_folder = os.path.normpath(os.path.relpath(install_path, main_folder))
+    
     model_json = {"items": filtered_items}
     model_versions = _api.update_model_versions(model_id)
     (preview_html,_,_,_,_,_,_,_,_,_,_,existing_path,_) = _api.update_model_info(None, model_versions.get('value'), False, model_id)
@@ -131,7 +136,8 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
         "model_versions" : model_versions,
         "preview_html" : preview_html['value'],
         "existing_path": existing_path['value'],
-        "from_batch" : from_batch
+        "from_batch" : from_batch,
+        "sub_folder" : sub_folder
     }
     
     return item
@@ -639,12 +645,11 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
                     print(f"Failed to extract {item['model_filename']} with error: {e}")
             if not gl.cancel_status:
                 if item['create_json']:
-                    _file.save_model_info(item['install_path'], item['model_filename'], item['model_sha256'], item['preview_html'], api_response=item['model_json'])
+                    _file.save_model_info(item['install_path'], item['model_filename'], item['sub_folder'], item['model_sha256'], item['preview_html'], api_response=item['model_json'])
                 info_to_json(path_to_new_file, item['model_id'], item['model_sha256'], unpackList)
+                _file.save_preview(path_to_new_file, item['model_json'], True, item['model_sha256'])
                 if save_all_images:
-                    _file.save_images(item['preview_html'], item['model_filename'], item['install_path'], )
-                else:
-                    _file.save_preview(path_to_new_file, item['model_json'], True, item['model_sha256'])
+                    _file.save_images(item['preview_html'], item['model_filename'], item['install_path'], item['sub_folder'], api_response=item['model_json'])
                 
     base_name = os.path.splitext(item['model_filename'])[0]
     base_name_preview = base_name + '.preview'
