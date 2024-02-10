@@ -463,7 +463,7 @@ def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_ht
     
     save_api_info = getattr(opts, "save_api_info", False)
     use_local = getattr(opts, "local_path_in_html", False)
-    save_to_custom = getattr(opts, "inf_files_in_imgs", False)
+    save_to_custom = getattr(opts, "save_to_custom", False)
     
     if not api_response:
         api_response = gl.json_data
