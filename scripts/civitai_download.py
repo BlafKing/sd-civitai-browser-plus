@@ -610,8 +610,7 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
         item['install_path'] = item['existing_path']
         
     gl.isDownloading = True
-    if not os.path.exists(item['install_path']):
-        os.makedirs(item['install_path'])
+    _file.make_dir(item['install_path'])
         
     path_to_new_file = os.path.join(item['install_path'], item['model_filename'])
     

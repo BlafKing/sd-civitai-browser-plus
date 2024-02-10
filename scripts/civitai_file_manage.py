@@ -7,7 +7,7 @@ import os
 import io
 import re
 import time
-import shutil
+import errno
 import requests
 import hashlib
 from pathlib import Path
@@ -221,8 +221,7 @@ def get_image_path(install_path, api_response, sub_folder):
                 image_path = os.path.join(image_path, sub_folder.lstrip("/").lstrip("\\"))
         else:
             image_path = Path(image_location)
-    if not os.path.exists(image_path):
-        os.makedirs(image_path)
+    make_dir(image_path)
     return image_path
 
 def save_images(preview_html, model_filename, install_path, sub_folder, api_response=None):
@@ -341,34 +340,49 @@ def gen_sha256(file_path):
     
     return hash_value
 
-def model_from_sent(model_name, content_type, tile_count):
+def model_from_sent(model_name, content_type, tile_count, path_input):
     modelID_failed = False
     output_html = None
+    model_file = None
     use_local_html = getattr(opts, "use_local_html", False)
     local_path_in_html = getattr(opts, "local_path_in_html", False)
     
+    div = '<div style="color: white; font-family: var(--font); font-size: 24px; text-align: center; margin: 50px !important;">'
+    not_found = div + "Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>"
+    path_not_found = div + "Model ID not found.<br>Could not locate the model path.</div>"
+    offline = div + "CivitAI failed to respond.<br>The servers are likely offline."
+    
     if local_path_in_html:
         use_local_html = False
+        
+    if path_input == "Not Found":
+        model_name = re.sub(r'\.\d{3}$', '', model_name)
+        content_type = re.sub(r'\.\d{3}$', '', content_type)
+        content_mapping = {
+            "txt2img_textual_inversion_cards_html": ['TextualInversion'],
+            "txt2img_hypernetworks_cards_html": ['Hypernetwork'],
+            "txt2img_checkpoints_cards_html": ['Checkpoint'],
+            "txt2img_lora_cards_html": ['LORA', 'LoCon']
+        }
+        content_type = content_mapping.get(content_type, content_type)
+        
+        extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
     
-    model_name = re.sub(r'\.\d{3}$', '', model_name)
-    content_type = re.sub(r'\.\d{3}$', '', content_type)
-    content_mapping = {
-        "txt2img_textual_inversion_cards_html": ['TextualInversion'],
-        "txt2img_hypernetworks_cards_html": ['Hypernetwork'],
-        "txt2img_checkpoints_cards_html": ['Checkpoint'],
-        "txt2img_lora_cards_html": ['LORA', 'LoCon']
-    }
-    content_type = content_mapping.get(content_type, content_type)
-    
-    extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
-    
-    for content_type_item in content_type:
-        folder = _api.contenttype_folder(content_type_item)
-        for folder_path, _, files in os.walk(folder):
-            for file in files:
-                if file.startswith(model_name) and file.endswith(tuple(extensions)):
-                    model_file = os.path.join(folder_path, file)
-    
+        for content_type_item in content_type:
+            folder = _api.contenttype_folder(content_type_item)
+            for folder_path, _, files in os.walk(folder):
+                for file in files:
+                    if file.startswith(model_name) and file.endswith(tuple(extensions)):
+                        model_file = os.path.join(folder_path, file)
+        if not model_file:
+            output_html = path_not_found
+            print(f'Error: Could not find model path for model: "{model_name}"')
+            print(f'Content type: "{content_type}"')
+            print(f'Main folder path: "{folder}"')
+            use_local_html = False
+    else:
+        model_file = path_input
+        
     if use_local_html:
         html_file = os.path.splitext(model_file)[0] + ".html"
         if os.path.exists(html_file):
@@ -377,10 +391,7 @@ def model_from_sent(model_name, content_type, tile_count):
                 index = output_html.find("</head>")
                 if index != -1:
                     output_html = output_html[index + len("</head>"):]
-                
-    div = '<div style="color: white; font-family: var(--font); font-size: 24px; text-align: center; margin: 50px !important;">'
-    not_found = div + "Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>"
-    offline = div + "CivitAI failed to respond.<br>The servers are likely offline."
+    
     if not output_html:
         modelID = get_models(model_file, True)
         if not modelID or modelID == "Model not found":
@@ -391,7 +402,8 @@ def model_from_sent(model_name, content_type, tile_count):
             modelID_failed = True
         if not modelID_failed: 
             json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
-        else: json_data = None
+        else:
+            json_data = None
         
         if json_data == "timeout":
             output_html = offline
@@ -455,11 +467,28 @@ def clean_description(desc):
         cleaned_text = desc
     return cleaned_text
 
-def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None, from_update=False):
+def make_dir(path):
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EACCES:
+            try:
+                os.makedirs(path, mode=0o777)
+            except OSError as e:
+                if e.errno == errno.EACCES:
+                    print("Permission denied even with elevated permissions.")
+                else:
+                    print(f"Error creating directory: {e}")
+        else:
+            print(f"Error creating directory: {e}")
+    except Exception as e:
+        print(f"Error creating directory: {e}")
+
+def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
     filename = os.path.splitext(file_name)[0]
     json_file = os.path.join(install_path, f'{filename}.json')
-    if not os.path.exists(install_path):
-        os.makedirs(install_path)
+    make_dir(install_path)
     
     save_api_info = getattr(opts, "save_api_info", False)
     use_local = getattr(opts, "local_path_in_html", False)
@@ -971,7 +1000,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             model_versions = _api.update_model_versions(id_value, api_response)
             preview_html = _api.update_model_info(None, model_versions.get('value'), True, id_value, api_response)
             sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
-            save_model_info(install_path, file_name, sub_folder, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle, from_update=True)
+            save_model_info(install_path, file_name, sub_folder, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
         if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
         gl.scan_files = False

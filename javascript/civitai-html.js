@@ -1,14 +1,21 @@
 "use strict";
 
 // Selects a model by pressing on card
-function select_model(model_name, event, bool = false, content_type = null) {
+function select_model(model_name, event, bool = false, content_type = null, modelPath = null) {
     if (event) {
         var className = event.target.className;
         if (className.includes('custom-checkbox') || className.includes('model-checkbox')) {
             return;
         }
     }
-    
+
+    if (!modelPath) {
+        modelPath = "Not Found";
+    }
+    const pathInput = gradioApp().querySelector('#model_path_input textarea');
+    pathInput.value = modelPath;
+    updateInput(pathInput);
+
     const output = bool ? gradioApp().querySelector('#model_sent textarea') : gradioApp().querySelector('#model_select textarea');
 
     if (output && model_name) {
@@ -426,13 +433,19 @@ function createCardButtons(event) {
                         return;
                     }
 
-                    const metaDataButton = buttonRow.querySelector('.metadata-button.card-button')
-
+                    const metaDataButton = buttonRow.querySelector('.metadata-button.card-button');
+                    
+                    const copyPathButton = buttonRow.querySelector('.copy-path-button.card-button');
+                    let modelPath = "";
+                    if (copyPathButton) {
+                        modelPath = copyPathButton.getAttribute('data-clipboard-text');
+                    }
+                    
                     const newDiv = document.createElement('div');
                     newDiv.classList.add('goto-civitbrowser', 'card-button');
                     newDiv.addEventListener('click', function (event) {
                         event.stopPropagation();
-                        modelInfoPopUp(modelName, content_type);
+                        modelInfoPopUp(modelName, content_type, modelPath);
                     });
 
                     const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -467,8 +480,8 @@ function createCardButtons(event) {
 }
 document.addEventListener('click', createCardButtons);
 
-function modelInfoPopUp(modelName, content_type) {
-    select_model(modelName, null, true, content_type);
+function modelInfoPopUp(modelName, content_type, modelPath) {
+    select_model(modelName, null, true, content_type, modelPath);
 
     // Create the overlay
     var overlay = document.createElement('div');

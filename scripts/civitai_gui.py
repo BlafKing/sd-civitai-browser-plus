@@ -284,6 +284,7 @@ def on_ui_tabs():
         civitai_text2img_input = gr.Textbox(elem_id="civitai_text2img_input", visible=False)
         selected_model_list = gr.Textbox(elem_id="selected_model_list", visible=False)
         selected_type_list = gr.Textbox(elem_id="selected_type_list", visible=False)
+        model_path_input = gr.Textbox(elem_id="model_path_input", visible=False)
         model_select = gr.Textbox(elem_id="model_select", visible=False)
         model_sent = gr.Textbox(elem_id="model_sent", visible=False)
         type_sent = gr.Textbox(elem_id="type_sent", visible=False)
@@ -408,7 +409,7 @@ def on_ui_tabs():
             
         model_sent.change(
             fn=_file.model_from_sent,
-            inputs=[model_sent, type_sent, tile_count_slider],
+            inputs=[model_sent, type_sent, tile_count_slider, model_path_input],
             outputs=[model_preview_html]
         )
         
