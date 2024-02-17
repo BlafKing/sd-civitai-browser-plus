@@ -853,6 +853,7 @@ def subfolder_list(folder, desc=None):
             sub_folders.insert(2, f"{os.sep}Author Name")
             sub_folders.insert(3, f"{os.sep}Model Name")
             sub_folders.insert(4, f"{os.sep}Model Name{os.sep}Version Name")
+            sub_folders.insert(5, f"{os.sep}Base Model{os.sep}Model Name{os.sep}Version Name")
         
         list = set()
         sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -997,7 +998,7 @@ def on_ui_settings():
         "insert_sub",
         shared.OptionInfo(
             True,
-            f"Insert [{os.sep}Base model] &[{os.sep}Author Name] & [{os.sep}Model Name] & [{os.sep}Model Name{os.sep}Version Name] as sub folder options",
+            f"Insert [{os.sep}Base model] &[{os.sep}Author Name] & [{os.sep}Model Name], [{os.sep}Model Name{os.sep}Version Name] & [{os.sep}Base Model{os.sep}Model Name{os.sep}Version Name] as sub folder options",
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
         )
