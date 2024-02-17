@@ -933,11 +933,14 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             sub_opt2 = os.path.join(os.sep, cleaned_name(model_uploader))
             sub_opt3 = os.path.join(os.sep, cleaned_name(model_name))
             sub_opt4 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
+            sub_opt5 = os.path.join(os.sep, cleaned_name(output_basemodel),cleaned_name(model_name), cleaned_name(model_version))
             if insert_sub:
                 sub_folders.insert(1, sub_opt1)
                 sub_folders.insert(2, sub_opt2)
                 sub_folders.insert(3, sub_opt3)
                 sub_folders.insert(4, sub_opt4)
+                sub_folders.insert(5, sub_opt5)
+
             
             list = set()
             sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -953,6 +956,8 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             default_sub = sub_opt3
         elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
             default_sub = sub_opt4
+        elif default_sub == f"{os.sep}Base Model{os.sep}Model Name{os.sep}Version Name":
+            default_sub = sub_opt5
             
         if folder_location == "None":
             folder_location = model_folder
