@@ -1,5 +1,3 @@
-Fork to add some things I want
-
 
 ![CivitAI Browser-05+](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/95afcc41-56f0-4398-8779-51cb2a9e2f55)
 
