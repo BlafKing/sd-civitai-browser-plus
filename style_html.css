@@ -17,6 +17,10 @@ body {
     overflow-wrap: anywhere;
 }
 
+.civnsfw img {
+    filter: unset;
+}
+
 .sampleimgs .model-block img,
 .sampleimgs .model-block video {
 	padding-top: 1em;

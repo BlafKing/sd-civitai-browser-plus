@@ -111,7 +111,7 @@ def show_multi_buttons(model_list, type_list, version_value):
         model_folder = os.path.join(_api.contenttype_folder(type_list[0]))
         default_subfolder = "None"
         try:
-            for root, dirs, _ in os.walk(model_folder):
+            for root, dirs, _ in os.walk(model_folder, followlinks=True):
                 if dot_subfolders:
                     dirs = [d for d in dirs if not d.startswith('.')]
                     dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
@@ -148,7 +148,7 @@ def on_ui_tabs():
     page_header = getattr(opts, "page_header", False)
     lobe_directory = None
     
-    for root, dirs, files in os.walk(extensions_dir):
+    for root, dirs, files in os.walk(extensions_dir, followlinks=True):
         for dir_name in fnmatch.filter(dirs, '*lobe*'):
             lobe_directory = os.path.join(root, dir_name)
             break
@@ -274,7 +274,26 @@ def on_ui_tabs():
                 load_to_browser_installed = gr.Button(value="Load installed models to browser", interactive=False, visible=False)
             with gr.Row():
                 installed_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
-                
+        with gr.Tab("Download Queue"):
+            
+            def get_style(size, left_border):
+                return f"flex-grow: {size};" + ("border-left: 1px solid var(--border-color-primary);" if left_border else "") + "border-bottom: 1px solid var(--border-color-primary);padding: 5px 10px 5px 10px;width: 0;"
+            
+            download_manager_html = gr.HTML(elem_id="civitai_dl_list", value=f'''
+                <div style="display: flex;font-size: var(--section-header-text-size);border: 1px solid transparent;">
+                <div style="{get_style(1, False)}"><span>Model:</span></div>
+                <div style="{get_style(0.75, True)}"><span>Version:</span></div>
+                <div style="{get_style(1.5, True)}"><span>Path:</span></div>
+                <div style="{get_style(1.5, True)}"><span>Status:</span></div>
+                <div style="{get_style(0.3, True)}"><span>Action:</span></div>
+                </div>
+                <div class="civitai_nonqueue_list">
+                </div>
+                <span style="padding: 10px 0px 5px 5px;font-size: larger;border-bottom: 1px solid var(--border-color-primary);">In queue: (drag items to rearrange queue order)</span>
+                <div class="list" id="queue_list">
+                </div>
+                ''')
+        
         #Invisible triggers/variables
         
         model_id = gr.Textbox(visible=False)
@@ -284,7 +303,11 @@ def on_ui_tabs():
         civitai_text2img_input = gr.Textbox(elem_id="civitai_text2img_input", visible=False)
         selected_model_list = gr.Textbox(elem_id="selected_model_list", visible=False)
         selected_type_list = gr.Textbox(elem_id="selected_type_list", visible=False)
+        html_cancel_input = gr.Textbox(elem_id="html_cancel_input", visible=False)
+        queue_html_input = gr.Textbox(elem_id="queue_html_input", visible=False)
         model_path_input = gr.Textbox(elem_id="model_path_input", visible=False)
+        arrange_dl_id = gr.Textbox(elem_id="arrange_dl_id", visible=False)
+        remove_dl_id = gr.Textbox(elem_id="remove_dl_id", visible=False)
         model_select = gr.Textbox(elem_id="model_select", visible=False)
         model_sent = gr.Textbox(elem_id="model_sent", visible=False)
         type_sent = gr.Textbox(elem_id="type_sent", visible=False)
@@ -307,7 +330,7 @@ def on_ui_tabs():
             gl.sortNewest = toggle_date
         
         def select_subfolder(sub_folder):
-            if sub_folder == "None":
+            if sub_folder == "None" or sub_folder == "Only available if the selected files are of the same model type":
                 newpath = gl.main_folder
             else:
                 newpath = gl.main_folder + sub_folder
@@ -343,8 +366,31 @@ def on_ui_tabs():
         size_slider.change(fn=None, inputs=size_slider, _js="(size) => updateCardSize(size, size * 1.5)")
         
         model_preview_html.change(fn=None, inputs=model_preview_html, _js="(html_input) => inputHTMLPreviewContent(html_input)")
-                
+        
+        download_manager_html.change(fn=None, _js="() => setSortable()")
+        
         # Filter button Functions #
+        
+        def HTMLChange(input):
+            return gr.HTML.update(value=input)
+        
+        queue_html_input.change(fn=HTMLChange, inputs=[queue_html_input], outputs=download_manager_html)
+
+        remove_dl_id.change(
+            fn=_download.remove_from_queue,
+            inputs=[remove_dl_id]
+        )
+        
+        arrange_dl_id.change(
+            fn=_download.arrange_queue,
+            inputs=[arrange_dl_id]
+        )
+        
+        html_cancel_input.change(
+            fn=_download.download_cancel
+        )
+        
+        html_cancel_input.change(fn=None, _js="() => cancelCurrentDl()")
         
         save_settings.click(
             fn=saveSettings,
@@ -487,31 +533,41 @@ def on_ui_tabs():
                 list_versions,
                 current_sha256,
                 model_id,
-                create_json
+                create_json,
+                download_manager_html
                 ],
             outputs=[
                 download_model,
                 cancel_model,
                 cancel_all_model,
                 download_start,
-                download_progress
+                download_progress,
+                download_manager_html
             ]
         )
         
         download_selected.click(
             fn=_download.selected_to_queue,
-            inputs=[selected_model_list, subfolder_selected, download_start, create_json],
+            inputs=[
+                selected_model_list,
+                subfolder_selected,
+                download_start,
+                create_json,
+                download_manager_html
+                ],
             outputs=[
                 download_model,
                 cancel_model,
                 cancel_all_model,
                 download_start,
-                download_progress
+                download_progress,
+                download_manager_html
             ]
         )
         
         
         for component in [download_start, queue_trigger]:
+            component.change(fn=None, _js="() => setDownloadProgressBar()")
             component.change(
                 fn=_download.download_create_thread,
                 inputs=[download_finish, queue_trigger],
@@ -542,6 +598,9 @@ def on_ui_tabs():
         
         cancel_model.click(_download.download_cancel)
         cancel_all_model.click(_download.download_cancel_all)
+        
+        cancel_model.click(fn=None, _js="() => cancelCurrentDl()")
+        cancel_all_model.click(fn=None, _js="() => cancelAllDl()")
         
         delete_model.click(
             fn=_file.delete_model,
@@ -829,14 +888,28 @@ def on_ui_tabs():
     return (civitai_interface, tab_name, "civitai_interface"),
 
 def subfolder_list(folder, desc=None):
-    insert_sub = getattr(opts, "insert_sub", True)
+    insert_sub_1 = getattr(opts, "insert_sub_1", False)
+    insert_sub_2 = getattr(opts, "insert_sub_2", False)
+    insert_sub_3 = getattr(opts, "insert_sub_3", False)
+    insert_sub_4 = getattr(opts, "insert_sub_4", False)
+    insert_sub_5 = getattr(opts, "insert_sub_5", False)
+    insert_sub_6 = getattr(opts, "insert_sub_6", False)
+    insert_sub_7 = getattr(opts, "insert_sub_7", False)
+    insert_sub_8 = getattr(opts, "insert_sub_8", False)
+    insert_sub_9 = getattr(opts, "insert_sub_9", False)
+    insert_sub_10 = getattr(opts, "insert_sub_10", False)
+    insert_sub_11 = getattr(opts, "insert_sub_11", False)
+    insert_sub_12 = getattr(opts, "insert_sub_12", False)
+    insert_sub_13 = getattr(opts, "insert_sub_13", False)
+    insert_sub_14 = getattr(opts, "insert_sub_14", False)
     dot_subfolders = getattr(opts, "dot_subfolders", True)
+    
     if folder == None:
         return
     try:
         model_folder = _api.contenttype_folder(folder, desc)
         sub_folders = ["None"]
-        for root, dirs, _ in os.walk(model_folder):
+        for root, dirs, _ in os.walk(model_folder, followlinks=True):
             if dot_subfolders:
                 dirs = [d for d in dirs if not d.startswith('.')]
                 dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
@@ -848,11 +921,34 @@ def subfolder_list(folder, desc=None):
         sub_folders.remove("None")
         sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
         sub_folders.insert(0, "None")
-        if insert_sub:
-            sub_folders.insert(1, f"{os.sep}Base Model")
-            sub_folders.insert(2, f"{os.sep}Author Name")
-            sub_folders.insert(3, f"{os.sep}Model Name")
-            sub_folders.insert(4, f"{os.sep}Model Name{os.sep}Version Name")
+        if insert_sub_1:
+            sub_folders.insert(1, f"{os.sep}Base model")
+        if insert_sub_2:
+            sub_folders.insert(2, f"{os.sep}Base model{os.sep}Author name")
+        if insert_sub_3:
+            sub_folders.insert(3, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
+        if insert_sub_4:
+            sub_folders.insert(4, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Version name")
+        if insert_sub_5:
+            sub_folders.insert(5, f"{os.sep}Base model{os.sep}Model name")
+        if insert_sub_6:
+            sub_folders.insert(6, f"{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+        if insert_sub_7:
+            sub_folders.insert(7, f"{os.sep}Author name")
+        if insert_sub_8:
+            sub_folders.insert(8, f"{os.sep}Author name{os.sep}Base model")
+        if insert_sub_9:
+            sub_folders.insert(9, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name")
+        if insert_sub_10:
+            sub_folders.insert(10, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+        if insert_sub_11:
+            sub_folders.insert(11, f"{os.sep}Author name{os.sep}Model name")
+        if insert_sub_12:
+            sub_folders.insert(12, f"{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+        if insert_sub_13:
+            sub_folders.insert(13, f"{os.sep}Model name")
+        if insert_sub_14:
+            sub_folders.insert(14, f"{os.sep}Model name{os.sep}Model version")
         
         list = set()
         sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -872,7 +968,7 @@ def on_ui_settings():
         cat_id = "civitai_browser_plus"
     else:
         section = ("civitai_browser_plus", "CivitAI Browser+")
-        browser = download = default_sub = section
+        browser = download = section
     if not (hasattr(shared.OptionInfo, "info") and callable(getattr(shared.OptionInfo, "info"))):
         def info(self, info):
             self.label += f" ({info})"
@@ -994,16 +1090,6 @@ def on_ui_settings():
     )
 
     shared.opts.add_option(
-        "insert_sub",
-        shared.OptionInfo(
-            True,
-            f"Insert [{os.sep}Base model] &[{os.sep}Author Name] & [{os.sep}Model Name] & [{os.sep}Model Name{os.sep}Version Name] as sub folder options",
-            section=browser,
-            **({'category_id': cat_id} if ver_bool else {})
-        )
-    )
-
-    shared.opts.add_option(
         "dot_subfolders",
         shared.OptionInfo(
             True,
@@ -1037,10 +1123,20 @@ def on_ui_settings():
         "video_playback",
         shared.OptionInfo(
             True,
-            'Enable gif/video playback in the browser',
+            'Gif/video playback in the browser',
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
         ).info("Disable this option if you're experiencing high CPU usage during video/gif playback")
+    )
+    
+    shared.opts.add_option(
+        "individual_meta_btn",
+        shared.OptionInfo(
+            True,
+            'Individual prompt buttons',
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Turns individual prompts from an example image into a button to send it to txt2img")
     )
 
     shared.opts.add_option(
@@ -1050,7 +1146,7 @@ def on_ui_settings():
             'Show console logs during update scanning',
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
-        ).info('Shows the "is currently outdated" messages in the console when scanning models for available updates"')
+        ).info('Shows the "is currently outdated" messages in the console when scanning models for available updates')
     )
 
     shared.opts.add_option(
@@ -1093,7 +1189,33 @@ def on_ui_settings():
         )
     )
 
+    id_and_sub_options = {
+        "1" : f"{os.sep}Base model",
+        "2" : f"{os.sep}Base model{os.sep}Author name",
+        "3" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name",
+        "4" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        "5" : f"{os.sep}Base model{os.sep}Model name",
+        "6" : f"{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        "7" : f"{os.sep}Author name",
+        "8" : f"{os.sep}Author name{os.sep}Base model",
+        "9" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name",
+        "10" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        "11" : f"{os.sep}Author name{os.sep}Model name",
+        "12" : f"{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        "13" : f"{os.sep}Model name",
+        "14" : f"{os.sep}Model name{os.sep}Model version",
+    }
     
+    for number, string in id_and_sub_options.items():
+        shared.opts.add_option(
+            f"insert_sub_{number}",
+            shared.OptionInfo(
+                False,
+                f"Insert: [{string}]",
+                section=browser,
+                **({'category_id': cat_id} if ver_bool else {})
+            )
+        )
     
     use_LORA = getattr(opts, "use_LORA", False)
     

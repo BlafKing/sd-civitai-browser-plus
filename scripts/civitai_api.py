@@ -253,7 +253,7 @@ def model_list_html(json_data):
         model_folders.add(model_folder)
     
     for folder in model_folders:
-        for root, dirs, files in os.walk(folder):
+        for root, dirs, files in os.walk(folder, followlinks=True):
             for file in files:
                 existing_files.add(file)
                 if file.endswith('.json'):
@@ -580,7 +580,7 @@ def update_model_versions(model_id, json_input=None):
                     version_filename = version_file['name']
                     version_files.add((version['name'], version_filename, file_sha256))
 
-            for root, _, files in os.walk(model_folder):
+            for root, _, files in os.walk(model_folder, followlinks=True):
                 for file in files:
                     if file.endswith('.json'):
                         try:
@@ -641,6 +641,7 @@ def extract_model_info(input_string):
 
 def update_model_info(model_string=None, model_version=None, only_html=False, input_id=None, json_input=None, from_preview=False):
     video_playback = getattr(opts, "video_playback", True)
+    meta_btn = getattr(opts, "individual_meta_btn", True)
     playback = ""
     if video_playback: playback = "autoplay loop"
     
@@ -806,7 +807,10 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                         for key in preferred_order:
                             if key in meta:
                                 value = meta[key]
-                                img_html += f'<div class="civitai-meta-btn" onclick="metaToTxt2Img(\'{escape(str(key))}\', this)"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
+                                if meta_btn:
+                                    img_html += f'<div class="civitai-meta-btn" onclick="metaToTxt2Img(\'{escape(str(key))}\', this)"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
+                                else:
+                                    img_html += f'<div class="civitai-meta"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
                         # Check if there are remaining keys in meta
                         remaining_keys = [key for key in meta if key.lower() not in preferred_order_lower]
 
@@ -817,11 +821,11 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                                 <div class="tab">
                                     <input type="checkbox" class="accordionCheckbox" id="chck{index}">
                                     <label class="tab-label" for="chck{index}">More details...</label>
-                                    <div class="tab-content">
+                                    <div class="tab-content" style="gap:10px;display:grid;margin-left:1px;">
                             """
                             for key in remaining_keys:
                                 value = meta[key]
-                                img_html += f'<div><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
+                                img_html += f'<div class="civitai-meta"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
                             img_html = img_html + '</div></div></div>'
 
                         img_html += '</dl></div>'
@@ -883,7 +887,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
         default_subfolder = "None"
         sub_folders = ["None"]
 
-        for root, dirs, files in os.walk(model_folder):
+        for root, dirs, files in os.walk(model_folder, followlinks=True):
             for filename in files:
                 if filename.endswith('.json'):
                     json_file_path = os.path.join(root, filename)
@@ -912,12 +916,25 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             if folder_location != "None":
                 break
 
-        insert_sub = getattr(opts, "insert_sub", True)
+        insert_sub_1 = getattr(opts, "insert_sub_1", False)
+        insert_sub_2 = getattr(opts, "insert_sub_2", False)
+        insert_sub_3 = getattr(opts, "insert_sub_3", False)
+        insert_sub_4 = getattr(opts, "insert_sub_4", False)
+        insert_sub_5 = getattr(opts, "insert_sub_5", False)
+        insert_sub_6 = getattr(opts, "insert_sub_6", False)
+        insert_sub_7 = getattr(opts, "insert_sub_7", False)
+        insert_sub_8 = getattr(opts, "insert_sub_8", False)
+        insert_sub_9 = getattr(opts, "insert_sub_9", False)
+        insert_sub_10 = getattr(opts, "insert_sub_10", False)
+        insert_sub_11 = getattr(opts, "insert_sub_11", False)
+        insert_sub_12 = getattr(opts, "insert_sub_12", False)
+        insert_sub_13 = getattr(opts, "insert_sub_13", False)
+        insert_sub_14 = getattr(opts, "insert_sub_14", False)
         dot_subfolders = getattr(opts, "dot_subfolders", True)
         
         try:
             sub_folders = ["None"]
-            for root, dirs, _ in os.walk(model_folder):
+            for root, dirs, _ in os.walk(model_folder, followlinks=True):
                 if dot_subfolders:
                     dirs = [d for d in dirs if not d.startswith('.')]
                     dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
@@ -929,15 +946,39 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             sub_folders.remove("None")
             sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
             sub_folders.insert(0, "None")
-            sub_opt1 = os.path.join(os.sep, cleaned_name(output_basemodel))
-            sub_opt2 = os.path.join(os.sep, cleaned_name(model_uploader))
-            sub_opt3 = os.path.join(os.sep, cleaned_name(model_name))
-            sub_opt4 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
-            if insert_sub:
-                sub_folders.insert(1, sub_opt1)
-                sub_folders.insert(2, sub_opt2)
-                sub_folders.insert(3, sub_opt3)
-                sub_folders.insert(4, sub_opt4)
+            base = cleaned_name(model_uploader)
+            author = cleaned_name(model_uploader)
+            name = cleaned_name(model_name)
+            ver = cleaned_name(model_version)
+            
+            if insert_sub_1:
+                sub_folders.insert(1, os.path.join(os.sep, base))
+            if insert_sub_2:
+                sub_folders.insert(2, os.path.join(os.sep, base, author))
+            if insert_sub_3:
+                sub_folders.insert(3, os.path.join(os.sep, base, author, name))
+            if insert_sub_4:
+                sub_folders.insert(4, os.path.join(os.sep, base, author, name, ver))
+            if insert_sub_5:
+                sub_folders.insert(5, os.path.join(os.sep, base, name))
+            if insert_sub_6:
+                sub_folders.insert(6, os.path.join(os.sep, base, name, ver))
+            if insert_sub_7:
+                sub_folders.insert(7, os.path.join(os.sep, author))
+            if insert_sub_8:
+                sub_folders.insert(8, os.path.join(os.sep, author, base))
+            if insert_sub_9:
+                sub_folders.insert(9, os.path.join(os.sep, author, base, name))
+            if insert_sub_10:
+                sub_folders.insert(10, os.path.join(os.sep, author, base, name, ver))
+            if insert_sub_11:
+                sub_folders.insert(11, os.path.join(os.sep, author, name))
+            if insert_sub_12:
+                sub_folders.insert(12, os.path.join(os.sep, author, name, ver))
+            if insert_sub_13:
+                sub_folders.insert(13, os.path.join(os.sep, name))
+            if insert_sub_14:
+                sub_folders.insert(14, os.path.join(os.sep, name, ver))
             
             list = set()
             sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -945,14 +986,17 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             sub_folders = ["None"]
             
         default_sub = sub_folder_value(content_type, desc)
-        if default_sub == f"{os.sep}Base Model":
-            default_sub = sub_opt1
-        elif default_sub == f"{os.sep}Author Name":
-            default_sub = sub_opt2
-        elif default_sub == f"{os.sep}Model Name":
-            default_sub = sub_opt3
-        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
-            default_sub = sub_opt4
+        
+        variable_mapping = {
+            "Base model": base,
+            "Author name": author,
+            "Model name": name,
+            "Model version": ver
+        }
+
+        if any(key in default_sub for key in variable_mapping.keys()):
+            path_components = [variable_mapping.get(component.strip(os.sep), component.strip(os.sep)) for component in default_sub.split(os.sep)]
+            default_sub = os.path.join(*path_components)
             
         if folder_location == "None":
             folder_location = model_folder
@@ -972,7 +1016,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
         if len(gl.download_queue) > 0:
             BtnDownTxt = "Add to queue"
             for item in gl.download_queue:
-                if item['version_name'] == model_version:
+                if item['version_name'] == model_version and int(item['model_id']) == int(model_id):
                     BtnDownInt = False
                     break
         
@@ -1075,14 +1119,14 @@ def update_file_info(model_string, model_version, file_metadata):
                                         model_folder = os.path.join(contenttype_folder("TextualInversion"))
                                 dl_url = file['downloadUrl']
                                 gl.json_info = item
-                                for root, _, files in os.walk(model_folder):
+                                for root, _, files in os.walk(model_folder, followlinks=True):
                                     if file_name in files:
                                         installed = True
                                         folder_location = root
                                         break
                                 
                                 if not installed:
-                                    for root, _, files in os.walk(model_folder):
+                                    for root, _, files in os.walk(model_folder, followlinks=True):
                                         for filename in files:
                                             if filename.endswith('.json'):
                                                 with open(os.path.join(root, filename), 'r', encoding="utf-8") as f:

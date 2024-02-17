@@ -323,6 +323,7 @@
 }
 
 .civitai-tag,
+.civitai-meta,
 .civitai-meta-btn {
     background-color: var(--error-background-fill);
     border-radius: 8px;
@@ -348,6 +349,40 @@
     margin-top: -25px;
 }
 
+.civitai_dl_item,
+.civitai_dl_item_completed,
+.civitai_dl_item_failed {
+    background-color: var(--error-background-fill);
+    border-radius: 8px;
+    padding: 5px 0px;
+    border: 1px solid var(--input-border-color);
+    margin: 10px 0px;
+}
+
+.civitai_dl_item_failed > .dl_stat > .dl_progress_bar {
+    background-color: transparent !important;
+    padding: 0px 0px 2px 0px !important;
+}
+
+.dl_progress_bar {
+    background-color: var(--button-primary-border-color);
+    color: var(--body-text-color);
+    padding: 0px 0px 2px 5px;
+    border-radius: 8px;
+    transition: width 0.5s ease-in-out;
+}
+
+.dl_progress_bar::before,
+.dl_progress_bar::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.civitai-btn-text:hover {
+    color: var(--link-text-color-hover);
+    cursor: pointer;
+}
 /* Customized Accordion Filter */
 
 #filterBox,

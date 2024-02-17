@@ -79,7 +79,7 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
     # Delete based on provided SHA-256 hash
     if sha256:
         sha256_upper = sha256.upper()
-        for root, _, files in os.walk(model_folder):
+        for root, _, files in os.walk(model_folder, followlinks=True):
             for file in files:
                 if file.endswith('.json'):
                     file_path = os.path.join(root, file)
@@ -120,7 +120,7 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
     filename_to_delete = os.path.splitext(model_filename)[0]
     aria2_file = model_filename + ".aria2"
     if not deleted:
-        for root, dirs, files in os.walk(model_folder):
+        for root, dirs, files in os.walk(model_folder, followlinks=True):
             for file in files:
                 current_file_name = os.path.splitext(file)[0]
                 if filename_to_delete == current_file_name or aria2_file == file:
@@ -217,7 +217,7 @@ def get_image_path(install_path, api_response, sub_folder):
             content_type = json_info['type']
             image_path = os.path.join(_api.contenttype_folder(content_type, desc, custom_folder=image_location))
             
-            if sub_folder and sub_folder != "None":
+            if sub_folder and sub_folder != "None" and sub_folder != "Only available if the selected files are of the same model type":
                 image_path = os.path.join(image_path, sub_folder.lstrip("/").lstrip("\\"))
         else:
             image_path = Path(image_location)
@@ -281,7 +281,7 @@ def list_files(folders):
     
     for folder in folders:
         if folder and os.path.exists(folder):
-            for root, _, files in os.walk(folder):
+            for root, _, files in os.walk(folder, followlinks=True):
                 for file in files:
                     _, file_extension = os.path.splitext(file)
                     if file_extension.lower() in extensions:
@@ -370,7 +370,7 @@ def model_from_sent(model_name, content_type, tile_count, path_input):
     
         for content_type_item in content_type:
             folder = _api.contenttype_folder(content_type_item)
-            for folder_path, _, files in os.walk(folder):
+            for folder_path, _, files in os.walk(folder, followlinks=True):
                 for file in files:
                     if file.startswith(model_name) and file.endswith(tuple(extensions)):
                         model_file = os.path.join(folder_path, file)
