@@ -96,7 +96,7 @@ def show_multi_buttons(model_list, type_list, version_value):
     type_list = json.loads(type_list)
     otherButtons = True
     multi_file_subfolder = False
-    default_subfolder = "Only available if the selected files are of the same model type"
+    default_subfolder = ""
     sub_folders = ["None"]
     BtnDwn = version_value and not version_value.endswith('[Installed]') and not model_list
     BtnDel = version_value.endswith('[Installed]')

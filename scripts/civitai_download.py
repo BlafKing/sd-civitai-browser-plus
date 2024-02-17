@@ -170,33 +170,39 @@ def selected_to_queue(model_list, subfolder, download_start, create_json):
                     model_filename = _api.cleaned_name(files[0].get('name'))
                     model_sha256 = files[0].get('hashes', {}).get('SHA256')
                     dl_url = files[0].get('downloadUrl')
+                model_uploader = item['creator']['username']
+                try:
+                    if 'baseModel' in item['modelVersions'][0]:
+                        basemodel = item['modelVersions'][0]['baseModel']
+                except:
+                    basemodel = "Not Found"
                 break
-                
         model_folder = _api.contenttype_folder(content_type, desc)
-        
-        sub_opt1 = os.path.join(os.sep, _api.cleaned_name(model_name))
-        sub_opt2 = os.path.join(os.sep, _api.cleaned_name(model_name), _api.cleaned_name(version_name))
-            
+        model_version = item['modelVersions'][0]['name']
+        sub_opt1 = os.path.join(os.sep, _api.cleaned_name(basemodel))
+        sub_opt2 = os.path.join(os.sep, _api.cleaned_name(model_uploader))
+        sub_opt3 = os.path.join(os.sep, _api.cleaned_name(model_name))
+        sub_opt4 = os.path.join(os.sep, _api.cleaned_name(model_name), _api.cleaned_name(model_version))
+        sub_opt5 = os.path.join(os.sep, _api.cleaned_name(basemodel),_api.cleaned_name(model_name), _api.cleaned_name(model_version))
+
         default_sub = _api.sub_folder_value(content_type, desc)
-        if default_sub == f"{os.sep}Model Name":
+        if default_sub == f"{os.sep}Base Model":
             default_sub = sub_opt1
-        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+        elif default_sub == f"{os.sep}Author Name":
             default_sub = sub_opt2
+        elif default_sub == f"{os.sep}Model Name":
+            default_sub = sub_opt3
+        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+            default_sub = sub_opt4
+        elif default_sub == f"{os.sep}Base Model{os.sep}Model Name{os.sep}Version Name":
+            default_sub = sub_opt5
            
-        if subfolder and subfolder != "None":
-            from_batch = False
-            if platform.system() == "Windows":
-                subfolder = re.sub(r'[/:*?"<>|]', '', subfolder)
-            
-            if not subfolder.startswith(os.sep):
-                subfolder = os.sep + subfolder
-            install_path = model_folder + subfolder
+
+        from_batch = True
+        if default_sub != "None":
+            install_path = model_folder + default_sub
         else:
-            from_batch = True
-            if default_sub != "None":
-                install_path = model_folder + default_sub
-            else:
-                install_path = model_folder
+            install_path = model_folder
         
         model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json, from_batch)
         if model_item:
@@ -605,9 +611,8 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
     save_all_images = getattr(opts, "auto_save_all_img", False)
     gl.recent_model = item['model_name']
     gl.last_version = item['version_name']
-        
     if item['from_batch']:
-        item['install_path'] = item['existing_path']
+        item['install_path'] = item['existing_path'] 
         
     gl.isDownloading = True
     _file.make_dir(item['install_path'])
