@@ -110,7 +110,7 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
             filtered_items.append(item)
             content_type = item['type']
             desc = item['description']
-            main_folder = _api.contenttype_folder(content_type, desc)
+            main_folder = _file.contenttype_folder(content_type, desc)
             break
     
     sub_folder = os.path.normpath(os.path.relpath(install_path, main_folder))
@@ -172,31 +172,7 @@ def selected_to_queue(model_list, subfolder, download_start, create_json):
                     dl_url = files[0].get('downloadUrl')
                 break
                 
-        model_folder = _api.contenttype_folder(content_type, desc)
-        
-        sub_opt1 = os.path.join(os.sep, _api.cleaned_name(model_name))
-        sub_opt2 = os.path.join(os.sep, _api.cleaned_name(model_name), _api.cleaned_name(version_name))
-            
-        default_sub = _api.sub_folder_value(content_type, desc)
-        if default_sub == f"{os.sep}Model Name":
-            default_sub = sub_opt1
-        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
-            default_sub = sub_opt2
-           
-        if subfolder and subfolder != "None":
-            from_batch = False
-            if platform.system() == "Windows":
-                subfolder = re.sub(r'[/:*?"<>|]', '', subfolder)
-            
-            if not subfolder.startswith(os.sep):
-                subfolder = os.sep + subfolder
-            install_path = model_folder + subfolder
-        else:
-            from_batch = True
-            if default_sub != "None":
-                install_path = model_folder + default_sub
-            else:
-                install_path = model_folder
+        install_path = _file.get_desired_folder(content_type=content_type, base_model=base_model,model_uploader=model_uploader, model_name=model_name,model_version=version_name,default_sub=_file.default_sub_folder_value(content_type, desc=None),subfolder=None,desc=desc)
         
         model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json, from_batch)
         if model_item:

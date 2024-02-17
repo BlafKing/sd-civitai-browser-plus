@@ -96,7 +96,6 @@ def show_multi_buttons(model_list, type_list, version_value):
     type_list = json.loads(type_list)
     otherButtons = True
     multi_file_subfolder = False
-    default_subfolder = "Only available if the selected files are of the same model type"
     sub_folders = ["None"]
     BtnDwn = version_value and not version_value.endswith('[Installed]') and not model_list
     BtnDel = version_value.endswith('[Installed]')
@@ -108,7 +107,7 @@ def show_multi_buttons(model_list, type_list, version_value):
         otherButtons = False
     if type_list and all(x == type_list[0] for x in type_list):
         multi_file_subfolder = True
-        model_folder = os.path.join(_api.contenttype_folder(type_list[0]))
+        model_folder = os.path.join(_file.contenttype_folder(type_list[0]))
         default_subfolder = "None"
         try:
             for root, dirs, _ in os.walk(model_folder):
@@ -834,7 +833,7 @@ def subfolder_list(folder, desc=None):
     if folder == None:
         return
     try:
-        model_folder = _api.contenttype_folder(folder, desc)
+        model_folder = _file.contenttype_folder(folder, desc)
         sub_folders = ["None"]
         for root, dirs, _ in os.walk(model_folder):
             if dot_subfolders:

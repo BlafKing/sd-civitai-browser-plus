@@ -9,6 +9,7 @@ import re
 import time
 import errno
 import requests
+import platform
 import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
@@ -74,7 +75,7 @@ def delete_model(delete_finish=None, model_filename=None, model_string=None, lis
             selected_content_type = item['type']
             desc = item['description']
     
-    model_folder = os.path.join(_api.contenttype_folder(selected_content_type, desc))
+    model_folder = os.path.join(contenttype_folder(selected_content_type, desc))
     
     # Delete based on provided SHA-256 hash
     if sha256:
@@ -215,7 +216,7 @@ def get_image_path(install_path, api_response, sub_folder):
         if sub_image_location:
             desc = json_info['description']
             content_type = json_info['type']
-            image_path = os.path.join(_api.contenttype_folder(content_type, desc, custom_folder=image_location))
+            image_path = os.path.join(contenttype_folder(content_type, desc, custom_folder=image_location))
             
             if sub_folder and sub_folder != "None":
                 image_path = os.path.join(image_path, sub_folder.lstrip("/").lstrip("\\"))
@@ -369,7 +370,7 @@ def model_from_sent(model_name, content_type, tile_count, path_input):
         extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
     
         for content_type_item in content_type:
-            folder = _api.contenttype_folder(content_type_item)
+            folder = contenttype_folder(content_type_item)
             for folder_path, _, files in os.walk(folder):
                 for file in files:
                     if file.startswith(model_name) and file.endswith(tuple(extensions)):
@@ -772,30 +773,30 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         
     for item in folders:
         if item == "LORA & LoCon":
-            folder = _api.contenttype_folder("LORA")
+            folder = contenttype_folder("LORA")
             if folder:
                 folders_to_check.append(folder)
-            folder = _api.contenttype_folder("LoCon", fromCheck=True)
+            folder = contenttype_folder("LoCon", fromCheck=True)
             if folder:
                 folders_to_check.append(folder)
         elif item == "Upscaler":
-            folder = _api.contenttype_folder(item, "SwinIR")
+            folder = contenttype_folder(item, "SwinIR")
             if folder:
                 folders_to_check.append(folder)
-            folder = _api.contenttype_folder(item, "RealESRGAN")
+            folder = contenttype_folder(item, "RealESRGAN")
             if folder:
                 folders_to_check.append(folder)
-            folder = _api.contenttype_folder(item, "GFPGAN")
+            folder = contenttype_folder(item, "GFPGAN")
             if folder:
                 folders_to_check.append(folder)
-            folder = _api.contenttype_folder(item, "BSRGAN")
+            folder = contenttype_folder(item, "BSRGAN")
             if folder:
                 folders_to_check.append(folder)
-            folder = _api.contenttype_folder(item, "ESRGAN")
+            folder = contenttype_folder(item, "ESRGAN")
             if folder:
                 folders_to_check.append(folder)
         else:
-            folder = _api.contenttype_folder(item)
+            folder = contenttype_folder(item)
             if folder:
                 folders_to_check.append(folder)
         
@@ -1156,3 +1157,238 @@ def cancel_scan():
         else:
             time.sleep(0.5)
             continue
+
+def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=None):
+    use_LORA = getattr(opts, "use_LORA", False)
+    folder = None
+    if desc:
+        desc = desc.upper()
+    else:
+        desc = "PLACEHOLDER"
+    if custom_folder:
+        main_models = custom_folder
+        main_data = custom_folder
+    else:
+        main_models = models_path
+        main_data = data_path
+        
+    if content_type == "modelFolder":
+        folder = os.path.join(main_models)
+        
+    if content_type == "Checkpoint":
+        if cmd_opts.ckpt_dir and not custom_folder:
+            folder = cmd_opts.ckpt_dir
+        else:
+            folder = os.path.join(main_models,"Stable-diffusion")
+            
+    elif content_type == "Hypernetwork":
+        if cmd_opts.hypernetwork_dir and not custom_folder:
+            folder = cmd_opts.hypernetwork_dir
+        else:
+            folder = os.path.join(main_models, "hypernetworks")
+        
+    elif content_type == "TextualInversion":
+        if cmd_opts.embeddings_dir and not custom_folder:
+            folder = cmd_opts.embeddings_dir
+        else:
+            folder = os.path.join(main_data, "embeddings")
+        
+    elif content_type == "AestheticGradient":
+        if not custom_folder:
+            folder = os.path.join(extensions_dir, "stable-diffusion-webui-aesthetic-gradients", "aesthetic_embeddings")
+        else:
+            folder = os.path.join(custom_folder, "aesthetic_embeddings")
+    elif content_type == "LORA":
+        if cmd_opts.lora_dir and not custom_folder:
+            folder = cmd_opts.lora_dir
+        else:
+            folder = folder = os.path.join(main_models, "Lora")
+        
+    elif content_type == "LoCon":
+        folder = os.path.join(main_models, "LyCORIS")
+        if use_LORA and not fromCheck:
+            if cmd_opts.lora_dir and not custom_folder:
+                folder = cmd_opts.lora_dir
+            else:
+                folder = folder = os.path.join(main_models, "Lora")
+            
+    elif content_type == "VAE":
+        if cmd_opts.vae_dir and not custom_folder:
+            folder = cmd_opts.vae_dir
+        else:
+            folder = os.path.join(main_models, "VAE")
+            
+    elif content_type == "Controlnet":  
+        folder = os.path.join(main_models, "ControlNet")
+            
+    elif content_type == "Poses":
+        folder = os.path.join(main_models, "Poses")
+    
+    elif content_type == "Upscaler":
+        if "SWINIR" in desc:
+            if cmd_opts.swinir_models_path and not custom_folder:
+                folder = cmd_opts.swinir_models_path
+            else:
+                folder = os.path.join(main_models, "SwinIR")
+        elif "REALESRGAN" in desc:
+            if cmd_opts.realesrgan_models_path and not custom_folder:
+                folder = cmd_opts.realesrgan_models_path
+            else:
+                folder = os.path.join(main_models, "RealESRGAN")
+        elif "GFPGAN" in desc:
+            if cmd_opts.gfpgan_models_path and not custom_folder:
+                folder = cmd_opts.gfpgan_models_path
+            else:
+                folder = os.path.join(main_models, "GFPGAN")
+        elif "BSRGAN" in desc:
+            if cmd_opts.bsrgan_models_path and not custom_folder:
+                folder = cmd_opts.bsrgan_models_path
+            else:
+                folder = os.path.join(main_models, "BSRGAN")
+        else:
+            if cmd_opts.esrgan_models_path and not custom_folder:
+                folder = cmd_opts.esrgan_models_path
+            else:
+                folder = os.path.join(main_models, "ESRGAN")
+            
+    elif content_type == "MotionModule":
+        folder = os.path.join(extensions_dir, "sd-webui-animatediff", "model")
+        
+    elif content_type == "Workflows":
+        folder = os.path.join(main_models, "Workflows")
+        
+    elif content_type == "Other":
+        if "ADETAILER" in desc:
+            folder = os.path.join(main_models, "adetailer")
+        else:
+            folder = os.path.join(main_models, "Other")
+    
+    elif content_type == "Wildcards":
+        folder = os.path.join(extensions_dir, "UnivAICharGen", "wildcards")
+        if not os.path.exists(folder):
+            folder = os.path.join(extensions_dir, "sd-dynamic-prompts", "wildcards")
+    
+    return folder
+
+def default_sub_folder_value(content_type, desc=None):
+    use_LORA = getattr(opts, "use_LORA", False)
+    if content_type in ["LORA", "LoCon"] and use_LORA:
+        folder = getattr(opts, "LORA_LoCon_subfolder", "None")
+    elif content_type == "Upscaler":
+        for upscale_type in ["SWINIR", "REALESRGAN", "GFPGAN", "BSRGAN"]:
+            if upscale_type in desc:
+                folder = getattr(opts, f"{upscale_type}_subfolder", "None")
+        folder = getattr(opts, "ESRGAN_subfolder", "None")
+    else:
+        folder = getattr(opts, f"{content_type}_subfolder", "None")
+    if folder == None:
+        return "None"
+    return folder
+
+
+def get_desired_folder(content_type,base_model,model_uploader,model_name,model_version, default_sub, subfolder, desc = "PLACEHOLDER", ):
+    model_folder = contenttype_folder(content_type, desc)
+    
+    sub_opt1 = os.path.join(os.sep, _api.cleaned_name(base_model))
+    sub_opt2 = os.path.join(os.sep, _api.cleaned_name(model_uploader))
+    sub_opt3 = os.path.join(os.sep, _api.cleaned_name(model_name))
+    sub_opt4 = os.path.join(os.sep, _api.cleaned_name(model_name), _api.cleaned_name(model_version))
+    sub_opt5 = os.path.join(os.sep, _api.cleaned_name(base_model),_api.cleaned_name(model_name), _api.cleaned_name(model_version))
+        
+    if default_sub == f"{os.sep}Base Model":
+        subfold = sub_opt1
+    elif default_sub == f"{os.sep}Author Name":
+        subfold = sub_opt2
+    elif default_sub == f"{os.sep}Model Name":
+        subfold = sub_opt3
+    elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+        subfold = sub_opt4
+    elif default_sub == f"{os.sep}Base Model{os.sep}Model Name{os.sep}Version Name":
+        subfold = sub_opt5
+        
+    if subfolder and subfolder != "None":
+        if platform.system() == "Windows":
+            subfolder = re.sub(r'[/:*?"<>|]', '', subfolder)
+        if not subfolder.startswith(os.sep):
+            subfolder = os.sep + subfolder
+        install_path = model_folder + subfolder
+    else:
+        if default_sub != "None":
+            install_path = model_folder + subfold
+        else:
+            install_path = model_folder
+    return install_path
+
+        # try:
+        #     sub_folders = ["None"]
+        #     for root, dirs, _ in os.walk(model_folder):
+        #         if dot_subfolders:
+        #             dirs = [d for d in dirs if not d.startswith('.')]
+        #             dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
+        #         for d in dirs:
+        #             sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+        #             if sub_folder:
+        #                 sub_folders.append(f'{os.sep}{sub_folder}')
+            
+        #     sub_folders.remove("None")
+        #     sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
+        #     sub_folders.insert(0, "None")
+
+            
+        #     list = set()
+        #     sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
+        # except:
+        #     sub_folders = ["None"]
+
+        # try:
+        #     sub_folders = ["None"]
+        #     for root, dirs, _ in os.walk(model_folder):
+        #         if dot_subfolders:
+        #             dirs = [d for d in dirs if not d.startswith('.')]
+        #             dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
+        #         for d in dirs:
+        #             sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+        #             if sub_folder:
+        #                 sub_folders.append(f'{os.sep}{sub_folder}')
+            
+        #     sub_folders.remove("None")
+        #     sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
+        #     sub_folders.insert(0, "None")
+        #     sub_opt1 = os.path.join(os.sep, cleaned_name(output_basemodel))
+        #     sub_opt2 = os.path.join(os.sep, cleaned_name(model_uploader))
+        #     sub_opt3 = os.path.join(os.sep, cleaned_name(model_name))
+        #     sub_opt4 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
+        #     sub_opt5 = os.path.join(os.sep, cleaned_name(output_basemodel),cleaned_name(model_name), cleaned_name(model_version))
+        #     if insert_sub:
+        #         sub_folders.insert(1, sub_opt1)
+        #         sub_folders.insert(2, sub_opt2)
+        #         sub_folders.insert(3, sub_opt3)
+        #         sub_folders.insert(4, sub_opt4)
+        #         sub_folders.insert(5, sub_opt5)
+
+            
+        #     list = set()
+        #     sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
+        # except:
+        #     sub_folders = ["None"]
+            
+        # default_sub = sub_folder_value(content_type, desc)
+        # if default_sub == f"{os.sep}Base Model":
+        #     default_sub = sub_opt1
+        # elif default_sub == f"{os.sep}Author Name":
+        #     default_sub = sub_opt2
+        # elif default_sub == f"{os.sep}Model Name":
+        #     default_sub = sub_opt3
+        # elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
+        #     default_sub = sub_opt4
+        # elif default_sub == f"{os.sep}Base Model{os.sep}Model Name{os.sep}Version Name":
+        #     default_sub = sub_opt5
+            
+        # if folder_location == "None":
+        #     folder_location = model_folder
+        #     if default_sub != "None":
+        #         folder_path = folder_location + default_sub
+        #     else:
+        #         folder_path = folder_location
+        # else:
+        #     folder_path = folder_location

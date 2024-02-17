@@ -18,124 +18,13 @@ from html import escape
 from scripts.civitai_global import print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
+import scripts.civitai_file_manage as _file
 try:
     from fake_useragent import UserAgent
 except ImportError:
     print("Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
-
-def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=None):
-    use_LORA = getattr(opts, "use_LORA", False)
-    folder = None
-    if desc:
-        desc = desc.upper()
-    else:
-        desc = "PLACEHOLDER"
-    if custom_folder:
-        main_models = custom_folder
-        main_data = custom_folder
-    else:
-        main_models = models_path
-        main_data = data_path
-        
-    if content_type == "modelFolder":
-        folder = os.path.join(main_models)
-        
-    if content_type == "Checkpoint":
-        if cmd_opts.ckpt_dir and not custom_folder:
-            folder = cmd_opts.ckpt_dir
-        else:
-            folder = os.path.join(main_models,"Stable-diffusion")
-            
-    elif content_type == "Hypernetwork":
-        if cmd_opts.hypernetwork_dir and not custom_folder:
-            folder = cmd_opts.hypernetwork_dir
-        else:
-            folder = os.path.join(main_models, "hypernetworks")
-        
-    elif content_type == "TextualInversion":
-        if cmd_opts.embeddings_dir and not custom_folder:
-            folder = cmd_opts.embeddings_dir
-        else:
-            folder = os.path.join(main_data, "embeddings")
-        
-    elif content_type == "AestheticGradient":
-        if not custom_folder:
-            folder = os.path.join(extensions_dir, "stable-diffusion-webui-aesthetic-gradients", "aesthetic_embeddings")
-        else:
-            folder = os.path.join(custom_folder, "aesthetic_embeddings")
-    elif content_type == "LORA":
-        if cmd_opts.lora_dir and not custom_folder:
-            folder = cmd_opts.lora_dir
-        else:
-            folder = folder = os.path.join(main_models, "Lora")
-        
-    elif content_type == "LoCon":
-        folder = os.path.join(main_models, "LyCORIS")
-        if use_LORA and not fromCheck:
-            if cmd_opts.lora_dir and not custom_folder:
-                folder = cmd_opts.lora_dir
-            else:
-                folder = folder = os.path.join(main_models, "Lora")
-            
-    elif content_type == "VAE":
-        if cmd_opts.vae_dir and not custom_folder:
-            folder = cmd_opts.vae_dir
-        else:
-            folder = os.path.join(main_models, "VAE")
-            
-    elif content_type == "Controlnet":  
-        folder = os.path.join(main_models, "ControlNet")
-            
-    elif content_type == "Poses":
-        folder = os.path.join(main_models, "Poses")
-    
-    elif content_type == "Upscaler":
-        if "SWINIR" in desc:
-            if cmd_opts.swinir_models_path and not custom_folder:
-                folder = cmd_opts.swinir_models_path
-            else:
-                folder = os.path.join(main_models, "SwinIR")
-        elif "REALESRGAN" in desc:
-            if cmd_opts.realesrgan_models_path and not custom_folder:
-                folder = cmd_opts.realesrgan_models_path
-            else:
-                folder = os.path.join(main_models, "RealESRGAN")
-        elif "GFPGAN" in desc:
-            if cmd_opts.gfpgan_models_path and not custom_folder:
-                folder = cmd_opts.gfpgan_models_path
-            else:
-                folder = os.path.join(main_models, "GFPGAN")
-        elif "BSRGAN" in desc:
-            if cmd_opts.bsrgan_models_path and not custom_folder:
-                folder = cmd_opts.bsrgan_models_path
-            else:
-                folder = os.path.join(main_models, "BSRGAN")
-        else:
-            if cmd_opts.esrgan_models_path and not custom_folder:
-                folder = cmd_opts.esrgan_models_path
-            else:
-                folder = os.path.join(main_models, "ESRGAN")
-            
-    elif content_type == "MotionModule":
-        folder = os.path.join(extensions_dir, "sd-webui-animatediff", "model")
-        
-    elif content_type == "Workflows":
-        folder = os.path.join(main_models, "Workflows")
-        
-    elif content_type == "Other":
-        if "ADETAILER" in desc:
-            folder = os.path.join(main_models, "adetailer")
-        else:
-            folder = os.path.join(main_models, "Other")
-    
-    elif content_type == "Wildcards":
-        folder = os.path.join(extensions_dir, "UnivAICharGen", "wildcards")
-        if not os.path.exists(folder):
-            folder = os.path.join(extensions_dir, "sd-dynamic-prompts", "wildcards")
-    
-    return folder
 
 def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, tile_count, search_term=None, nsfw=None, timeOut=None, isNext=None, inputs_changed=None):
     if current_page in [0, None, ""]:
@@ -915,59 +804,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
         insert_sub = getattr(opts, "insert_sub", True)
         dot_subfolders = getattr(opts, "dot_subfolders", True)
         
-        try:
-            sub_folders = ["None"]
-            for root, dirs, _ in os.walk(model_folder):
-                if dot_subfolders:
-                    dirs = [d for d in dirs if not d.startswith('.')]
-                    dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
-                for d in dirs:
-                    sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
-                    if sub_folder:
-                        sub_folders.append(f'{os.sep}{sub_folder}')
-            
-            sub_folders.remove("None")
-            sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
-            sub_folders.insert(0, "None")
-            sub_opt1 = os.path.join(os.sep, cleaned_name(output_basemodel))
-            sub_opt2 = os.path.join(os.sep, cleaned_name(model_uploader))
-            sub_opt3 = os.path.join(os.sep, cleaned_name(model_name))
-            sub_opt4 = os.path.join(os.sep, cleaned_name(model_name), cleaned_name(model_version))
-            sub_opt5 = os.path.join(os.sep, cleaned_name(output_basemodel),cleaned_name(model_name), cleaned_name(model_version))
-            if insert_sub:
-                sub_folders.insert(1, sub_opt1)
-                sub_folders.insert(2, sub_opt2)
-                sub_folders.insert(3, sub_opt3)
-                sub_folders.insert(4, sub_opt4)
-                sub_folders.insert(5, sub_opt5)
 
-            
-            list = set()
-            sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
-        except:
-            sub_folders = ["None"]
-            
-        default_sub = sub_folder_value(content_type, desc)
-        if default_sub == f"{os.sep}Base Model":
-            default_sub = sub_opt1
-        elif default_sub == f"{os.sep}Author Name":
-            default_sub = sub_opt2
-        elif default_sub == f"{os.sep}Model Name":
-            default_sub = sub_opt3
-        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
-            default_sub = sub_opt4
-        elif default_sub == f"{os.sep}Base Model{os.sep}Model Name{os.sep}Version Name":
-            default_sub = sub_opt5
-            
-        if folder_location == "None":
-            folder_location = model_folder
-            if default_sub != "None":
-                folder_path = folder_location + default_sub
-            else:
-                folder_path = folder_location
-        else:
-            folder_path = folder_location
-        relative_path = os.path.relpath(folder_location, model_folder)
         default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if BtnDel == False else "None"
         if gl.isDownloading:
             item = gl.download_queue[0]
@@ -1013,20 +850,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 gr.Dropdown.update(choices=None, value=None, interactive=False) # Sub Folder List
         )
 
-def sub_folder_value(content_type, desc=None):
-    use_LORA = getattr(opts, "use_LORA", False)
-    if content_type in ["LORA", "LoCon"] and use_LORA:
-        folder = getattr(opts, "LORA_LoCon_subfolder", "None")
-    elif content_type == "Upscaler":
-        for upscale_type in ["SWINIR", "REALESRGAN", "GFPGAN", "BSRGAN"]:
-            if upscale_type in desc:
-                folder = getattr(opts, f"{upscale_type}_subfolder", "None")
-        folder = getattr(opts, "ESRGAN_subfolder", "None")
-    else:
-        folder = getattr(opts, f"{content_type}_subfolder", "None")
-    if folder == None:
-        return "None"
-    return folder
+
 
 def update_file_info(model_string, model_version, file_metadata):
     file_list = []
@@ -1074,10 +898,10 @@ def update_file_info(model_string, model_version, file_metadata):
                             if f"{file_size} {file_format} {file_fp} ({filesize})" == file_metadata:
                                 installed = False
                                 folder_location = "None"
-                                model_folder = os.path.join(contenttype_folder(content_type, desc))
+                                model_folder = os.path.join(_file.contenttype_folder(content_type, desc))
                                 if embed_check and file_format == "PickleTensor":
                                     if sizeKB <= 100:
-                                        model_folder = os.path.join(contenttype_folder("TextualInversion"))
+                                        model_folder = os.path.join(_file.contenttype_folder("TextualInversion"))
                                 dl_url = file['downloadUrl']
                                 gl.json_info = item
                                 for root, _, files in os.walk(model_folder):
@@ -1100,7 +924,7 @@ def update_file_info(model_string, model_version, file_metadata):
                                                             break
                                                     except Exception as e:
                                                         print(f"Error decoding JSON: {str(e)}")
-                                default_sub = sub_folder_value(content_type, desc)
+                                default_sub = _file.default_sub_folder_value(content_type, desc)
                                 if folder_location == "None":
                                     folder_location = model_folder
                                     if default_sub != "None":
