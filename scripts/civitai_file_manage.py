@@ -1,3 +1,4 @@
+import base64
 import json
 import gradio as gr
 import urllib.request
@@ -13,6 +14,7 @@ import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
 
+from PIL import Image
 from sympy import preview
 from modules.shared import cmd_opts, opts
 from scripts.civitai_global import print
@@ -340,6 +342,30 @@ def gen_sha256(file_path):
     
     return hash_value
 
+def convert_local_images(html):
+    soup = BeautifulSoup(html)
+    for simg in soup.find_all("img", attrs={"data-sampleimg": "true"}):
+        print("Found image")
+        url = urlparse(simg["src"])
+        path = url.path
+        if not os.path.exists(path):
+            print("URL path does not exist: %s" % url.path)
+            # Try the raw url, files can be saved in windows as "C:\..." and
+            # that confuses urlparse because people only really test on Linux.
+            if os.path.exists(simg["src"]):
+                path = simg["src"]
+            else:
+                continue
+        with open(path, 'rb') as f:
+            imgdata = f.read()
+        b64img = base64.b64encode(imgdata).decode('utf-8')
+        imgtype = Image.open(io.BytesIO(imgdata)).format
+        if not imgtype:
+            imgtype = "PNG"
+        simg["src"] = f"data:image/{imgtype};base64,{b64img}"
+        print("Converted image to base64")
+    return str(soup)
+
 def model_from_sent(model_name, content_type, tile_count, path_input):
     modelID_failed = False
     output_html = None
@@ -352,8 +378,6 @@ def model_from_sent(model_name, content_type, tile_count, path_input):
     path_not_found = div + "Model ID not found.<br>Could not locate the model path.</div>"
     offline = div + "CivitAI failed to respond.<br>The servers are likely offline."
     
-    if local_path_in_html:
-        use_local_html = False
         
     if path_input == "Not Found":
         model_name = re.sub(r'\.\d{3}$', '', model_name)
@@ -391,6 +415,8 @@ def model_from_sent(model_name, content_type, tile_count, path_input):
                 index = output_html.find("</head>")
                 if index != -1:
                     output_html = output_html[index + len("</head>"):]
+                if local_path_in_html:
+                    output_html = convert_local_images(output_html)
     
     if not output_html:
         modelID = get_models(model_file, True)
