@@ -345,7 +345,6 @@ def gen_sha256(file_path):
 def convert_local_images(html):
     soup = BeautifulSoup(html)
     for simg in soup.find_all("img", attrs={"data-sampleimg": "true"}):
-        print("Found image")
         url = urlparse(simg["src"])
         path = url.path
         if not os.path.exists(path):
@@ -363,7 +362,6 @@ def convert_local_images(html):
         if not imgtype:
             imgtype = "PNG"
         simg["src"] = f"data:image/{imgtype};base64,{b64img}"
-        print("Converted image to base64")
     return str(soup)
 
 def model_from_sent(model_name, content_type, tile_count, path_input):
