@@ -757,7 +757,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
                 for index, pic in enumerate(selected_version['images']):
                     meta_button = False
-                    meta = pic['meta']
+                    meta = pic['metadata']
                     if meta and meta.get('prompt'):
                         meta_button = True
                     BtnImage = True 
