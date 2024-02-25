@@ -103,8 +103,9 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 <h3>v3.4.1</h3>
 
 * Bug fix: Fixed prompt info and model selection after CivitAI API update.
-* Bug fix: Fixed "/" missing from default path/sub-folder
+* Bug fix: Fixed "/" missing from default path/sub-folder.
 * Feature: Local images now work in HTML files as preview. (credit: [mx](https://github.com/mx))
+* Feature: Updated available base models.
 
 ---
 <h3>v3.4.0</h3>
