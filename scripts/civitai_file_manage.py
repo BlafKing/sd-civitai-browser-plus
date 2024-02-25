@@ -1,4 +1,3 @@
-import base64
 import json
 import gradio as gr
 import urllib.request
@@ -11,11 +10,10 @@ import time
 import errno
 import requests
 import hashlib
+import base64
+from PIL import Image
 from pathlib import Path
 from urllib.parse import urlparse
-
-from PIL import Image
-from sympy import preview
 from modules.shared import cmd_opts, opts
 from scripts.civitai_global import print
 import scripts.civitai_global as gl
@@ -375,7 +373,6 @@ def model_from_sent(model_name, content_type, tile_count, path_input):
     not_found = div + "Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>"
     path_not_found = div + "Model ID not found.<br>Could not locate the model path.</div>"
     offline = div + "CivitAI failed to respond.<br>The servers are likely offline."
-    
         
     if path_input == "Not Found":
         model_name = re.sub(r'\.\d{3}$', '', model_name)

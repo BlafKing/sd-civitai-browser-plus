@@ -688,7 +688,7 @@
 }
 
 #civitai_preview_html .accordionCheckbox:checked ~ .tab-content {
-    max-height: 200vh;
+    max-height: unset;
     padding: 1em;
 }
 /*-----------------------------------------*/

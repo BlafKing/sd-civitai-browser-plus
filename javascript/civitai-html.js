@@ -620,14 +620,14 @@ function metaToTxt2Img(type, element) {
     let is_positive = false
     let is_negative = false
     switch(type) {
-        case 'prompt':
+        case 'Prompt':
             is_positive = true
             break;
-        case 'negativePrompt':
+        case 'Negative prompt':
             inf = 'Negative prompt: ' + inf;
             is_negative = true
             break;
-        case 'seed':
+        case 'Seed':
             inf = 'Seed: ' + inf;
             inf = inf + inf + inf;
             break;
@@ -639,19 +639,19 @@ function metaToTxt2Img(type, element) {
             inf = 'Model: ' + inf;
             inf = inf + inf + inf;
             break;
-        case 'clipSkip':
+        case 'Clip skip':
             inf = 'Clip skip: ' + inf;
             inf = inf + inf + inf;
             break;
-        case 'sampler':
+        case 'Sampler':
             inf = 'Sampler: ' + inf;
             inf = inf + inf + inf;
             break;
-        case 'steps':
+        case 'Steps':
             inf = 'Steps: ' + inf;
             inf = inf + inf + inf;
             break;
-        case 'cfgScale':
+        case 'CFG scale':
             inf = 'CFG scale: ' + inf;
             inf = inf + inf + inf;
             break;
@@ -1027,7 +1027,6 @@ function onPageLoad() {
     }
 
     observer.observe(civitaiDiv);
-    queueObserver.observe(queue_list, queueObserverOptions);
     adjustFilterBoxAndButtons();
     setupClickOutsideListener();
     createLink(infoElement);

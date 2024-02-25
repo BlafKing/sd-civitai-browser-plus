@@ -8,10 +8,12 @@ import os
 import re
 import datetime
 import platform
+import time
 from PIL import Image
 from io import BytesIO
 from collections import defaultdict
 from modules.images import read_info_from_image
+from modules.infotext_utils import parse_generation_parameters
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
 from html import escape
@@ -623,17 +625,44 @@ def cleaned_name(file_name):
     return f"{clean_name}{extension}"
 
 def fetch_and_process_image(image_url):
-    use_local = getattr(opts, "local_path_in_html", False)
-    if use_local:
-        image = Image.open(image_url)
-        geninfo, _ = read_info_from_image(image)
-        return geninfo
-    
+    try:
+        parsed_url = urllib.parse.urlparse(image_url)
+        if parsed_url.scheme and parsed_url.netloc:
+            response = requests.get(image_url)
+            if response.status_code == 200:
+                image = Image.open(BytesIO(response.content))
+                geninfo, _ = read_info_from_image(image)
+                return geninfo
+        else:
+            image = Image.open(image_url)
+            geninfo, _ = read_info_from_image(image)
+            return geninfo
+    except:
+        return None
+
+def image_url_to_promptInfo(image_url):
     response = requests.get(image_url)
     if response.status_code == 200:
         image = Image.open(BytesIO(response.content))
-        geninfo, _ = read_info_from_image(image)
-        return geninfo
+        
+        prompt, _ = read_info_from_image(image)
+        prompt_dict = parse_generation_parameters(prompt)
+        
+        invalid_values = [None, 0, "", "Use same sampler", "Use same checkpoint"]
+        keys_to_remove = [key for key, value in prompt_dict.items() if key != "Clip skip" and value in invalid_values]
+        for key in keys_to_remove:
+            prompt_dict.pop(key, None)
+        
+        if "Size-1" in prompt_dict and "Size-2" in prompt_dict:
+            prompt_dict["Size"] = f'{prompt_dict["Size-1"]}x{prompt_dict["Size-2"]}'
+            prompt_dict.pop("Size-1", None)
+            prompt_dict.pop("Size-2", None)
+        if "Hires resize-1" in prompt_dict and "Hires resize-2" in prompt_dict:
+            prompt_dict["Hires resize"] = f'{prompt_dict["Hires resize-1"]}x{prompt_dict["Hires resize-2"]}'
+            prompt_dict.pop("Hires resize-1", None)
+            prompt_dict.pop("Hires resize-2", None)
+        
+        return prompt, prompt_dict
     return None
 
 def extract_model_info(input_string):
@@ -762,16 +791,20 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 model_main_url = f"https://civitai.com/models/{item['id']}"
                 img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
                 for index, pic in enumerate(selected_version['images']):
-                    meta_button = False
-                    meta = pic['metadata']
-                    if meta and meta.get('prompt'):
-                        meta_button = True
-                    BtnImage = True 
                     # Change width value in URL to original image width
                     image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
                     if pic['type'] == "video":
                         image_url = image_url.replace("width=", "transcode=true,width=")
+                        prompt_dict = []
+                    else:
+                        prompt, prompt_dict = image_url_to_promptInfo(image_url)
+                        
                     nsfw = 'class="model-block"'
+                    
+                    meta_button = False
+                    if prompt_dict and prompt_dict.get('Prompt'):
+                        meta_button = True
+                    BtnImage = True
                     
                     if pic['nsfw'] not in ["None", "Soft"]:
                         nsfw = 'class="civnsfw model-block"'
@@ -804,21 +837,20 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     else:
                         img_html += '</div>'
                         
-                    if meta:
+                    if prompt_dict:
                         img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height:1.5em;" id="image_info"><dl style="gap:10px; display:grid;">'
                         # Define the preferred order of keys and convert them to lowercase
-                        preferred_order = ["prompt", "negativePrompt", "seed", "Size", "Model", "clipSkip", "sampler", "steps", "cfgScale"]
-                        preferred_order_lower = [key.lower() for key in preferred_order]
+                        preferred_order = ["Prompt", "Negative prompt", "Seed", "Size", "Model", "Clip skip", "Sampler", "Steps", "CFG scale"]
                         # Loop through the keys in the preferred order and add them to the HTML
                         for key in preferred_order:
-                            if key in meta:
-                                value = meta[key]
+                            if key in prompt_dict:
+                                value = prompt_dict[key]
                                 if meta_btn:
                                     img_html += f'<div class="civitai-meta-btn" onclick="metaToTxt2Img(\'{escape(str(key))}\', this)"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
                                 else:
                                     img_html += f'<div class="civitai-meta"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
                         # Check if there are remaining keys in meta
-                        remaining_keys = [key for key in meta if key.lower() not in preferred_order_lower]
+                        remaining_keys = [key for key in prompt_dict if key not in preferred_order]
 
                         # Add the rest
                         if remaining_keys:
@@ -830,7 +862,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                                     <div class="tab-content" style="gap:10px;display:grid;margin-left:1px;">
                             """
                             for key in remaining_keys:
-                                value = meta[key]
+                                value = prompt_dict[key]
                                 img_html += f'<div class="civitai-meta"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
                             img_html = img_html + '</div></div></div>'
 
@@ -1002,7 +1034,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
 
         if any(key in default_sub for key in variable_mapping.keys()):
             path_components = [variable_mapping.get(component.strip(os.sep), component.strip(os.sep)) for component in default_sub.split(os.sep)]
-            default_sub = os.path.join(*path_components)
+            default_sub = os.path.join(os.sep, *path_components)
             
         if folder_location == "None":
             folder_location = model_folder

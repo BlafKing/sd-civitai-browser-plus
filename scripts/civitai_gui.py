@@ -1176,7 +1176,7 @@ def on_ui_settings():
             "Use local images in the HTML",
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
-        )
+        ).info("Only works if all images of the corresponding model are downloaded")
     )
     
     shared.opts.add_option(
