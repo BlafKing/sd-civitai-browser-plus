@@ -305,7 +305,6 @@ def on_ui_tabs():
         selected_type_list = gr.Textbox(elem_id="selected_type_list", visible=False)
         html_cancel_input = gr.Textbox(elem_id="html_cancel_input", visible=False)
         queue_html_input = gr.Textbox(elem_id="queue_html_input", visible=False)
-        model_path_input = gr.Textbox(elem_id="model_path_input", visible=False)
         arrange_dl_id = gr.Textbox(elem_id="arrange_dl_id", visible=False)
         remove_dl_id = gr.Textbox(elem_id="remove_dl_id", visible=False)
         model_select = gr.Textbox(elem_id="model_select", visible=False)
@@ -455,7 +454,7 @@ def on_ui_tabs():
             
         model_sent.change(
             fn=_file.model_from_sent,
-            inputs=[model_sent, type_sent, tile_count_slider, model_path_input],
+            inputs=[model_sent, type_sent, tile_count_slider],
             outputs=[model_preview_html]
         )
         

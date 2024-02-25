@@ -650,24 +650,27 @@ def image_url_to_promptInfo(image_url):
         image = Image.open(BytesIO(response.content))
         
         prompt, _ = read_info_from_image(image)
-        prompt_dict = parse_generation_parameters(prompt)
-        
-        invalid_values = [None, 0, "", "Use same sampler", "Use same checkpoint"]
-        keys_to_remove = [key for key, value in prompt_dict.items() if key != "Clip skip" and value in invalid_values]
-        for key in keys_to_remove:
-            prompt_dict.pop(key, None)
-        
-        if "Size-1" in prompt_dict and "Size-2" in prompt_dict:
-            prompt_dict["Size"] = f'{prompt_dict["Size-1"]}x{prompt_dict["Size-2"]}'
-            prompt_dict.pop("Size-1", None)
-            prompt_dict.pop("Size-2", None)
-        if "Hires resize-1" in prompt_dict and "Hires resize-2" in prompt_dict:
-            prompt_dict["Hires resize"] = f'{prompt_dict["Hires resize-1"]}x{prompt_dict["Hires resize-2"]}'
-            prompt_dict.pop("Hires resize-1", None)
-            prompt_dict.pop("Hires resize-2", None)
-        
-        return prompt, prompt_dict
-    return None
+        if prompt:
+            prompt_dict = parse_generation_parameters(prompt)
+            
+            invalid_values = [None, 0, "", "Use same sampler", "Use same checkpoint"]
+            keys_to_remove = [key for key, value in prompt_dict.items() if key != "Clip skip" and value in invalid_values]
+            for key in keys_to_remove:
+                prompt_dict.pop(key, None)
+            
+            if "Size-1" in prompt_dict and "Size-2" in prompt_dict:
+                prompt_dict["Size"] = f'{prompt_dict["Size-1"]}x{prompt_dict["Size-2"]}'
+                prompt_dict.pop("Size-1", None)
+                prompt_dict.pop("Size-2", None)
+            if "Hires resize-1" in prompt_dict and "Hires resize-2" in prompt_dict:
+                prompt_dict["Hires resize"] = f'{prompt_dict["Hires resize-1"]}x{prompt_dict["Hires resize-2"]}'
+                prompt_dict.pop("Hires resize-1", None)
+                prompt_dict.pop("Hires resize-2", None)
+            
+            return prompt_dict
+        else:
+            return []
+    return []
 
 def extract_model_info(input_string):
     last_open_parenthesis = input_string.rfind("(")
@@ -801,7 +804,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                         image_url = image_url.replace("width=", "transcode=true,width=")
                         prompt_dict = []
                     else:
-                        prompt, prompt_dict = image_url_to_promptInfo(image_url)
+                        prompt_dict = image_url_to_promptInfo(image_url)
                         
                     nsfw = 'class="model-block"'
                     
