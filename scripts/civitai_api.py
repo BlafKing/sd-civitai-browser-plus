@@ -623,6 +623,12 @@ def cleaned_name(file_name):
     return f"{clean_name}{extension}"
 
 def fetch_and_process_image(image_url):
+    use_local = getattr(opts, "local_path_in_html", False)
+    if use_local:
+        image = Image.open(image_url)
+        geninfo, _ = read_info_from_image(image)
+        return geninfo
+    
     response = requests.get(image_url)
     if response.status_code == 200:
         image = Image.open(BytesIO(response.content))

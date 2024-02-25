@@ -1176,7 +1176,7 @@ def on_ui_settings():
             "Use local images in the HTML",
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
-        ).info("Does not work in combination with the \"Use local HTML file for model info\" option!")
+        )
     )
     
     shared.opts.add_option(
