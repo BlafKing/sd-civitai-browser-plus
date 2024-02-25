@@ -13,7 +13,11 @@ from PIL import Image
 from io import BytesIO
 from collections import defaultdict
 from modules.images import read_info_from_image
-from modules.infotext_utils import parse_generation_parameters
+try:
+    from modules.generation_parameters_copypaste import parse_generation_parameters
+except:
+    from modules.infotext_utils import parse_generation_parameters
+
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
 from html import escape
