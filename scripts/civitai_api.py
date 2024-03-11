@@ -8,15 +8,10 @@ import os
 import re
 import datetime
 import platform
-import time
 from PIL import Image
 from io import BytesIO
 from collections import defaultdict
 from modules.images import read_info_from_image
-try:
-    from modules.generation_parameters_copypaste import parse_generation_parameters
-except:
-    from modules.infotext_utils import parse_generation_parameters
 
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
@@ -372,7 +367,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             if 'LoCon' not in content_type:
                 content_type.append('LoCon')
             
-    if gl.json_data is None or gl.json_data == "timeout":
+    if gl.json_data is None or gl.json_data == "timeout" or gl.json_data == "error":
         timeOut = True
         return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, timeOut=timeOut, isNext=isNext)
         timeOut = False
@@ -443,8 +438,14 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
         hasPrev = current_page not in [0, 1]
         hasNext = current_page == 1 or hasPrev
         model_dict = {}
+    
+    if gl.json_data == "error":
+        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has failed to return due to an error.<br>Check the logs for more details.</div>'
+        hasPrev = current_page not in [0, 1]
+        hasNext = current_page == 1 or hasPrev
+        model_dict = {}
         
-    if gl.json_data != None and gl.json_data != "timeout":
+    if gl.json_data != None and gl.json_data != "timeout" and gl.json_data != "error":
         (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         model_dict = {}
         try:
@@ -517,13 +518,19 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
             hasPrev = current_page not in [0, 1]
             hasNext = current_page == 1 or hasPrev
         
+        if gl.json_data == "error":
+            HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has failed to return due to an error.<br>Check the logs for more details.</div>'
+            hasPrev = current_page not in [0, 1]
+            hasNext = current_page == 1 or hasPrev
+            model_dict = {}
+        
         if gl.json_data is None:
             return
     
     if from_installed or from_ver:
         gl.json_data = gl.ver_json
     
-    if gl.json_data != None and gl.json_data != "timeout":
+    if gl.json_data != None and gl.json_data != "timeout" and gl.json_data != "error":
         if not from_ver:
             (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         else:
@@ -629,10 +636,11 @@ def cleaned_name(file_name):
     return f"{clean_name}{extension}"
 
 def fetch_and_process_image(image_url):
+    proxies, ssl = get_proxies()
     try:
         parsed_url = urllib.parse.urlparse(image_url)
         if parsed_url.scheme and parsed_url.netloc:
-            response = requests.get(image_url)
+            response = requests.get(image_url, proxies=proxies, verify=ssl)
             if response.status_code == 200:
                 image = Image.open(BytesIO(response.content))
                 geninfo, _ = read_info_from_image(image)
@@ -643,34 +651,6 @@ def fetch_and_process_image(image_url):
             return geninfo
     except:
         return None
-
-def image_url_to_promptInfo(image_url):
-    response = requests.get(image_url)
-    if response.status_code == 200:
-        image = Image.open(BytesIO(response.content))
-        
-        prompt, _ = read_info_from_image(image)
-        if prompt:
-            prompt_dict = parse_generation_parameters(prompt)
-            
-            invalid_values = [None, 0, "", "Use same sampler", "Use same checkpoint"]
-            keys_to_remove = [key for key, value in prompt_dict.items() if key != "Clip skip" and value in invalid_values]
-            for key in keys_to_remove:
-                prompt_dict.pop(key, None)
-            
-            if "Size-1" in prompt_dict and "Size-2" in prompt_dict:
-                prompt_dict["Size"] = f'{prompt_dict["Size-1"]}x{prompt_dict["Size-2"]}'
-                prompt_dict.pop("Size-1", None)
-                prompt_dict.pop("Size-2", None)
-            if "Hires resize-1" in prompt_dict and "Hires resize-2" in prompt_dict:
-                prompt_dict["Hires resize"] = f'{prompt_dict["Hires resize-1"]}x{prompt_dict["Hires resize-2"]}'
-                prompt_dict.pop("Hires resize-1", None)
-                prompt_dict.pop("Hires resize-2", None)
-            
-            return prompt_dict
-        else:
-            return []
-    return []
 
 def extract_model_info(input_string):
     last_open_parenthesis = input_string.rfind("(")
@@ -797,19 +777,31 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 model_url = selected_version.get('downloadUrl', '')
                 model_main_url = f"https://civitai.com/models/{item['id']}"
                 img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
+                
+                url = f"https://civitai.com/api/v1/images?modelId={item['id']}&modelVersionId={selected_version['id']}&username={model_uploader}"
+                model_images = request_civit_api(url)
+                
                 for index, pic in enumerate(selected_version['images']):
+                    
+                    if from_preview:
+                        index = f"preview_{index}"
+                    
+                    for item in model_images['items']:
+                        if item['id'] == pic['id']:
+                            current_image = item
+                    
                     # Change width value in URL to original image width
                     image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
                     if pic['type'] == "video":
                         image_url = image_url.replace("width=", "transcode=true,width=")
                         prompt_dict = []
                     else:
-                        prompt_dict = image_url_to_promptInfo(image_url)
+                        prompt_dict = current_image['meta']
                         
                     nsfw = 'class="model-block"'
                     
                     meta_button = False
-                    if prompt_dict and prompt_dict.get('Prompt'):
+                    if prompt_dict and prompt_dict.get('prompt'):
                         meta_button = True
                     BtnImage = True
                     
@@ -846,16 +838,29 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                         
                     if prompt_dict:
                         img_html += '<div style="margin:1em 0em 1em 1em;text-align:left;line-height:1.5em;" id="image_info"><dl style="gap:10px; display:grid;">'
-                        # Define the preferred order of keys and convert them to lowercase
-                        preferred_order = ["Prompt", "Negative prompt", "Seed", "Size", "Model", "Clip skip", "Sampler", "Steps", "CFG scale"]
+                        # Define the preferred order of keys
+                        preferred_order = ["prompt", "negativePrompt", "seed", "Size", "Model", "Clip skip", "sampler", "steps", "cfgScale"]
                         # Loop through the keys in the preferred order and add them to the HTML
                         for key in preferred_order:
                             if key in prompt_dict:
                                 value = prompt_dict[key]
+                                key_map = {
+                                    "prompt": "Prompt",
+                                    "negativePrompt": "Negative prompt",
+                                    "seed": "Seed",
+                                    "Size": "Size",
+                                    "Model": "Model",
+                                    "Clip skip": "Clip skip",
+                                    "sampler": "Sampler",
+                                    "steps": "Steps",
+                                    "cfgScale": "CFG scale"
+                                }
+                                key = key_map.get(key, key)
+                                
                                 if meta_btn:
-                                    img_html += f'<div class="civitai-meta-btn" onclick="metaToTxt2Img(\'{escape(str(key))}\', this)"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
+                                    img_html += f'<div class="civitai-meta-btn" onclick="metaToTxt2Img(\'{escape(str(key))}\', this)"><dt>{escape(str(key))}</dt><dd>{escape(str(value))}</dd></div>'
                                 else:
-                                    img_html += f'<div class="civitai-meta"><dt>{escape(str(key).capitalize())}</dt><dd>{escape(str(value))}</dd></div>'
+                                    img_html += f'<div class="civitai-meta"><dt>{escape(str(key))}</dt><dd>{escape(str(value))}</dd></div>'
                         # Check if there are remaining keys in meta
                         remaining_keys = [key for key in prompt_dict if key not in preferred_order]
 
@@ -917,10 +922,12 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             </div>
                         </div>
                     </div>
-                    <div class="model-description" style="overflow-wrap: break-word;">
+                    <input type="checkbox" id="{'preview-' if from_preview else ''}civitai-description" class="description-toggle-checkbox">
+                    <div class="model-description">
                         <h2>Description</h2>
                         {model_desc}
                     </div>
+                    <label for="{'preview-' if from_preview else ''}civitai-description" class="description-toggle-label"></label>
                 </div>
                 <div align=center>{img_html}</div>
                 '''
@@ -991,7 +998,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             sub_folders.remove("None")
             sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
             sub_folders.insert(0, "None")
-            base = cleaned_name(model_uploader)
+            base = cleaned_name(output_basemodel)
             author = cleaned_name(model_uploader)
             name = cleaned_name(model_name)
             ver = cleaned_name(model_version)
@@ -1226,37 +1233,54 @@ def update_file_info(model_string, model_version, file_metadata):
             gr.Dropdown.update(choices=None, value=None, interactive=False) # Sub Folder List
     )
 
-def get_headers():
+def get_proxies():
+    custom_proxy = getattr(opts, "custom_civitai_proxy", "")
+    disable_ssl = getattr(opts, "disable_sll_proxy", False)
+    cabundle_path = getattr(opts, "cabundle_path_proxy", "")
+    
+    ssl = True
+    proxies = {}
+    if custom_proxy:
+        if not disable_ssl:
+            if cabundle_path:
+                ssl = os.path(cabundle_path)
+        else:
+            ssl = False
+        proxies = {
+            'http': custom_proxy,
+            'https': custom_proxy,
+        }
+    return proxies, ssl
+
+def get_headers(referer=None, no_api=None):
+    
     api_key = getattr(opts, "custom_api_key", "")
     try:
         user_agent = UserAgent().chrome
     except ImportError:
-        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     headers = {
-        'User-Agent': user_agent,
-        'Sec-Ch-Ua': '"Brave";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1',
-        'Sec-Gpc': '1',
-        'Upgrade-Insecure-Requests': '1',
+        "Connection": "keep-alive",
+        "Sec-Ch-Ua-Platform": "Windows",
+        "User-Agent": user_agent,
+        "Content-Type": "application/json"
     }
-    if api_key:
+    if referer:
+        headers['Referer'] = f"https://civitai.com/models/{referer}"
+    if api_key and not no_api:
         headers['Authorization'] = f'Bearer {api_key}'
     
     return headers
 
 def request_civit_api(api_url=None):
     headers = get_headers()
+    proxies, ssl = get_proxies()
     try:
-        response = requests.get(api_url, headers=headers, timeout=(10, 30))
+        response = requests.get(api_url, headers=headers, timeout=(60,30), proxies=proxies, verify=ssl)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
-        return "timeout"
+        return "error"
     else:
         response.encoding = "utf-8"
         try:

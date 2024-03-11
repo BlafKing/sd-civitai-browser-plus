@@ -189,7 +189,7 @@ def on_ui_tabs():
                         base_filter = gr.Dropdown(label='Base model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 1.5 LCM","SD 2.0","SD 2.0 768","SD 2.1","SD 2.1 768","SD 2.1 Unclip","SDXL 0.9","SDXL 1.0","SDXL 1.0 LCM","SDXL Distilled","SDXL Turbo","SDXL Lightning","Stable Cascade","Pony","SVD","SVD XT","Playground v2","PixArt a","Other"], value=None, type="value", elem_id="centerText")
                     with gr.Row():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
-                        sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Most Downloaded","Highest Rated","Most Liked", "Most Buzz","Most Discussed","Most Collected","Most Images"], value="Most Downloaded", type="value", elem_id="centerText")
+                        sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Oldest","Most Downloaded","Highest Rated","Most Liked","Most Buzz","Most Discussed","Most Collected","Most Images"], value="Most Downloaded", type="value", elem_id="centerText")
                     with gr.Row(elem_id=component_id):
                         create_json = gr.Checkbox(label=f"Save info after download", value=True, elem_id=toggle1, min_width=171)
                         show_nsfw = gr.Checkbox(label="NSFW content", value=False, elem_id=toggle2, min_width=107)
@@ -198,7 +198,7 @@ def on_ui_tabs():
                         hide_installed = gr.Checkbox(label="Hide installed models", value=False, elem_id=toggle5, min_width=170)
                     with gr.Row():
                         size_slider = gr.Slider(minimum=4, maximum=20, value=8, step=0.25, label='Tile size:')
-                        tile_count_slider = gr.Slider(label="Tile count:", minimum=1, maximum=100, value=15, step=1, max_width=100)
+                        tile_count_slider = gr.Slider(label="Tile count:", minimum=1, maximum=100, value=15, step=1)
                     with gr.Row(elem_id="save_set_box"):
                         save_settings = gr.Button(value="Save settings as default", elem_id="save_set_btn")
                 search_term = gr.Textbox(label="", placeholder="Search CivitAI", elem_id="searchBox")
@@ -229,7 +229,7 @@ def on_ui_tabs():
                 with gr.Column(scale=4):
                     trained_tags = gr.Textbox(label='Trained tags (if any):', value=None, interactive=False, lines=1)
                 with gr.Column(scale=2, elem_id="spanWidth"):
-                    base_model = gr.Textbox(label='Base model: ', value='', interactive=False, lines=1, elem_id="baseMdl")
+                    base_model = gr.Textbox(label='Base model: ', value=None, interactive=False, lines=1, elem_id="baseMdl")
                     model_filename = gr.Textbox(label="Model filename:", interactive=False, value=None)
             with gr.Row():
                 save_info = gr.Button(value="Save model info", interactive=False)
@@ -248,10 +248,10 @@ def on_ui_tabs():
         with gr.Tab("Update Models"):
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=scan_choices)
-            with gr.Row():
-                overwrite_toggle = gr.Checkbox(elem_id="overwrite_toggle", label="Overwrite any existing previews, tags or descriptions.", value=True)
-            with gr.Row():
-                skip_hash_toggle = gr.Checkbox(elem_id="skip_hash_toggle", label="One-Time Hash Generation for externally downloaded models.", value=True)
+            with gr.Row(elem_id="civitai_update_toggles"):
+                overwrite_toggle = gr.Checkbox(elem_id="overwrite_toggle", label="Overwrite any existing previews, tags or descriptions.", value=True, min_width=300)
+                skip_hash_toggle = gr.Checkbox(elem_id="skip_hash_toggle", label="One-Time Hash Generation for externally downloaded models.", value=True, min_width=300)
+                do_html_gen = gr.Checkbox(elem_id="do_html_gen", label="Save HTML file for each model when updating info & tags (increases process time).", value=False, min_width=300)
             with gr.Row():
                 save_all_tags = gr.Button(value="Update model info & tags", interactive=True, visible=True)
                 cancel_all_tags = gr.Button(value="Cancel updating model info & tags", interactive=False, visible=False)
@@ -349,6 +349,7 @@ def on_ui_tabs():
         list_models.select(fn=None, inputs=list_models, _js="(list_models) => select_model(list_models)")
         
         preview_html.change(fn=None, _js="() => adjustFilterBoxAndButtons()")
+        preview_html.change(fn=None, _js="() => setDescriptionToggle()")
         
         back_to_top.click(fn=None, _js="() => BackToTop()")
         
@@ -421,13 +422,36 @@ def on_ui_tabs():
         list_html.change(fn=all_visible,inputs=list_html,outputs=select_all)
         
         def update_models_dropdown(input):
+            if not gl.json_data:
+                return (
+                    gr.Dropdown.update(value=None, choices=[], interactive=False), # List models
+                    gr.Dropdown.update(value=None, choices=[], interactive=False), # List version
+                    gr.HTML.update(value=None), # Preview HTML
+                    gr.Textbox.update(value=None, interactive=False), # Trained Tags
+                    gr.Textbox.update(value=None, interactive=False), # Base Model
+                    gr.Textbox.update(value=None, interactive=False), # Model filename
+                    gr.Textbox.update(value=None, interactive=False), # Install path
+                    gr.Dropdown.update(value=None, choices=[], interactive=False), # Sub folder
+                    gr.Button.update(interactive=False), # Download model btn
+                    gr.Button.update(interactive=False), # Save image btn
+                    gr.Button.update(interactive=False, visible=False), # Delete model btn
+                    gr.Dropdown.update(value=None, choices=[], interactive=False), # File list
+                    gr.Textbox.update(value=None), # DL Url
+                    gr.Textbox.update(value=None), # Model ID
+                    gr.Textbox.update(value=None), # Current sha256
+                    gr.Button.update(interactive=False),  # Save model info
+                    gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px;">Click the search icon to load models.<br>Use the filter icon to filter results.</div>') # Model list
+                )
+            
             model_string = re.sub(r'\.\d{3}$', '', input)
             model_name, model_id = _api.extract_model_info(model_string)
             model_versions = _api.update_model_versions(model_id)
             (html, tags, base_mdl, DwnButton, SaveImages, DelButton, filelist, filename, dl_url, id, current_sha256, install_path, sub_folder) = _api.update_model_info(model_string, model_versions.get('value'))
             return (gr.Dropdown.update(value=model_string, interactive=True),
                     model_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,SaveImages,DelButton,filelist,dl_url,id,current_sha256,
-                    gr.Button.update(interactive=True))
+                    gr.Button.update(interactive=True),
+                    gr.HTML.update()
+                    )
         
         model_select.change(
             fn=update_models_dropdown,
@@ -448,7 +472,8 @@ def on_ui_tabs():
                 dl_url,
                 model_id,
                 current_sha256,
-                save_info
+                save_info,
+                list_html
             ]
         )
             
@@ -687,7 +712,8 @@ def on_ui_tabs():
             preview_finish,
             overwrite_toggle,
             tile_count_slider,
-            skip_hash_toggle
+            skip_hash_toggle,
+            do_html_gen
         ]
         
         load_to_browser_inputs = [
@@ -927,7 +953,7 @@ def subfolder_list(folder, desc=None):
         if insert_sub_3:
             sub_folders.insert(3, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
         if insert_sub_4:
-            sub_folders.insert(4, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Version name")
+            sub_folders.insert(4, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
         if insert_sub_5:
             sub_folders.insert(5, f"{os.sep}Base model{os.sep}Model name")
         if insert_sub_6:
@@ -1109,6 +1135,16 @@ def on_ui_settings():
     )
     
     shared.opts.add_option(
+        "local_path_in_html",
+        shared.OptionInfo(
+            False,
+            "Use local images in the HTML",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Only works if all images of the corresponding model are downloaded")
+    )
+    
+    shared.opts.add_option(
         "page_header",
         shared.OptionInfo(
             False,
@@ -1137,15 +1173,15 @@ def on_ui_settings():
             **({'category_id': cat_id} if ver_bool else {})
         ).info("Turns individual prompts from an example image into a button to send it to txt2img")
     )
-
+    
     shared.opts.add_option(
-        "update_log",
+        "model_desc_to_json",
         shared.OptionInfo(
             True,
-            'Show console logs during update scanning',
+            'Save model description to json',
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
-        ).info('Shows the "is currently outdated" messages in the console when scanning models for available updates')
+        ).info('This saves the models description to the description field on model cards')
     )
 
     shared.opts.add_option(
@@ -1169,16 +1205,6 @@ def on_ui_settings():
     )
     
     shared.opts.add_option(
-        "local_path_in_html",
-        shared.OptionInfo(
-            False,
-            "Use local images in the HTML",
-            section=browser,
-            **({'category_id': cat_id} if ver_bool else {})
-        ).info("Only works if all images of the corresponding model are downloaded")
-    )
-    
-    shared.opts.add_option(
         "save_to_custom",
         shared.OptionInfo(
             False,
@@ -1186,6 +1212,40 @@ def on_ui_settings():
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
         )
+    )
+    
+    shared.opts.add_option(
+        "custom_civitai_proxy",
+        shared.OptionInfo(
+            r"",
+            "Proxy address",
+            gr.Textbox,
+            {"placeholder": "socks4://0.0.0.0:00000 | socks5://0.0.0.0:00000"},
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Only works with proxies that support HTTPS, Requires UI reload for Aria2 compatibility")
+    )
+        
+    shared.opts.add_option(
+        "cabundle_path_proxy",
+        shared.OptionInfo(
+            r"",
+            "Path to custom CA Bundle",
+            gr.Textbox,
+            {"placeholder": "/path/to/custom/cabundle.pem"},
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Specify custom CA bundle for SSL certificate checks if required")
+    )
+            
+    shared.opts.add_option(
+        "disable_sll_proxy",
+        shared.OptionInfo(
+            False,
+            "Disable SSL certificate checks",
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        ).info("Not recommended for security, may be required if you do not have the correct CA Bundle available")
     )
 
     id_and_sub_options = {

@@ -68,7 +68,10 @@ def start_aria2_rpc():
     try:
         show_log = getattr(opts, "show_log", False)
         aria2_flags = getattr(opts, "aria2_flags", "")
-        cmd = f'"{aria2}" --enable-rpc --rpc-listen-all --rpc-listen-port=24000 --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " --file-allocation=none {aria2_flags}'
+        custom_proxy = getattr(opts, "custom_proxy", "")
+        if custom_proxy:
+            custom_proxy = f"--all-proxy={custom_proxy} "
+        cmd = f'"{aria2}" --enable-rpc --rpc-listen-all --rpc-listen-port=24000 --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " {custom_proxy}--file-allocation=none {aria2_flags}'
         subprocess_args = {'shell': True}
         if not show_log:
             subprocess_args.update({'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL})
@@ -323,10 +326,11 @@ def convert_size(size):
         size /= 1024
     return f"{size:.2f} GB"
 
-def get_download_link(url):
-    headers = _api.get_headers()
-
-    response = requests.get(url, headers=headers, allow_redirects=False)
+def get_download_link(url, model_id):
+    headers = _api.get_headers(model_id)
+    proxies, ssl = _api.get_proxies()
+            
+    response = requests.get(url, headers=headers, allow_redirects=False, proxies=proxies, verify=ssl)
     
     if 300 <= response.status_code <= 308:
         if "login?returnUrl" in response.text and "reason=download-auth" in response.text:
@@ -337,7 +341,7 @@ def get_download_link(url):
     else:
         return None
 
-def download_file(url, file_path, install_path, progress=gr.Progress() if queue else None):
+def download_file(url, file_path, install_path, model_id, progress=gr.Progress() if queue else None):
     try:
         disable_dns = getattr(opts, "disable_dns", False)
         split_aria2 = getattr(opts, "split_aria2", 64)
@@ -347,7 +351,7 @@ def download_file(url, file_path, install_path, progress=gr.Progress() if queue 
 
         file_name = os.path.basename(file_path)
         
-        download_link = get_download_link(url)
+        download_link = get_download_link(url, model_id)
         if not download_link:
             print(f'File: "{file_name}" not found on CivitAI servers, it looks like the file is not available for download.')
             gl.download_fail = True
@@ -485,7 +489,7 @@ def info_to_json(install_path, model_id, model_sha256, unpackList=None):
     with open(json_file, 'w', encoding="utf-8") as f:
         json.dump(data, f, indent=4)
 
-def download_file_old(url, file_path, progress=gr.Progress() if queue else None):
+def download_file_old(url, file_path, model_id, progress=gr.Progress() if queue else None):
     try:
         gl.download_fail = False
         max_retries = 5
@@ -499,7 +503,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
         last_update_time = 0
         update_interval = 0.25
         
-        download_link = get_download_link(url)
+        download_link = get_download_link(url, model_id)
         if not download_link:
             print(f'File: "{file_name_display}" not found on CivitAI servers, it looks like the file is not available for download.')
             if progress != None:
@@ -516,6 +520,9 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                 time.sleep(5)
             return
         
+        headers = _api.get_headers(model_id, True)
+        proxies, ssl = _api.get_proxies()
+        
         while True:
             if gl.cancel_status:
                 if progress != None:
@@ -523,9 +530,8 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                 return
             if os.path.exists(file_path):
                 downloaded_size = os.path.getsize(file_path)
-                headers = {"Range": f"bytes={downloaded_size}-"}
-            else:
-                headers = {}
+                headers['Range'] = f"bytes={downloaded_size}-"
+                
             with open(file_path, "ab") as f:
                 while gl.isDownloading:
                     try:
@@ -538,7 +544,7 @@ def download_file_old(url, file_path, progress=gr.Progress() if queue else None)
                                 if progress != None:
                                     progress(0, desc=f"Download cancelled.")
                                 return
-                            response = requests.get(download_link, headers=headers, stream=True, timeout=4)
+                            response = requests.get(download_link, headers=headers, stream=True, timeout=10, proxies=proxies, verify=ssl)
                             if response.status_code == 404:
                                 if progress != None:
                                     progress(0, desc=f"Encountered an error during download of: {file_name_display}, file is not found on CivitAI servers.")
@@ -645,9 +651,9 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
     path_to_new_file = os.path.join(item['install_path'], item['model_filename'])
     
     if use_aria2 and os_type != 'Darwin':
-        thread = threading.Thread(target=download_file, args=(item['dl_url'], path_to_new_file, item['install_path'], progress))
+        thread = threading.Thread(target=download_file, args=(item['dl_url'], path_to_new_file, item['install_path'], item['model_id'], progress))
     else:
-        thread = threading.Thread(target=download_file_old, args=(item['dl_url'], path_to_new_file, progress))
+        thread = threading.Thread(target=download_file_old, args=(item['dl_url'], path_to_new_file, item['model_id'], progress))
     thread.start()
     thread.join()
     

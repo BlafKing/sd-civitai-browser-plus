@@ -100,12 +100,22 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.4.2</h3>
+
+* Feature: Ability to set-up a custom proxy for API requests and downloads.
+* Feature: Use image API for prompt info, should speed up loading.
+* Feature: Optimized javascript code, improved webpage speed for some users.
+* New setting: Proxy settings to set-up custom proxy.
+* New setting: Toggle for saving description to model json file. (this displays description on the cards)
+* Bug fix: Broken default sub folder option fixed [#217](https://github.com/BlafKing/sd-civitai-browser-plus/issues/217)
+
+---
 <h3>v3.4.1</h3>
 
-* Bug fix: Fixed prompt info and model selection after CivitAI API update.
-* Bug fix: Fixed "/" missing from default path/sub-folder.
 * Feature: Local images now work in HTML files as preview. (credit: [mx](https://github.com/mx))
 * Feature: Updated available base models.
+* Bug fix: Fixed prompt info and model selection after CivitAI API update.
+* Bug fix: Fixed "/" missing from default path/sub-folder.
 
 ---
 <h3>v3.4.0</h3>

@@ -1,4 +1,8 @@
 def init():
+    import warnings
+    from urllib3.exceptions import InsecureRequestWarning
+    warnings.simplefilter('ignore', InsecureRequestWarning)
+    
     global download_queue, last_version, cancel_status, recent_model, json_data, json_info, main_folder, previous_inputs, download_fail, sortNewest, isDownloading, old_download, scan_files, ver_json, file_scan, url_list_with_numbers, print
     
     cancel_status = None

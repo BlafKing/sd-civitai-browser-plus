@@ -161,6 +161,7 @@ def delete_associated_files(directory, base_name):
                 print(f"Associated file deleted: {path_to_delete}")
 
 def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
+    proxies, ssl = _api.get_proxies()
     json_file = os.path.splitext(file_path)[0] + ".json"
     install_path, file_name = os.path.split(file_path)
     name = os.path.splitext(file_name)[0]
@@ -191,7 +192,7 @@ def save_preview(file_path, api_response, overwrite_toggle=False, sha256=None):
                         if image["type"] == "image":
                             url_with_width = re.sub(r'/width=\d+', f'/width={image["width"]}', image["url"])
 
-                            response = requests.get(url_with_width)
+                            response = requests.get(url_with_width, proxies=proxies, verify=ssl)
                             if response.status_code == 200:
                                 with open(image_path, 'wb') as img_file:
                                     img_file.write(response.content)
@@ -373,6 +374,7 @@ def model_from_sent(model_name, content_type, tile_count):
     not_found = div + "Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>"
     path_not_found = div + "Model ID not found.<br>Could not locate the model path.</div>"
     offline = div + "CivitAI failed to respond.<br>The servers are likely offline."
+    error = div + "CivitAI failed to respond due to an error.<br>Check the logs for more details."
         
     model_name = re.sub(r'\.\d{3}$', '', model_name)
     content_type = re.sub(r'\.\d{3}$', '', content_type)
@@ -426,22 +428,24 @@ def model_from_sent(model_name, content_type, tile_count):
         
         if json_data == "timeout":
             output_html = offline
-        if json_data != None and json_data != "timeout":
+        if json_data == "error":
+            output_html = error
+        if json_data != None and json_data != "timeout" and json_data != "error":
             model_versions = _api.update_model_versions(modelID, json_data)
-            output_html = _api.update_model_info(None, model_versions.get('value'), True, modelID, json_data)
+            output_html = _api.update_model_info(None, model_versions.get('value'), True, modelID, json_data, True)
     
     css_path = Path(__file__).resolve().parents[1] / "style_html.css"
     with open(css_path, 'r', encoding='utf-8') as css_file:
         css = css_file.read()
     replacements = {
-        '#0b0f19': 'var(--body-background-fill)',
+        '#0b0f19': 'var(--neutral-950)',
         '#F3F4F6': 'var(--body-text-color)',
         'white': 'var(--body-text-color)',
         '#80a6c8': 'var(--secondary-300)',
         '#60A5FA': 'var(--link-text-color-hover)',
-        '#1F2937': 'var(--input-background-fill)',
+        '#1F2937': 'var(--neutral-700)',
         '#374151': 'var(--input-border-color)',
-        '#111827': 'var(--error-background-fill)',
+        '#111827': 'var(--neutral-800)',
         'top: 50%;': '',
         'padding-top: 0px;': 'padding-top: 475px;',
         '.civitai_txt2img': '.civitai_placeholder'
@@ -554,6 +558,7 @@ def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_ht
 
     
 def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_hash=None, overwrite_toggle=None):
+    save_desc = getattr(opts, "model_desc_to_json", True)
     for item in api_response.get('items', []):
         for model_version in item.get('modelVersions', []):
             for file in model_version.get('files', []):
@@ -563,15 +568,11 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                 if file_name == file_name_api if no_hash else sha256 == sha256_api:
                     gl.json_info = item
                     trained_words = model_version.get('trainedWords', [])
-                    model_id = model_version.get('modelId', '')
                     
-                    if model_id:
-                        model_url = f'Model URL: \"https://civitai.com/models/{model_id}\"\n'
-                    
-                    description = item.get('description', '')
-                    if description != None:
-                        description = clean_description(description)
-                        description = model_url + description
+                    if save_desc:
+                        description = item.get('description', '')
+                        if description != None:
+                            description = clean_description(description)
                     
                     base_model = model_version.get('baseModel', '')
                     
@@ -605,22 +606,25 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                         if "activation text" not in content or not content["activation text"]:
                             content["activation text"] = trained_tags
                             changed = True
-                        if "description" not in content or not content["description"]:
-                            content["description"] = description
-                            changed = True
+                        if save_desc:
+                            if "description" not in content or not content["description"]:
+                                content["description"] = description
+                                changed = True
                         if "sd version" not in content or not content["sd version"]:
                             content["sd version"] = base_model
                             changed = True
                     else:
                         content["activation text"] = trained_tags
-                        content["description"] = description
+                        if save_desc:
+                            content["description"] = description
                         content["sd version"] = base_model
                         changed = True
                     
                     with open(json_file, 'w', encoding="utf-8") as f:
                         json.dump(content, f, indent=4)
                         
-                    if changed: print(f"Model info saved to \"{json_file}\"")
+                    if changed:
+                        print(f"Model info saved to \"{json_file}\"")
                     return "found"
     
     return "not found"
@@ -651,10 +655,10 @@ def get_models(file_path, gen_hash=None):
                 return modelId
             else:
                 return None
-    
+    proxies, ssl = _api.get_proxies()
     try:
         if not modelId or modelId == "Model not found":
-            response = requests.get(by_hash, timeout=(10,30))
+            response = requests.get(by_hash, timeout=(60,30), proxies=proxies, verify=ssl)
             if response.status_code == 200:
                 api_response = response.json()
                 if 'error' in api_response:
@@ -761,9 +765,9 @@ def get_content_choices(scan_choices=False):
         return content_list
     return content_list
     
-def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, gen_hash, progress=gr.Progress() if queue else None):
+def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, gen_hash, create_html, progress=gr.Progress() if queue else None):
     global from_ver, from_installed, no_update
-    update_log = getattr(opts, "update_log", True)
+    proxies, ssl = _api.get_proxies()
     gl.scan_files = True
     no_update = False
     if from_ver:
@@ -777,7 +781,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     
     if not folders:
         if progress != None:
-            progress(0, desc=f"No folder selected.")
+            progress(0, desc=f"No model type selected.")
         no_update = True
         gl.scan_files = False
         from_ver, from_installed = False, False
@@ -857,13 +861,13 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         model_id = get_models(file_path, gen_hash)
         if model_id == "offline":
             print("The CivitAI servers did not respond, unable to retrieve Model ID")
-        elif model_id == "Model not found" and update_log:
+        elif model_id == "Model not found":
             print(f"model: \"{file_name}\" not found on CivitAI servers.")
         elif model_id != None:
             all_model_ids.append(f"&ids={model_id}")
             all_ids.append(model_id)
             file_paths.append(file_path)
-        elif not model_id and update_log:
+        elif not model_id:
             print(f"model ID not found for: \"{file_name}\"")
         files_done += 1
         
@@ -901,7 +905,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                 try:
                     if progress is not None:
                         progress(url_done / url_count, desc=f"Sending API request... {url_done}/{url_count}")
-                    response = requests.get(url, timeout=(10, 30))
+                    response = requests.get(url, timeout=(60,30), proxies=proxies, verify=ssl)
                     if response.status_code == 200:
                         api_response_json = response.json()
 
@@ -947,9 +951,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         all_model_ids = [model[0] for model in outdated_set]
         all_model_names = [model[1] for model in outdated_set]
         
-        if update_log:
-            for model_name in all_model_names:
-                print(f'"{model_name}" is currently outdated.')
+        for model_name in all_model_names:
+            print(f'"{model_name}" is currently outdated.')
         
         if len(all_model_ids) == 0:
             no_update = True
@@ -969,7 +972,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     api_url = gl.url_list_with_numbers.get(1)
     
     if not url_error:
-        response = requests.get(api_url, timeout=(10,30))
+        response = requests.get(api_url, timeout=(60,30), proxies=proxies, verify=ssl)
         try:
             if response.status_code == 200:
                 response.encoding = "utf-8"
@@ -1017,7 +1020,10 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         for file_path, id_value in zip(file_paths, all_ids):
             install_path, file_name = os.path.split(file_path)
             model_versions = _api.update_model_versions(id_value, api_response)
-            preview_html = _api.update_model_info(None, model_versions.get('value'), True, id_value, api_response)
+            if create_html:
+                preview_html = _api.update_model_info(None, model_versions.get('value'), True, id_value, api_response, True)
+            else:
+                preview_html = None
             sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
             save_model_info(install_path, file_name, sub_folder, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
         if progress != None:

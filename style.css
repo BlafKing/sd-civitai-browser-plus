@@ -130,7 +130,18 @@
     justify-content: center;
 }
 
-#toggle1L, #toggle2L, #toggle3L, #toggle4L, #toggle4L_api, #toggle5L, #overwrite_toggle, #skip_hash_toggle{
+#civitai_update_toggles > div {
+    display: flex;
+    flex-direction: column;
+}
+
+#civitai_update_toggles {
+    margin-top: calc(-1 * var(--layout-gap));
+    margin-bottom: var(--layout-gap);
+}
+
+#toggle1L, #toggle2L, #toggle3L, #toggle4L, #toggle4L_api, #toggle5L,
+#overwrite_toggle, #skip_hash_toggle, #do_html_gen {
     display: flex;
 	justify-content: center;
 }
@@ -325,7 +336,7 @@
 .civitai-tag,
 .civitai-meta,
 .civitai-meta-btn {
-    background-color: var(--error-background-fill);
+    background-color: var(--neutral-800);
     border-radius: 8px;
     padding: 4px 6px;
     border: 1px solid var(--input-border-color);
@@ -333,7 +344,7 @@
 
 .civitai-meta-btn:hover {
     cursor: pointer;
-    background-color: var(--input-background-fill);
+    background-color: var(--neutral-700);
 }
 
 #select_all_models_container {
@@ -591,10 +602,68 @@
  }
 
 #civitai_preview_html .model-description {
- 	border-top: 1px solid;
-    padding-bottom: 10px;
-    margin-bottom: 10px;
- }
+    border-top: 1px solid;
+    overflow-wrap: break-word;
+    overflow: hidden;
+    position: relative;
+    max-height: 400px;
+}
+
+#civitai_preview_html .model-description::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 75px;
+    background: linear-gradient(to bottom, rgb(255 255 255 / 0%), var(--background-fill-primary));
+    z-index: 1;
+}
+
+.description-toggle-label {
+    cursor: pointer;
+}
+
+.description-toggle-checkbox {
+    position: absolute;
+    opacity: 0;
+    z-index: -1;
+}
+
+.description-toggle-checkbox:checked + .model-description {
+    max-height: unset !important;
+    position: unset !important;
+}
+
+.model-description + .description-toggle-label::before {
+    content: "❯";
+    width: 1em;
+    height: 1em;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.model-description + .description-toggle-label {
+    display: flex;
+    padding: 10px 0px 0px 0px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: large;
+}
+
+.description-toggle-checkbox:checked + .model-description + .description-toggle-label::before {
+    transform: rotate(-90deg);
+    margin-right: 10px;
+}
+
+.description-toggle-checkbox:checked + .model-description + .description-toggle-label::after {
+    content: "Show Less...";
+}
+
+.description-toggle-checkbox:not(:checked) + .model-description + .description-toggle-label::after {
+    content: "Show All...";
+}
+/*------------------------------------------*/
+/*End CSS accordion for toggling description*/
 
 /*Avatar CSS mostly copied from CivitAI, but 48px instead of 32px*/
 #civitai_preview_html .avatar {

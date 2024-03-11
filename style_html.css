@@ -162,6 +162,65 @@ a:hover {
     border-style: none;
 }
 
+.model-description {
+    border-top: 1px solid;
+    overflow-wrap: break-word;
+    overflow: hidden;
+    position: relative;
+    max-height: 400px;
+}
+
+.model-description::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 75px;
+    background: linear-gradient(to bottom, rgb(255 255 255 / 0%), #0b0f19);
+    z-index: 1;
+}
+
+.description-toggle-label {
+    display: flex;
+    padding: 10px 0px 0px 0px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: large;
+    color: white;
+}
+
+.description-toggle-checkbox {
+    position: absolute;
+    opacity: 0;
+    z-index: -1;
+}
+
+.description-toggle-checkbox:checked + .model-description {
+    max-height: none !important;
+    position: unset !important;
+}
+
+.model-description + .description-toggle-label::before {
+    content: "❯";
+    width: 1em;
+    height: 1em;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.description-toggle-checkbox:checked + .model-description + .description-toggle-label::before {
+    transform: rotate(-90deg);
+    margin-right: 10px;
+}
+
+.description-toggle-checkbox:checked + .model-description + .description-toggle-label::after {
+    content: "Show Less...";
+}
+
+.description-toggle-checkbox:not(:checked) + .model-description + .description-toggle-label::after {
+    content: "Show All...";
+}
+
 /*CSS accordion for toggling extra metadata*/
 /*-----------------------------------------*/
 .accordionCheckbox {
