@@ -502,8 +502,27 @@
 
 /* End of Custom Accordion */
 
+.card-button {
+    width: 42px !important;
+}
+
+.edit-button.card-button::before {
+    font-size: 90%;
+    vertical-align: top;
+}
+
+.copy-path-button.card-button::before {
+    font-size: 110%;
+}
+
+.copy-path-button.card-button {
+    margin-top: -4px;
+}
+
 .goto-civitbrowser.card-button {
     filter: drop-shadow(2px 2px 3px black);
+    display: flex;
+    align-items: center;
 }
 
 .goto-civitbrowser.card-button:hover svg {
@@ -644,7 +663,7 @@
 
 .model-description + .description-toggle-label {
     display: flex;
-    padding: 10px 0px 0px 0px;
+    padding: 10px 0px;
     font-weight: bold;
     cursor: pointer;
     font-size: large;

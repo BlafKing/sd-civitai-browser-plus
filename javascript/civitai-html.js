@@ -361,211 +361,167 @@ function createAccordion(containerDiv, subfolders, name) {
 }
 
 // Adds a button to the cards in txt2img and img2img
-function createCivitAICardButtons(clickedElement=null) {
+function createCivitAICardButtons() {
     addOnClickToButtons();
-    const validButtonNames = ['Textual Inversion', 'Hypernetworks', 'Checkpoints', 'Lora'];
-    const validParentIds = ['txt2img_textual_inversion_cards_html', 'txt2img_hypernetworks_cards_html', 'txt2img_checkpoints_cards_html', 'txt2img_lora_cards_html'];
-
-    let hasMatchingButtonName = null;
-    if (clickedElement) {
-        hasMatchingButtonName = clickedElement && clickedElement.innerText && validButtonNames.some(buttonName =>
-            clickedElement.innerText.trim() === buttonName
-        );
+    const copyButton = document.querySelector('.copy-path-button');
+    let fontSize;
+    if (!copyButton) {
+        const editButton = document.querySelector('.edit-button');
+        const originalDisplay = editButton.parentElement.style.display;
+        editButton.parentElement.style.display = 'flex';
+        const editButtonBeforeStyle = window.getComputedStyle(editButton, ':before');
+        fontSize = editButtonBeforeStyle.getPropertyValue('font-size');
+        editButton.parentElement.style.display = originalDisplay;
     } else {
-        hasMatchingButtonName = true;
+        fontSize = '1.8rem';
     }
 
-    const flexboxDivs = document.querySelectorAll('.layoutkit-flexbox');
-    let isLobeTheme = false;
-    flexboxDivs.forEach(div => {
-        const anchorElements = div.querySelectorAll('a');
-        const hasGitHubLink = Array.from(anchorElements).some(anchor => anchor.href === 'https://github.com/lobehub/sd-webui-lobe-theme/releases');
-        if (hasGitHubLink) {
-            isLobeTheme = true;
-        }
-    });
-
-    if (hasMatchingButtonName || isLobeTheme) {
-        const checkForCardDivs = setInterval(() => {
-            const cardDivs = document.querySelectorAll('.card');
-
-            if (cardDivs.length > 0) {
-                clearInterval(checkForCardDivs);
-                
-                const cardScale = document.querySelector('#setting_extra_networks_card_text_scale > div > div > input').valueAsNumber * 100;
-                const viewBoxHeight = (cardScale < 100) ? (100 - cardScale) * 2 : -(cardScale - 100) * 2;
-
-                cardDivs.forEach(cardDiv => {
-                    const buttonRow = cardDiv.querySelector('.button-row');
-                    const actions = cardDiv.querySelector('.actions');
-                    if (!actions) {
-                        return;
-                    }
-                    const nameSpan = actions.querySelector('.name');
-                    let modelName  = nameSpan.textContent.trim();
-                    let currentElement = cardDiv.parentElement;
-                    let content_type = null;
-
-                    while (currentElement) {
-                        const parentId = currentElement.id;
-                        if (validParentIds.includes(parentId)) {
-                            content_type = parentId;
-                            break;
-                        }
-                        currentElement = currentElement.parentElement;
-                    }
-
-                    const existingDiv = buttonRow.querySelector('.goto-civitbrowser.card-button');
-                    if (existingDiv) {
-                        return;
-                    }
-
-                    const metaDataButton = buttonRow.querySelector('.metadata-button.card-button');
-                    
-                    const newDiv = document.createElement('div');
-                    newDiv.classList.add('goto-civitbrowser', 'card-button');
-
-                    const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                    if (isLobeTheme) {
-                        svgIcon.setAttribute('width', '25');
-                        svgIcon.setAttribute('height', '25');
-                    } else {
-                        if (metaDataButton) {
-                            metaDataButton.style.paddingTop = '5px';
-                            metaDataButton.style.width = '42px';
-                            metaDataButton.style.fontSize = '230%';
-                        }
-                        svgIcon.setAttribute('width', '40');
-                        svgIcon.setAttribute('height', '40');
-                        newDiv.setAttribute('style', 'width: 42px !important;');
-                    }
-                    svgIcon.setAttribute('viewBox', `75 ${viewBoxHeight} 500 500`);
-                    svgIcon.setAttribute('fill', 'white');
-                    svgIcon.setAttribute('style', `scale: ${cardScale}%;`);
-                    newDiv.onclick = function() {
-                        modelInfoPopUp(modelName, content_type);
-                    };
-                    
-                    svgIcon.innerHTML = `
-                        <path d="M 352.79 218.85 L 319.617 162.309 L 203.704 162.479 L 146.28 259.066 L 203.434 355.786 L 319.373 355.729 L 352.773 299.386 L 411.969 299.471 L 348.861 404.911 L 174.065 404.978 L 87.368 259.217 L 174.013 113.246 L 349.147 113.19 L 411.852 218.782 L 352.79 218.85 Z"/>
-                        <path d="M 304.771 334.364 L 213.9 334.429 L 169.607 259.146 L 214.095 183.864 L 305.132 183.907 L 330.489 227.825 L 311.786 259.115 L 330.315 290.655 Z M 278.045 290.682 L 259.294 259.18 L 278.106 227.488 L 240.603 227.366 L 221.983 259.128 L 240.451 291.026 Z"/>
-                    `;
-
-                    newDiv.appendChild(svgIcon);
-                    buttonRow.insertBefore(newDiv, buttonRow.firstChild);
-                });
-            }
-        }, 200);
-
-        setTimeout(() => {
+    const checkForCardDivs = setInterval(() => {
+        const cardDivs = document.querySelectorAll('.card');
+        if (cardDivs.length > 0) {
             clearInterval(checkForCardDivs);
-        }, 5000);
-    }
-}
+            
+            cardDivs.forEach(cardDiv => {
+                const buttonRow = cardDiv.querySelector('.button-row');
+                if (!buttonRow) return;
+                
+                buttonRow.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                });
+                
+                if (!buttonRow.querySelector('.goto-civitbrowser.card-button')) {
+                    const modelName = cardDiv.querySelector('.actions .name')?.textContent.trim();
+                    if (!modelName) return;
 
-function addOnClickToButtons() {
-    const img2img_extra_tabs = document.getElementById('img2img_extra_tabs');
-    const txt2img_extra_tabs = document.getElementById('txt2img_extra_tabs');
-    const txt2img_refresh_btn = document.getElementById('txt2img_checkpoints_extra_refresh');
-    const img2img_refresh_btn = document.getElementById('img2img_checkpoints_extra_refresh');
-    
-    txt2img_refresh_btn.onclick = function() {
-        createCivitAICardButtons(this);
-    };
+                    const newDiv = document.createElement('div');
+                    newDiv.className = 'goto-civitbrowser card-button';
+                    const svgIcon = createSVGIcon(fontSize);
+                    newDiv.appendChild(svgIcon);
 
-    img2img_refresh_btn.onclick = function() {
-        createCivitAICardButtons(this);
-    };
-
-    function addButtonClickEvent(div) {
-        var firstChildDiv = div.querySelector('div');
-        if (firstChildDiv) {
-            var buttons = firstChildDiv.querySelectorAll('button');
-            buttons.forEach(function(button, index) {
-                if (index !== 0) {
-                    button.onclick = function() {
-                        createCivitAICardButtons(this);
-                    };
+                    newDiv.onclick = () => modelInfoPopUp(modelName, cardDiv.parentElement.id);
+                    buttonRow.insertBefore(newDiv, buttonRow.firstChild);
                 }
             });
         }
+    }, 200);
+
+    setTimeout(() => {
+        clearInterval(checkForCardDivs);
+    }, 5000);
+}
+
+function createSVGIcon(fontSize) {
+    const svgIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgIcon.setAttribute('width', fontSize);
+    svgIcon.setAttribute('height', fontSize);
+    svgIcon.setAttribute('viewBox', '75 85 350 350');
+    svgIcon.setAttribute('fill', 'white');
+    if (fontSize == "1.8rem") {
+        svgIcon.setAttribute('style', 'margin-top: -2px');
     }
-    
-    addButtonClickEvent(img2img_extra_tabs);
-    addButtonClickEvent(txt2img_extra_tabs);
+    svgIcon.innerHTML = `
+        <path d="M 352.79 218.85 L 319.617 162.309 L 203.704 162.479 L 146.28 259.066 L 203.434 355.786 L 319.373 355.729 L 352.773 299.386 L 411.969 299.471 L 348.861 404.911 L 174.065 404.978 L 87.368 259.217 L 174.013 113.246 L 349.147 113.19 L 411.852 218.782 L 352.79 218.85 Z"/>
+        <path d="M 304.771 334.364 L 213.9 334.429 L 169.607 259.146 L 214.095 183.864 L 305.132 183.907 L 330.489 227.825 L 311.786 259.115 L 330.315 290.655 Z M 278.045 290.682 L 259.294 259.18 L 278.106 227.488 L 240.603 227.366 L 221.983 259.128 L 240.451 291.026 Z"/>
+    `;
+
+    return svgIcon;
+}
+
+function addOnClickToButtons() {
+    const tabs = ['img2img_extra_tabs', 'txt2img_extra_tabs'].map(id => document.getElementById(id));
+    const buttonIds = [
+        'txt2img_checkpoints_extra_refresh',
+        'img2img_checkpoints_extra_refresh',
+        'txt2img_extra_refresh',
+        'img2img_extra_refresh',
+    ];
+
+    buttonIds.forEach(buttonId => {
+        let button = document.getElementById(buttonId);
+        if (button) {
+            button.onclick = () => createCivitAICardButtons(button);
+        }
+    });
+
+    tabs.forEach(tab => {
+        if (tab) {
+            const buttons = tab.querySelectorAll('div > button:not(:first-child)');
+            buttons.forEach(button => {
+                button.onclick = () => createCivitAICardButtons(button);
+            });
+        }
+    });
 }
 
 function modelInfoPopUp(modelName, content_type) {
     select_model(modelName, null, true, content_type);
 
-    // Create the overlay
-    var overlay = document.createElement('div');
-    overlay.classList.add('civitai-overlay');
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.backgroundColor = 'rgba(20, 20, 20, 0.95)';
-    overlay.style.zIndex = '1001';
-    overlay.style.overflowY = 'auto';
-    overlay.addEventListener('keydown', handleKeyPress);
+    const createElementWithStyle = (tag, styles = {}) => {
+        const el = document.createElement(tag);
+        Object.assign(el.style, styles);
+        return el;
+    };
 
-    // Create the close button
-    var closeButton = document.createElement('div');
+    const overlay = createElementWithStyle('div', {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        backgroundColor: 'rgba(20, 20, 20, 0.95)',
+        zIndex: '1001',
+        overflowY: 'auto'
+    });
+    overlay.classList.add('civitai-overlay');
+    overlay.addEventListener('keydown', handleKeyPress);
+    overlay.addEventListener('click', event => {
+        if (event.target === overlay) hidePopup();
+    });
+
+    const closeButton = createElementWithStyle('div', {
+        zIndex: '1011',
+        position: 'fixed',
+        right: '22px',
+        top: '0',
+        cursor: 'pointer',
+        color: 'white',
+        fontSize: '32pt'
+    });
     closeButton.classList.add('civitai-overlay-close');
     closeButton.textContent = '×';
-    closeButton.style.zIndex = '1011';
-    closeButton.style.position = 'fixed';
-    closeButton.style.right = '22px';
-    closeButton.style.top = '0';
-    closeButton.style.cursor = 'pointer';
-    closeButton.style.color = 'white';
-    closeButton.style.fontSize = '32pt';
     closeButton.addEventListener('click', hidePopup);
 
-    // Create the pop-up window
-    var inner = document.createElement('div');
+    const inner = createElementWithStyle('div', {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        width: 'auto',
+        transform: 'translate(-50%, -50%)',
+        background: 'var(--neutral-950)',
+        padding: '2em',
+        borderRadius: 'var(--block-radius)',
+        borderStyle: 'solid',
+        borderWidth: 'var(--block-border-width)',
+        borderColor: 'var(--block-border-color)',
+        zIndex: '1001'
+    });
     inner.classList.add('civitai-overlay-inner');
-    inner.style.position = 'absolute';
-    inner.style.top = '50%';
-    inner.style.left = '50%';
-    inner.style.width = 'auto';
-    inner.style.transform = 'translate(-50%, -50%)';
-    inner.style.background = 'var(--neutral-950)';
-    inner.style.padding = '2em';
-    inner.style.borderRadius = 'var(--block-radius)';
-    inner.style.borderStyle = 'solid';
-    inner.style.borderWidth = 'var(--block-border-width)';
-    inner.style.borderColor = 'var(--block-border-color)';
-    inner.style.zIndex = '1001';
 
-    // Placeholder model content until model is loaded by other function
-    var modelInfo = document.createElement('div');
+    const modelInfo = createElementWithStyle('div', {
+        fontSize: '24px',
+        color: 'white',
+        fontFamily: 'var(--font)'
+    });
     modelInfo.classList.add('civitai-overlay-text');
     modelInfo.textContent = 'Loading model info, please wait!';
-    modelInfo.style.fontSize = '24px';
-    modelInfo.style.color = 'white';
-    modelInfo.style.fontFamily = 'var(--font)';
 
     document.body.style.overflow = 'hidden';
     document.body.appendChild(overlay);
-    overlay.appendChild(closeButton);
-    overlay.appendChild(inner);
+    overlay.append(closeButton, inner);
     inner.appendChild(modelInfo);
 
-    overlay.addEventListener('click', function (event) {
-        if (event.target === overlay) {
-            hidePopup();
-        }
-    });
-
     setDynamicWidth(inner);
-
-    // Update width on window resize
-    window.addEventListener('resize', function() {
-        setDynamicWidth(inner);
-    });
+    window.addEventListener('resize', () => setDynamicWidth(inner));
 }
 
 function setDynamicWidth(inner) {

@@ -778,33 +778,15 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 model_main_url = f"https://civitai.com/models/{item['id']}"
                 img_html = '<div class="sampleimgs"><input type="radio" name="zoomRadio" id="resetZoom" class="zoom-radio" checked>'
                 
-                url = f"https://civitai.com/api/v1/images?modelId={item['id']}&modelVersionId={selected_version['id']}&username={model_uploader}"
-                model_images = request_civit_api(url)
+                url = f"https://civitai.com/api/v1/model-versions/{selected_version['id']}"
+                api_version = request_civit_api(url)
                 
-                for index, pic in enumerate(selected_version['images']):
+                for index, pic in enumerate(api_version['images']):
                     
                     if from_preview:
                         index = f"preview_{index}"
                     
-                    for item in model_images['items']:
-                        if item['id'] == pic['id']:
-                            current_image = item
-                    
-                    # Change width value in URL to original image width
-                    image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
-                    if pic['type'] == "video":
-                        image_url = image_url.replace("width=", "transcode=true,width=")
-                        prompt_dict = []
-                    else:
-                        prompt_dict = current_image['meta']
-                        
                     nsfw = 'class="model-block"'
-                    
-                    meta_button = False
-                    if prompt_dict and prompt_dict.get('prompt'):
-                        meta_button = True
-                    BtnImage = True
-                    
                     if pic['nsfw'] not in ["None", "Soft"]:
                         nsfw = 'class="civnsfw model-block"'
 
@@ -815,10 +797,19 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     <label for="zoomRadio{index}" class="zoom-img-container">
                     '''
                     
-                    # Check if the pic is an image or video
+                    prompt_dict = pic.get('meta', {})
+                    
+                    meta_button = False
+                    if prompt_dict and prompt_dict.get('prompt'):
+                        meta_button = True
+                    BtnImage = True
+                    
+                    image_url = re.sub(r'/width=\d+', f'/width={pic["width"]}', pic["url"])
                     if pic['type'] == "video":
+                        image_url = image_url.replace("width=", "transcode=true,width=")
                         img_html += f'<video data-sampleimg="true" {playback} muted playsinline><source src="{image_url}" type="video/mp4"></video>'
                         meta_button = False
+                        prompt_dict = {}
                     else:
                         img_html += f'<img data-sampleimg="true" src="{image_url}">'
 

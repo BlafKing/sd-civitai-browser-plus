@@ -364,6 +364,7 @@ def convert_local_images(html):
     return str(soup)
 
 def model_from_sent(model_name, content_type, tile_count):
+    
     modelID_failed = False
     output_html = None
     model_file = None
@@ -377,14 +378,15 @@ def model_from_sent(model_name, content_type, tile_count):
     error = div + "CivitAI failed to respond due to an error.<br>Check the logs for more details."
         
     model_name = re.sub(r'\.\d{3}$', '', model_name)
-    content_type = re.sub(r'\.\d{3}$', '', content_type)
-    content_mapping = {
-        "txt2img_textual_inversion_cards_html": ['TextualInversion'],
-        "txt2img_hypernetworks_cards_html": ['Hypernetwork'],
-        "txt2img_checkpoints_cards_html": ['Checkpoint'],
-        "txt2img_lora_cards_html": ['LORA', 'LoCon']
-    }
-    content_type = content_mapping.get(content_type, content_type)
+    content_type = re.sub(r'\.\d{3}$', '', content_type).lower()
+    if 'inversion' in content_type:
+        content_type = ['TextualInversion']
+    elif 'hypernetwork' in content_type:
+        content_type = ['Hypernetwork']
+    elif 'checkpoint' in content_type:
+        content_type = ['Checkpoint']
+    elif 'lora' in content_type:
+        content_type = ['LORA', 'LoCon']
     
     extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
 
