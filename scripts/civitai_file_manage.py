@@ -429,7 +429,7 @@ def model_from_sent(model_name, content_type, tile_count):
         elif json_data == "offline":
             output_html = _api.api_error_msg("offline")
             
-        if not isinstance(json_data, str):
+        if isinstance(json_data, dict):
             model_versions = _api.update_model_versions(modelID, json_data)
             output_html = _api.update_model_info(None, model_versions.get('value'), True, modelID, json_data, True)
     

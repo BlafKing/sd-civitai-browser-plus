@@ -367,7 +367,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             if 'LoCon' not in content_type:
                 content_type.append('LoCon')
             
-    if isinstance(gl.json_data, str):
+    if not isinstance(gl.json_data, dict):
         timeOut = True
         return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, timeOut=timeOut, isNext=isNext)
         timeOut = False
@@ -433,7 +433,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     if gl.json_data is None:
         return
     
-    if isinstance(gl.json_data, str):
+    if not isinstance(gl.json_data, dict):
         hasPrev = current_page not in [0, 1]
         hasNext = current_page == 1 or hasPrev
         model_dict = {}
@@ -445,7 +445,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
         elif gl.json_data == "error":
             HTML = api_error_msg("error")
         
-    if not isinstance(gl.json_data, str):
+    else:
         (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         model_dict = {}
         try:
@@ -515,7 +515,7 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
         if gl.json_data is None:
             return
         
-        if isinstance(gl.json_data, str):
+        if not isinstance(gl.json_data, dict):
             hasPrev = current_page not in [0, 1]
             hasNext = current_page == 1 or hasPrev
             
@@ -529,7 +529,7 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
     if from_installed or from_ver:
         gl.json_data = gl.ver_json
     
-    if not isinstance(gl.json_data, str):
+    if isinstance(gl.json_data, dict):
         if not from_ver:
             (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         else:
@@ -881,11 +881,11 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 allowCommercialUse = item.get("allowCommercialUse", [])
                 perms_html= '<p style="line-height: 2; font-weight: bold;">'\
                             f'{allow_svg if item.get("allowNoCredit") else deny_svg} Use the model without crediting the creator<br/>'\
-                            f'{allow_svg if any(item in allowCommercialUse for item in ["Image", "Rent", "RentCivit", "Sell"]) else deny_svg} Sell images they generate<br/>'\
-                            f'{allow_svg if any(item in allowCommercialUse for item in ["Rent", "Sell"]) else deny_svg} Run on services that generate images for money<br/>'\
-                            f'{allow_svg if any(item in allowCommercialUse for item in ["RentCivit", "Rent", "Sell"]) else deny_svg} Run on Civitai<br/>'\
+                            f'{allow_svg if "Image" in allowCommercialUse else deny_svg} Sell images they generate<br/>'\
+                            f'{allow_svg if "Rent" in allowCommercialUse else deny_svg} Run on services that generate images for money<br/>'\
+                            f'{allow_svg if "RentCivit" in allowCommercialUse else deny_svg} Run on Civitai<br/>'\
                             f'{allow_svg if item.get("allowDerivatives") else deny_svg} Share merges using this model<br/>'\
-                            f'{allow_svg if any(item in allowCommercialUse for item in ["Sell"]) else deny_svg} Sell this model or merges using this model<br/>'\
+                            f'{allow_svg if "Sell" in allowCommercialUse else deny_svg} Sell this model or merges using this model<br/>'\
                             f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
                             '</p>'
                 output_html = f'''
