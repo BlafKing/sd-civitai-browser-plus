@@ -1008,7 +1008,7 @@ def on_ui_settings():
             "Download models using Aria2",
             section=download,
             **({'category_id': cat_id} if ver_bool else {})
-        ).info("Disable this option if you're experiencing any issues with downloads.")
+        ).info("Disable this option if you're experiencing any issues with downloads or if you want to use a proxy.")
     )
 
     shared.opts.add_option(
@@ -1223,7 +1223,7 @@ def on_ui_settings():
             {"placeholder": "socks4://0.0.0.0:00000 | socks5://0.0.0.0:00000"},
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
-        ).info("Only works with proxies that support HTTPS, Requires UI reload for Aria2 compatibility")
+        ).info("Only works with proxies that support HTTPS, turn Aria2 off for proxy downloads")
     )
         
     shared.opts.add_option(

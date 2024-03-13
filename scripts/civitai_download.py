@@ -68,10 +68,7 @@ def start_aria2_rpc():
     try:
         show_log = getattr(opts, "show_log", False)
         aria2_flags = getattr(opts, "aria2_flags", "")
-        custom_proxy = getattr(opts, "custom_proxy", "")
-        if custom_proxy:
-            custom_proxy = f"--all-proxy={custom_proxy} "
-        cmd = f'"{aria2}" --enable-rpc --rpc-listen-all --rpc-listen-port=24000 --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " {custom_proxy}--file-allocation=none {aria2_flags}'
+        cmd = f'"{aria2}" --enable-rpc --rpc-listen-all --rpc-listen-port=24000 --rpc-secret {rpc_secret} --check-certificate=false --ca-certificate=" " --file-allocation=none {aria2_flags}'
         subprocess_args = {'shell': True}
         if not show_log:
             subprocess_args.update({'stdout': subprocess.DEVNULL, 'stderr': subprocess.DEVNULL})

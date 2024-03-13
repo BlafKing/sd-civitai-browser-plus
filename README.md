@@ -100,6 +100,12 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.4.3</h3>
+
+* Bug fix: Hotfix for a change in the public API which broke searching.
+* Bug fix: Fixed incorrect permission display on model page.
+
+---
 <h3>v3.4.2</h3>
 
 * Feature: Ability to set-up a custom proxy for API requests and downloads.

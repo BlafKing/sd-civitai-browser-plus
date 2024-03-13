@@ -11,8 +11,8 @@ import platform
 from PIL import Image
 from io import BytesIO
 from collections import defaultdict
+from datetime import datetime, timezone
 from modules.images import read_info_from_image
-
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
 from html import escape
@@ -218,30 +218,29 @@ def model_list_html(json_data):
     
     hide_early_access = getattr(opts, "hide_early_access", True)
     filtered_items = []
-    current_time = datetime.datetime.utcnow()
-    
+    current_time = datetime.now(timezone.utc)
+
     for item in json_data['items']:
         versions_to_keep = []
 
         for version in item['modelVersions']:
             if not version['files']:
                 continue
+
             if hide_early_access:
-                early_access_days = version['earlyAccessTimeFrame']
-                if early_access_days != 0:
-                    published_at_str = version.get('publishedAt')
-                    if published_at_str is not None:
-                        published_at = datetime.datetime.strptime(version['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ")
-                        adjusted_date = published_at + datetime.timedelta(days=early_access_days)
-                    if not current_time > adjusted_date or not published_at_str:
+                early_access_deadline_str = version.get('earlyAccessDeadline')
+                if early_access_deadline_str:
+                    early_access_deadline = datetime.strptime(early_access_deadline_str, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+                    if current_time <= early_access_deadline:
                         continue
+
             versions_to_keep.append(version)
 
         if versions_to_keep:
             item['modelVersions'] = versions_to_keep
             filtered_items.append(item)
             
-        json_data['items'] = filtered_items
+    json_data['items'] = filtered_items
     
     HTML = '<div class="column civmodellist">'
     sorted_models = {}
@@ -1280,6 +1279,7 @@ def request_civit_api(api_url=None):
         try:
             data = json.loads(response.text)
         except json.JSONDecodeError:
+            print(response.text)
             print("The CivitAI servers are currently offline. Please try again later.")
             return "offline"
     return data
