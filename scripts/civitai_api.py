@@ -433,7 +433,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     if gl.json_data is None:
         return
     
-    if gl.json_data in {"timeout", "error", "offline"}:
+    if isinstance(gl.json_data, str):
         hasPrev = current_page not in [0, 1]
         hasNext = current_page == 1 or hasPrev
         model_dict = {}
@@ -445,7 +445,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
         elif gl.json_data == "error":
             HTML = api_error_msg("error")
         
-    if gl.json_data not in {None, "timeout", "error", "offline"}:
+    if not isinstance(gl.json_data, str):
         (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         model_dict = {}
         try:
