@@ -370,12 +370,6 @@ def model_from_sent(model_name, content_type, tile_count):
     model_file = None
     use_local_html = getattr(opts, "use_local_html", False)
     local_path_in_html = getattr(opts, "local_path_in_html", False)
-    
-    div = '<div style="color: white; font-family: var(--font); font-size: 24px; text-align: center; margin: 50px !important;">'
-    not_found = div + "Model ID not found.<br>Maybe the model doesn\'t exist on CivitAI?</div>"
-    path_not_found = div + "Model ID not found.<br>Could not locate the model path.</div>"
-    offline = div + "CivitAI failed to respond.<br>The servers are likely offline."
-    error = div + "CivitAI failed to respond due to an error.<br>Check the logs for more details."
         
     model_name = re.sub(r'\.\d{3}$', '', model_name)
     content_type = re.sub(r'\.\d{3}$', '', content_type).lower()
@@ -398,7 +392,7 @@ def model_from_sent(model_name, content_type, tile_count):
                     model_file = os.path.join(folder_path, file)
                     
     if not model_file:
-        output_html = path_not_found
+        output_html = _api.api_error_msg("path_not_found")
         print(f'Error: Could not find model path for model: "{model_name}"')
         print(f'Content type: "{content_type}"')
         print(f'Main folder path: "{folder}"')
@@ -418,10 +412,10 @@ def model_from_sent(model_name, content_type, tile_count):
     if not output_html:
         modelID = get_models(model_file, True)
         if not modelID or modelID == "Model not found":
-            output_html = not_found
+            output_html = _api.api_error_msg("not_found")
             modelID_failed = True
         if modelID == "offline":
-            output_html = offline
+            output_html = _api.api_error_msg("offline")
             modelID_failed = True
         if not modelID_failed: 
             json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
@@ -429,10 +423,13 @@ def model_from_sent(model_name, content_type, tile_count):
             json_data = None
         
         if json_data == "timeout":
-            output_html = offline
-        if json_data == "error":
-            output_html = error
-        if json_data != None and json_data != "timeout" and json_data != "error":
+            output_html = _api.api_error_msg("timeout")
+        elif json_data == "error":
+            output_html = _api.api_error_msg("error")
+        elif json_data == "offline":
+            output_html = _api.api_error_msg("offline")
+            
+        if not isinstance(json_data, str):
             model_versions = _api.update_model_versions(modelID, json_data)
             output_html = _api.update_model_info(None, model_versions.get('value'), True, modelID, json_data, True)
     

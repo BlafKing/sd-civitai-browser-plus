@@ -367,7 +367,7 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             if 'LoCon' not in content_type:
                 content_type.append('LoCon')
             
-    if gl.json_data is None or gl.json_data == "timeout" or gl.json_data == "error":
+    if isinstance(gl.json_data, str):
         timeOut = True
         return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, timeOut=timeOut, isNext=isNext)
         timeOut = False
@@ -433,19 +433,19 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
     if gl.json_data is None:
         return
     
-    if gl.json_data == "timeout":
-        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
-        hasPrev = current_page not in [0, 1]
-        hasNext = current_page == 1 or hasPrev
-        model_dict = {}
-    
-    if gl.json_data == "error":
-        HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has failed to return due to an error.<br>Check the logs for more details.</div>'
+    if gl.json_data in {"timeout", "error", "offline"}:
         hasPrev = current_page not in [0, 1]
         hasNext = current_page == 1 or hasPrev
         model_dict = {}
         
-    if gl.json_data != None and gl.json_data != "timeout" and gl.json_data != "error":
+        if gl.json_data == "timeout":
+            HTML = api_error_msg("timeout")
+        elif gl.json_data == "offline":
+            HTML = api_error_msg("offline")
+        elif gl.json_data == "error":
+            HTML = api_error_msg("error")
+        
+    if gl.json_data not in {None, "timeout", "error", "offline"}:
         (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         model_dict = {}
         try:
@@ -491,7 +491,6 @@ def pagecontrol(json_data):
 def update_model_list(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, tile_count=None, timeOut=None, isNext=None, from_ver=False, from_installed=False):
     use_LORA = getattr(opts, "use_LORA", False)
     model_list = []
-    id_list = []
     
     if content_type:
         if use_LORA and 'LORA & LoCon' in content_type:
@@ -513,24 +512,24 @@ def update_model_list(content_type=None, sort_type=None, period_type=None, use_s
         gl.previous_inputs = current_inputs
         
         gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, tile_count, search_term, nsfw, timeOut, isNext, inputs_changed)
-        if gl.json_data == "timeout":
-            HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists.</div>'
-            hasPrev = current_page not in [0, 1]
-            hasNext = current_page == 1 or hasPrev
-        
-        if gl.json_data == "error":
-            HTML = '<div style="font-size: 24px; text-align: center; margin: 50px !important;">The Civit-API has failed to return due to an error.<br>Check the logs for more details.</div>'
-            hasPrev = current_page not in [0, 1]
-            hasNext = current_page == 1 or hasPrev
-            model_dict = {}
-        
         if gl.json_data is None:
             return
-    
+        
+        if isinstance(gl.json_data, str):
+            hasPrev = current_page not in [0, 1]
+            hasNext = current_page == 1 or hasPrev
+            
+            if gl.json_data == "timeout":
+                HTML = api_error_msg("timeout")
+            elif gl.json_data == "offline":
+                HTML = api_error_msg("offline")
+            elif gl.json_data == "error":
+                HTML = api_error_msg("error")
+            
     if from_installed or from_ver:
         gl.json_data = gl.ver_json
     
-    if gl.json_data != None and gl.json_data != "timeout" and gl.json_data != "error":
+    if not isinstance(gl.json_data, str):
         if not from_ver:
             (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
         else:
@@ -879,13 +878,14 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             f'<svg width="15" height="15" viewBox="0 1.5 24 24" stroke-width="4" stroke-linecap="round" stroke="{color}">'
                 allow_svg = f'{perms_svg("lime")}<path d="M5 12l5 5l10 -10"></path></svg></span>'
                 deny_svg = f'{perms_svg("red")}<path d="M18 6l-12 12"></path><path d="M6 6l12 12"></path></svg></span>'
+                allowCommercialUse = item.get("allowCommercialUse", [])
                 perms_html= '<p style="line-height: 2; font-weight: bold;">'\
                             f'{allow_svg if item.get("allowNoCredit") else deny_svg} Use the model without crediting the creator<br/>'\
-                            f'{allow_svg if item.get("allowCommercialUse") in ["Image", "Rent", "RentCivit", "Sell"] else deny_svg} Sell images they generate<br/>'\
-                            f'{allow_svg if item.get("allowCommercialUse") in ["Rent", "Sell"] else deny_svg} Run on services that generate images for money<br/>'\
-                            f'{allow_svg if item.get("allowCommercialUse") in ["RentCivit", "Rent", "Sell"] else deny_svg} Run on Civitai<br/>'\
+                            f'{allow_svg if any(item in allowCommercialUse for item in ["Image", "Rent", "RentCivit", "Sell"]) else deny_svg} Sell images they generate<br/>'\
+                            f'{allow_svg if any(item in allowCommercialUse for item in ["Rent", "Sell"]) else deny_svg} Run on services that generate images for money<br/>'\
+                            f'{allow_svg if any(item in allowCommercialUse for item in ["RentCivit", "Rent", "Sell"]) else deny_svg} Run on Civitai<br/>'\
                             f'{allow_svg if item.get("allowDerivatives") else deny_svg} Share merges using this model<br/>'\
-                            f'{allow_svg if item.get("allowCommercialUse") == "Sell" else deny_svg} Sell this model or merges using this model<br/>'\
+                            f'{allow_svg if any(item in allowCommercialUse for item in ["Sell"]) else deny_svg} Sell this model or merges using this model<br/>'\
                             f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
                             '</p>'
                 output_html = f'''
@@ -1269,6 +1269,9 @@ def request_civit_api(api_url=None):
     try:
         response = requests.get(api_url, headers=headers, timeout=(60,30), proxies=proxies, verify=ssl)
         response.raise_for_status()
+    except requests.exceptions.Timeout as e:
+        print("The request timed out. Please try again later.")
+        return "timeout"
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
         return "error"
@@ -1278,5 +1281,18 @@ def request_civit_api(api_url=None):
             data = json.loads(response.text)
         except json.JSONDecodeError:
             print("The CivitAI servers are currently offline. Please try again later.")
-            return "timeout"
+            return "offline"
     return data
+
+def api_error_msg(input_string):
+    div = '<div style="color: white; font-family: var(--font); font-size: 24px; text-align: center; margin: 50px !important;">'
+    if input_string == "not_found":
+        return div + "Model ID not found on CivitAI.<br>Maybe the model doesn\'t exist on CivitAI?</div>"
+    elif input_string == "path_not_found":
+        return div + "Local model not found.<br>Could not locate the model path.</div>"
+    elif input_string == "timeout":
+        return div + "The CivitAI-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists."
+    elif input_string == "offline":
+        return div + "The CivitAI servers are currently offline.<br>Please try again later."
+    elif input_string == "error":
+        return div + "The CivitAI-API failed to respond due to an error.<br>Check the logs for more details."
