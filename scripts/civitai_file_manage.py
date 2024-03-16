@@ -417,18 +417,13 @@ def model_from_sent(model_name, content_type, tile_count):
             output_html = _api.api_error_msg("offline")
             modelID_failed = True
         if not modelID_failed: 
-            json_data = _api.api_to_data(content_type, "Newest", "AllTime", "Model name", None, None, None, tile_count, f"civitai.com/models/{modelID}")
+            json_data = _api.request_civit_api(f"https://civitai.com/api/v1/models?ids={modelID}")
         else:
             json_data = None
         
-        if json_data == "timeout":
-            output_html = _api.api_error_msg("timeout")
-        elif json_data == "error":
-            output_html = _api.api_error_msg("error")
-        elif json_data == "offline":
-            output_html = _api.api_error_msg("offline")
-            
-        if isinstance(json_data, dict):
+        if not isinstance(json_data, dict):
+            output_html = _api.api_error_msg(json_data)
+        else:
             model_versions = _api.update_model_versions(modelID, json_data)
             output_html = _api.update_model_info(None, model_versions.get('value'), True, modelID, json_data, True)
     
