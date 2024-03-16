@@ -206,7 +206,7 @@ def on_ui_tabs():
             with gr.Row(elem_id=header):
                 with gr.Row(elem_id="pageBox"):
                     get_prev_page = gr.Button(value="Prev page", interactive=False, elem_id="pageBtn1")
-                    page_slider = gr.Slider(label='Current page', step=1, minimum=1, maximum=1, value=1, min_width=80, elem_id="pageSlider")
+                    page_slider = gr.Slider(label='Current page:', step=1, minimum=1, maximum=1, min_width=80, elem_id="pageSlider")
                     get_next_page = gr.Button(value="Next page", interactive=False, elem_id="pageBtn2")
                 with gr.Row(elem_id="pageBoxMobile"):
                     pass # Row used for button placement on mobile
@@ -301,6 +301,7 @@ def on_ui_tabs():
         dl_url = gr.Textbox(visible=False)
         civitai_text2img_output = gr.Textbox(visible=False)
         civitai_text2img_input = gr.Textbox(elem_id="civitai_text2img_input", visible=False)
+        page_slider_trigger = gr.Textbox(elem_id="page_slider_trigger", visible=False)
         selected_model_list = gr.Textbox(elem_id="selected_model_list", visible=False)
         selected_type_list = gr.Textbox(elem_id="selected_type_list", visible=False)
         html_cancel_input = gr.Textbox(elem_id="html_cancel_input", visible=False)
@@ -310,6 +311,7 @@ def on_ui_tabs():
         model_select = gr.Textbox(elem_id="model_select", visible=False)
         model_sent = gr.Textbox(elem_id="model_sent", visible=False)
         type_sent = gr.Textbox(elem_id="type_sent", visible=False)
+        empty = gr.Textbox(value="", visible=False)
         download_start = gr.Textbox(visible=False)
         download_finish = gr.Textbox(visible=False)
         tag_start = gr.Textbox(visible=False)
@@ -684,6 +686,8 @@ def on_ui_tabs():
             tile_count_slider
         ]
         
+        refresh_inputs = [empty if item == page_slider else item for item in page_inputs]
+        
         page_outputs = [
             list_models,
             list_versions,
@@ -740,19 +744,21 @@ def on_ui_tabs():
         # Page Button Functions #
         
         page_btn_list = {
-            refresh.click: _api.update_model_list,
-            search_term.submit: _api.update_model_list,
-            get_next_page.click: _api.update_next_page,
-            get_prev_page.click: _api.update_prev_page
+            refresh.click: (_api.initial_model_page, True),
+            search_term.submit: (_api.initial_model_page, True),
+            page_slider_trigger.change: (_api.initial_model_page, False),
+            get_next_page.click: (_api.next_model_page, False),
+            get_prev_page.click: (_api.prev_model_page, False)
         }
 
-        for trigger, function in page_btn_list.items():
-            trigger(fn=function, inputs=page_inputs, outputs=page_outputs)
+        for trigger, (function, use_refresh_inputs) in page_btn_list.items():
+            inputs_to_use = refresh_inputs if use_refresh_inputs else page_inputs
+            trigger(fn=function, inputs=inputs_to_use, outputs=page_outputs)
             trigger(fn=None, _js="() => multi_model_select()")
         
         for button in cancel_btn_list:
             button.click(fn=_file.cancel_scan)
-            
+        
         # Update model Functions #
         
         ver_search.click(

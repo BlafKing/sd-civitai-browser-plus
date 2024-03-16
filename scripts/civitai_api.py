@@ -138,79 +138,6 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
     
     return folder
 
-def api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, tile_count, search_term=None, nsfw=None, timeOut=None, isNext=None, inputs_changed=None):
-    if current_page in [0, None, ""]:
-        current_page = 1
-    if inputs_changed:
-        gl.file_scan = False
-        api_url = f"https://civitai.com/api/v1/models?limit={tile_count}&page=1"
-    else:
-        api_url = f"https://civitai.com/api/v1/models?limit={tile_count}&page={current_page}"
-    
-    if timeOut:
-        if isNext:
-            next_page = str(int(current_page) + 1)
-        else:
-            if current_page not in [1, 0, None, ""]:
-                next_page = str(int(current_page) - 1)
-        api_url = f"https://civitai.com/api/v1/models?limit={tile_count}&page={next_page}"
-    
-    if period_type:
-        period_type = period_type.replace(" ", "")
-    query = {'sort': sort_type, 'period': period_type}
-    
-    types_query_str = ""
-    
-    if content_type:
-        types_query_str = "".join([f"&types={type}" for type in content_type])
-    
-    query_str = urllib.parse.urlencode(query, quote_via=urllib.parse.quote)
-    
-    if types_query_str:
-        query_str += types_query_str
-
-    if use_search_term != "None" and search_term:
-        search_term = search_term.replace("\\","\\\\")
-        if "civitai.com" in search_term:
-            match = re.search(r'models/(\d+)', search_term)
-            model_number = match.group(1)
-            query_str = f"&ids={urllib.parse.quote(model_number)}"
-        elif use_search_term == "User name":
-            query_str += f"&username={urllib.parse.quote(search_term)}"
-        elif use_search_term == "Tag":
-            query_str += f"&tag={urllib.parse.quote(search_term)}"
-        else:
-            query_str += f"&query={urllib.parse.quote(search_term)}"
-            
-    if base_filter:
-        for base in base_filter:
-            query_str += f"&baseModels={urllib.parse.quote(base)}"
-    
-    if only_liked:
-        query_str += f"&favorites=true"
-    
-    if nsfw == False:
-        query_str += f"&nsfw=false"
-    
-    full_url = f"{api_url}&{query_str}"
-    
-    if gl.file_scan:
-        highest_number = max(gl.url_list_with_numbers.keys())
-        full_url = gl.url_list_with_numbers.get(int(current_page))
-        nextPage = int(current_page) + 1
-        prevPage = int(current_page) - 1
-        data = request_civit_api(full_url)
-        data["metadata"]["currentPage"] = current_page
-        data["metadata"]["totalPages"] = highest_number
-        if not nextPage > highest_number:
-            data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
-        if not prevPage == 0:
-            data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
-    else:
-        data = request_civit_api(full_url)
-        
-    return data
-
 def model_list_html(json_data):
     video_playback = getattr(opts, "video_playback", True)
     playback = ""
@@ -283,10 +210,10 @@ def model_list_html(json_data):
             baseModel = "Not Found"
         
         try:
-            if 'updatedAt' in item['modelVersions'][0]:
-                date = item['modelVersions'][0]['updatedAt'].split('T')[0]
+            if 'publishedAt' in item['modelVersions'][0]:
+                date = item['modelVersions'][0]['publishedAt'].split('T')[0]
         except:
-            baseModel = "Not Found"
+            date = "Not Found"
             
         if gl.sortNewest:
             if date not in sorted_models:
@@ -352,12 +279,45 @@ def model_list_html(json_data):
     HTML += '</div>'
     return HTML
 
-def update_prev_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count):
-    return update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count, isNext=False)
-
-def update_next_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count, isNext=True):
-    use_LORA = getattr(opts, "use_LORA", False)
+def create_api_url(content_type=None, sort_type=None, period_type=None, use_search_term=None, base_filter=None, only_liked=None, tile_count=None, search_term=None, nsfw=None, isNext=None):
+    base_url = "https://civitai.com/api/v1/models"
     
+    if isNext is not None:
+        return gl.json_data['metadata']['nextPage' if isNext else 'prevPage']
+    
+    params = {'limit': tile_count, 'sort': sort_type, 'period': period_type.replace(" ", "") if period_type else None}
+    
+    if content_type:
+        for ctype in content_type:
+            params["types"] = ctype
+    
+    if use_search_term != "None" and search_term:
+        search_term = search_term.replace("\\", "\\\\")
+        if "civitai.com" in search_term:
+            model_number = re.search(r'models/(\d+)', search_term).group(1)
+            params = {'ids': model_number}
+        else:
+            key_map = {"User name": "username", "Tag": "tag"}
+            search_key = key_map.get(use_search_term, "query")
+            params[search_key] = search_term
+    
+    if base_filter:
+        for base in base_filter:
+            params["baseModels"] = base
+    
+    if only_liked:
+        params["favorites"] = "true"
+    
+    if nsfw is False:
+        params["nsfw"] = "false"
+    
+    query_string = urllib.parse.urlencode(params, doseq=True, quote_via=urllib.parse.quote)
+    full_url = f"{base_url}?{query_string}"
+    
+    return full_url
+
+def convert_LORA_LoCon(content_type):
+    use_LORA = getattr(opts, "use_LORA", False)
     if content_type:
         if use_LORA and 'LORA & LoCon' in content_type:
             content_type.remove('LORA & LoCon')
@@ -365,104 +325,110 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
                 content_type.append('LORA')
             if 'LoCon' not in content_type:
                 content_type.append('LoCon')
-            
-    if not isinstance(gl.json_data, dict):
-        timeOut = True
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, timeOut=timeOut, isNext=isNext)
-        timeOut = False
-        
-        return return_values
-    
+    return content_type
+
+def initial_model_page(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, tile_count=None, from_update_tab=False):
+    content_type = convert_LORA_LoCon(content_type)
     current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
-    if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
-        inputs_changed = True
-    else:
-        inputs_changed = False
-
-    if inputs_changed:
-        return_values = update_model_list(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count)
-        return return_values
-
-    if not gl.file_scan:
-        if isNext:
-            if gl.json_data['metadata']['nextPage'] is not None:
-                gl.json_data = request_civit_api(gl.json_data['metadata']['nextPage'])
-            else:
-                gl.json_data = None
-        else:
-            if gl.json_data['metadata']['prevPage'] is not None:
-                gl.json_data = request_civit_api(gl.json_data['metadata']['prevPage'])
-            else:
-                gl.json_data = None
-    else:
-        highest_number = max(gl.url_list_with_numbers.keys())
-        if isNext:
-            if gl.json_data['metadata']['nextPage'] is not None:
-                currentPage = int(gl.json_data['metadata']['currentPage'])
-                nextPage = currentPage + 2
-                prevPage = currentPage
-                pageCount = currentPage + 1
-                gl.json_data = request_civit_api(gl.json_data['metadata']['nextPage'])
-                
-                gl.json_data["metadata"]["totalPages"] = highest_number
-                if not nextPage > highest_number:
-                    gl.json_data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
-                if not prevPage == 0:
-                    gl.json_data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
-                gl.json_data["metadata"]["currentPage"] = pageCount
-            else:
-                gl.json_data = None
-        else:
-            if gl.json_data['metadata']['prevPage'] is not None:
-                currentPage = int(gl.json_data['metadata']['currentPage'])
-                nextPage = currentPage
-                prevPage = currentPage - 2
-                pageCount = currentPage - 1
-                gl.json_data = request_civit_api(gl.json_data['metadata']['prevPage'])
-                
-                gl.json_data["metadata"]["totalPages"] = highest_number
-                if not nextPage > highest_number:
-                    gl.json_data["metadata"]["nextPage"] = gl.url_list_with_numbers.get(nextPage)
-                if not prevPage == 0:
-                    gl.json_data["metadata"]["prevPage"] = gl.url_list_with_numbers.get(prevPage)
-                gl.json_data["metadata"]["currentPage"] = pageCount
-            else:
-                gl.json_data = None
-                
-    if gl.json_data is None:
-        return
+    if current_inputs != gl.previous_inputs and gl.previous_inputs != None or not current_page:
+        current_page = 1
+    gl.previous_inputs = current_inputs
     
-    if not isinstance(gl.json_data, dict):
-        hasPrev = current_page not in [0, 1]
-        hasNext = current_page == 1 or hasPrev
-        model_dict = {}
+    if not from_update_tab:
+        gl.from_update_tab = False
         
-        if gl.json_data == "timeout":
-            HTML = api_error_msg("timeout")
-        elif gl.json_data == "offline":
-            HTML = api_error_msg("offline")
-        elif gl.json_data == "error":
-            HTML = api_error_msg("error")
+        if current_page == 1:
+            api_url = create_api_url(content_type, sort_type, period_type, use_search_term, base_filter, only_liked, tile_count, search_term, nsfw)
+            gl.url_list = {1 : api_url}
+        else:
+            api_url = gl.url_list.get(current_page)
+    else:
+        api_url = gl.url_list.get(current_page)
+        gl.from_update_tab = True
+    
+    gl.json_data = request_civit_api(api_url)
+
+    max_page = 1
+    model_list = []
+    hasPrev, hasNext = False, False
+    if not isinstance(gl.json_data, dict):
+        HTML = api_error_msg(gl.json_data)
         
     else:
-        (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
-        model_dict = {}
-        try:
-            gl.json_data['items']
-        except TypeError:
-            return gr.Dropdown.update(choices=[], value=None)
+        gl.json_data = insert_metadata(1)
         
+        metadata = gl.json_data['metadata']
+        hasNext = 'nextPage' in metadata
+        hasPrev = 'prevPage' in metadata
+        
+        for item in gl.json_data['items']:
+            model_list.append(f"{item['name']} ({item['id']})")
+        
+        max_page = max(gl.url_list.keys())
         HTML = model_list_html(gl.json_data)
-
-    page_string = f"Page: {current_page}/{total_pages}"
     
     return  (
-            gr.Dropdown.update(choices=[v for k, v in model_dict.items()], value="", interactive=True), # Model List
+            gr.Dropdown.update(choices=model_list, value="", interactive=True), # Model List
             gr.Dropdown.update(choices=[], value=""), # Version List
             gr.HTML.update(value=HTML), # HTML Tiles
             gr.Button.update(interactive=hasPrev), # Prev Page Button
             gr.Button.update(interactive=hasNext), # Next Page Button
-            gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Count
+            gr.Slider.update(value=current_page, maximum=max_page), # Page Slider
+            gr.Button.update(interactive=False), # Save Tags
+            gr.Button.update(interactive=False), # Save Images
+            gr.Button.update(interactive=False, visible=False if gl.isDownloading else True), # Download Button
+            gr.Button.update(interactive=False, visible=False), # Delete Button
+            gr.Textbox.update(interactive=False, value=None, visible=True), # Install Path
+            gr.Dropdown.update(choices=[], value="", interactive=False), # Sub Folder List
+            gr.Dropdown.update(choices=[], value="", interactive=False), # File List
+            gr.HTML.update(value='<div style="min-height: 0px;"></div>'), # Preview HTML
+            gr.Textbox.update(value=None), # Trained Tags
+            gr.Textbox.update(value=None), # Base Model
+            gr.Textbox.update(value=None) # Model Filename
+    )
+
+def prev_model_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count):
+    return next_model_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count, isNext=False)
+
+def next_model_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count, isNext=True):
+    content_type = convert_LORA_LoCon(content_type)
+        
+    current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
+    if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
+        return initial_model_page(content_type, sort_type, period_type, use_search_term, search_term, current_page, base_filter, only_liked, nsfw, tile_count)
+    
+    api_url = create_api_url(isNext=isNext)
+    gl.json_data = request_civit_api(api_url)
+
+    next_page = current_page
+    model_list = []
+    max_page = 1
+    hasPrev, hasNext = False, False
+    if not isinstance(gl.json_data, dict):
+        HTML = api_error_msg(gl.json_data)
+        
+    else: 
+        next_page = current_page + 1 if isNext else current_page - 1
+        
+        gl.json_data = insert_metadata(next_page, api_url)
+        
+        metadata = gl.json_data['metadata']
+        hasNext = 'nextPage' in metadata
+        hasPrev = 'prevPage' in metadata
+        
+        for item in gl.json_data['items']:
+            model_list.append(f"{item['name']} ({item['id']})")
+        
+        max_page = max(gl.url_list.keys())
+        HTML = model_list_html(gl.json_data)
+    
+    return  (
+            gr.Dropdown.update(choices=model_list, value="", interactive=True), # Model List
+            gr.Dropdown.update(choices=[], value=""), # Version List
+            gr.HTML.update(value=HTML), # HTML Tiles
+            gr.Button.update(interactive=hasPrev), # Prev Page Button
+            gr.Button.update(interactive=hasNext), # Next Page Button
+            gr.Slider.update(value=next_page, maximum=max_page), # Current Page
             gr.Button.update(interactive=False), # Save Tags
             gr.Button.update(interactive=False), # Save Images
             gr.Button.update(interactive=False, visible=False if gl.isDownloading else True), # Download Button
@@ -476,95 +442,20 @@ def update_next_page(content_type, sort_type, period_type, use_search_term, sear
             gr.Textbox.update(value=None) # Model Filename
     )
 
-def pagecontrol(json_data):
-    current_page = f"{json_data['metadata']['currentPage']}"
-    total_pages = f"{json_data['metadata']['totalPages']}"
-    hasNext = False
-    hasPrev = False
-    if 'nextPage' in json_data['metadata']:
-        hasNext = True
-    if 'prevPage' in json_data['metadata']:
-        hasPrev = True
-    return hasPrev, hasNext, current_page, total_pages
-
-def update_model_list(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, tile_count=None, timeOut=None, isNext=None, from_ver=False, from_installed=False):
-    use_LORA = getattr(opts, "use_LORA", False)
-    model_list = []
+def insert_metadata(page_nr, api_url=None):
+    metadata = gl.json_data['metadata']
     
-    if content_type:
-        if use_LORA and 'LORA & LoCon' in content_type:
-            content_type.remove('LORA & LoCon')
-            if 'LORA' not in content_type:
-                content_type.append('LORA')
-            if 'LoCon' not in content_type:
-                content_type.append('LoCon')
-            
-    if not from_ver and not from_installed:
-        gl.ver_json = None
-        
-        current_inputs = (content_type, sort_type, period_type, use_search_term, search_term, tile_count, base_filter, nsfw)
-        if current_inputs != gl.previous_inputs and gl.previous_inputs != None:
-            inputs_changed = True
-        else:
-            inputs_changed = False
-        
-        gl.previous_inputs = current_inputs
-        
-        gl.json_data = api_to_data(content_type, sort_type, period_type, use_search_term, current_page, base_filter, only_liked, tile_count, search_term, nsfw, timeOut, isNext, inputs_changed)
-        if gl.json_data is None:
-            return
-        
-        if not isinstance(gl.json_data, dict):
-            hasPrev = current_page not in [0, 1]
-            hasNext = current_page == 1 or hasPrev
-            
-            if gl.json_data == "timeout":
-                HTML = api_error_msg("timeout")
-            elif gl.json_data == "offline":
-                HTML = api_error_msg("offline")
-            elif gl.json_data == "error":
-                HTML = api_error_msg("error")
-            
-    if from_installed or from_ver:
-        gl.json_data = gl.ver_json
+    if not metadata.get('prevPage', None) and page_nr > 1:
+        metadata['prevPage'] = gl.url_list.get((page_nr - 1))
     
-    if isinstance(gl.json_data, dict):
-        if not from_ver:
-            (hasPrev, hasNext, current_page, total_pages) = pagecontrol(gl.json_data)
-        else:
-            current_page = 1
-            total_pages = 1
-            hasPrev = False
-            hasNext = False
-        for item in gl.json_data['items']:
-            model_list.append(f"{item['name']} ({item['id']})")
-        
-        HTML = model_list_html(gl.json_data)
-    else:
-        current_page = 1
-        total_pages = 1
+    if gl.from_update_tab:
+        if gl.url_list.get((page_nr + 1), None):
+            metadata['nextPage'] = gl.url_list.get((page_nr + 1))
     
-    page_string = f"Page: {current_page}/{total_pages}"
+    elif page_nr not in gl.url_list:
+        gl.url_list[page_nr] = api_url
     
-    return  (
-            gr.Dropdown.update(choices=model_list, value="", interactive=True), # Model List
-            gr.Dropdown.update(choices=[], value=""), # Version List
-            gr.HTML.update(value=HTML), # HTML Tiles
-            gr.Button.update(interactive=hasPrev), # Prev Page Button
-            gr.Button.update(interactive=hasNext), # Next Page Button
-            gr.Slider.update(value=current_page, maximum=total_pages, label=page_string), # Page Count
-            gr.Button.update(interactive=False), # Save Tags
-            gr.Button.update(interactive=False), # Save Images
-            gr.Button.update(interactive=False, visible=False if gl.isDownloading else True), # Download Button
-            gr.Button.update(interactive=False, visible=False), # Delete Button
-            gr.Textbox.update(interactive=False, value=None, visible=True), # Install Path
-            gr.Dropdown.update(choices=[], value="", interactive=False), # Sub Folder List
-            gr.Dropdown.update(choices=[], value="", interactive=False), # File List
-            gr.HTML.update(value='<div style="min-height: 0px;"></div>'), # Preview HTML
-            gr.Textbox.update(value=None), # Trained Tags
-            gr.Textbox.update(value=None), # Base Model
-            gr.Textbox.update(value=None) # Model Filename
-    )
+    return gl.json_data
 
 def update_model_versions(model_id, json_input=None):
     if json_input:
@@ -702,8 +593,13 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 desc = item['description']
                 model_name = item['name']
                 model_folder = os.path.join(contenttype_folder(content_type, desc))
-                model_uploader = item['creator']['username']
-                uploader_avatar = item['creator']['image']
+                creator = item.get('creator', None)
+                if creator:
+                    model_uploader = creator.get('username', '')
+                    uploader_avatar = creator.get('image', '')
+                else:
+                    model_uploader = 'User not found'
+                    uploader_avatar = 'https://rawcdn.githack.com/gist/BlafKing/8d3f7a19e3f72cfddab46ae835037ee6/raw/296e81afbdd268200278beef478f3018b15936de/profile_placeholder.svg'
                 if uploader_avatar is None:
                      uploader_avatar = ''
                 else:
@@ -887,10 +783,15 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             f'{allow_svg if "Sell" in allowCommercialUse else deny_svg} Sell this model or merges using this model<br/>'\
                             f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
                             '</p>'
+                
+                if creator:
+                    uploader = f'<h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>'
+                else:
+                    uploader = f'<h3 class="model-uploader"><span>{escape(str(model_uploader))}</span>{uploader_avatar}</h3>'
                 output_html = f'''
                 <div class="model-block">
                     <h2><a href={model_main_url} target="_blank" id="model_header">{escape(str(model_name))}</a></h2>
-                    <h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>
+                    {uploader}
                     <div class="civitai-version-info" style="display:flex; flex-wrap:wrap; justify-content:space-between;">
                         <dl id="info_block">
                             <dt>Version</dt>
@@ -1294,5 +1195,7 @@ def api_error_msg(input_string):
         return div + "The CivitAI-API has timed out, please try again.<br>The servers might be too busy or down if the issue persists."
     elif input_string == "offline":
         return div + "The CivitAI servers are currently offline.<br>Please try again later."
-    elif input_string == "error":
+    elif input_string == "no_items":
+        return div + "Failed to retrieve any models from CivitAI<br>The servers might be too busy or down if the issue persists."
+    else:
         return div + "The CivitAI-API failed to respond due to an error.<br>Check the logs for more details."

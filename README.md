@@ -100,6 +100,12 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.5.0</h3>
+
+* Bug fix: Extension now works again with the latest CivitAI API version!
+* Cleanup: Re-wrote backend API handling code.
+
+---
 <h3>v3.4.3</h3>
 
 * Bug fix: Hotfix for a change in the public API which broke searching.

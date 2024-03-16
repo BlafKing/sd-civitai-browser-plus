@@ -223,15 +223,12 @@ function pressRefresh() {
 
             return;
         }
-
-        let button = document.querySelector("#refreshBtn");
-        if (!button) {
-            button = document.querySelector("#refreshBtnL");
-        }
-        if (button) {
-            button.click();
-        } else {
-            console.error("Both buttons with IDs #refreshBtn and #refreshBtnL not found.");
+        let output = gradioApp().querySelector('#page_slider_trigger textarea');
+        if (output) {
+            const randomNumber = Math.floor(Math.random() * 1000);
+            const paddedNumber = String(randomNumber).padStart(3, '0');
+            output.value = paddedNumber;
+            updateInput(output);
         }
     }, 200);
 }

@@ -3,7 +3,7 @@ def init():
     from urllib3.exceptions import InsecureRequestWarning
     warnings.simplefilter('ignore', InsecureRequestWarning)
     
-    global download_queue, last_version, cancel_status, recent_model, json_data, json_info, main_folder, previous_inputs, download_fail, sortNewest, isDownloading, old_download, scan_files, ver_json, file_scan, url_list_with_numbers, print
+    global download_queue, last_version, cancel_status, recent_model, last_url, json_data, json_info, main_folder, previous_inputs, download_fail, sortNewest, isDownloading, old_download, scan_files, from_update_tab, url_list, print
     
     cancel_status = None
     recent_model = None
@@ -12,11 +12,10 @@ def init():
     main_folder = None
     previous_inputs = None
     last_version = None
-    ver_json = None
-    url_list_with_numbers = None
+    url_list = {}
     download_queue = []
     
-    file_scan = False
+    from_update_tab = False
     scan_files = False
     download_fail = False
     sortNewest = False
