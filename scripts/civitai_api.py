@@ -288,8 +288,7 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
     params = {'limit': tile_count, 'sort': sort_type, 'period': period_type.replace(" ", "") if period_type else None}
     
     if content_type:
-        for ctype in content_type:
-            params["types"] = ctype
+        params["types"] = content_type
     
     if use_search_term != "None" and search_term:
         search_term = search_term.replace("\\", "\\\\")
@@ -302,8 +301,7 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
             params[search_key] = search_term
     
     if base_filter:
-        for base in base_filter:
-            params["baseModels"] = base
+        params["baseModels"] = base_filter
     
     if only_liked:
         params["favorites"] = "true"
@@ -311,7 +309,15 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
     if nsfw is False:
         params["nsfw"] = "false"
     
-    query_string = urllib.parse.urlencode(params, doseq=True, quote_via=urllib.parse.quote)
+    query_parts = []
+    for key, value in params.items():
+        if isinstance(value, list):
+            for item in value:
+                query_parts.append((key, item))
+        else:
+            query_parts.append((key, value))
+    
+    query_string = urllib.parse.urlencode(query_parts, doseq=True, quote_via=urllib.parse.quote)
     full_url = f"{base_url}?{query_string}"
     
     return full_url
