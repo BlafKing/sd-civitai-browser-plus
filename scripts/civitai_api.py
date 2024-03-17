@@ -362,7 +362,8 @@ def initial_model_page(content_type=None, sort_type=None, period_type=None, use_
         hasPrev = 'prevPage' in metadata
         
         for item in gl.json_data['items']:
-            model_list.append(f"{item['name']} ({item['id']})")
+            if len(item['modelVersions']) > 0:
+                model_list.append(f"{item['name']} ({item['id']})")
         
         max_page = max(gl.url_list.keys())
         HTML = model_list_html(gl.json_data)
@@ -409,7 +410,7 @@ def next_model_page(content_type, sort_type, period_type, use_search_term, searc
         
     else: 
         next_page = current_page + 1 if isNext else current_page - 1
-        
+
         gl.json_data = insert_metadata(next_page, api_url)
         
         metadata = gl.json_data['metadata']
@@ -417,7 +418,8 @@ def next_model_page(content_type, sort_type, period_type, use_search_term, searc
         hasPrev = 'prevPage' in metadata
         
         for item in gl.json_data['items']:
-            model_list.append(f"{item['name']} ({item['id']})")
+            if len(item['modelVersions']) > 0:
+                model_list.append(f"{item['name']} ({item['id']})")
         
         max_page = max(gl.url_list.keys())
         HTML = model_list_html(gl.json_data)
@@ -593,17 +595,16 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 desc = item['description']
                 model_name = item['name']
                 model_folder = os.path.join(contenttype_folder(content_type, desc))
+                model_uploader = None
+                uploader_avatar = None
                 creator = item.get('creator', None)
                 if creator:
-                    model_uploader = creator.get('username', '')
-                    uploader_avatar = creator.get('image', '')
-                else:
+                    model_uploader = creator.get('username', None)
+                    uploader_avatar = creator.get('image', None)
+                if not model_uploader:
                     model_uploader = 'User not found'
                     uploader_avatar = 'https://rawcdn.githack.com/gist/BlafKing/8d3f7a19e3f72cfddab46ae835037ee6/raw/296e81afbdd268200278beef478f3018b15936de/profile_placeholder.svg'
-                if uploader_avatar is None:
-                     uploader_avatar = ''
-                else:
-                    uploader_avatar = f'<div class="avatar"><img src={uploader_avatar}></div>'
+                uploader_avatar = f'<div class="avatar"><img src={uploader_avatar}></div>'
                 tags = item.get('tags', "")
                 model_desc = item.get('description', "")
                 if model_desc:
@@ -784,10 +785,10 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
                             '</p>'
                 
-                if creator:
-                    uploader = f'<h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>'
-                else:
+                if not creator or model_uploader == 'User not found':
                     uploader = f'<h3 class="model-uploader"><span>{escape(str(model_uploader))}</span>{uploader_avatar}</h3>'
+                else:
+                    uploader = f'<h3 class="model-uploader">Uploaded by <a href="https://civitai.com/user/{escape(str(model_uploader))}" target="_blank">{escape(str(model_uploader))}</a>{uploader_avatar}</h3>'
                 output_html = f'''
                 <div class="model-block">
                     <h2><a href={model_main_url} target="_blank" id="model_header">{escape(str(model_name))}</a></h2>
@@ -925,7 +926,8 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             
             list = set()
             sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
-        except:
+        except Exception as e:
+            print(e)
             sub_folders = ["None"]
             
         default_sub = sub_folder_value(content_type, desc)
