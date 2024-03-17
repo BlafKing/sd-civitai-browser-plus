@@ -104,6 +104,8 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
         model_id = int(model_id)
     if model_sha256:
         model_sha256 = model_sha256.upper()
+    if model_sha256 == "UNKNOWN":
+        model_sha256 = None
     
     filtered_items = []
     
