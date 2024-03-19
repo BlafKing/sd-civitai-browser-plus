@@ -436,7 +436,13 @@ function addOnClickToButtons() {
     buttonIds.forEach(buttonId => {
         let button = document.getElementById(buttonId);
         if (button) {
-            button.onclick = () => createCivitAICardButtons(button);
+            const originalOnclick = button.onclick;
+            button.onclick = null;
+            
+            button.addEventListener('click', (event) => {
+                if(originalOnclick) originalOnclick.call(button, event);
+                createCivitAICardButtons(button);
+            });
         }
     });
 
@@ -444,7 +450,13 @@ function addOnClickToButtons() {
         if (tab) {
             const buttons = tab.querySelectorAll('div > button:not(:first-child)');
             buttons.forEach(button => {
-                button.onclick = () => createCivitAICardButtons(button);
+                const originalOnclick = button.onclick;
+                button.onclick = null;
+    
+                button.addEventListener('click', (event) => {
+                    if(originalOnclick) originalOnclick.call(button, event);
+                    createCivitAICardButtons(button);
+                });
             });
         }
     });
