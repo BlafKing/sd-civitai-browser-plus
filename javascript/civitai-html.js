@@ -359,7 +359,6 @@ function createAccordion(containerDiv, subfolders, name) {
 
 // Adds a button to the cards in txt2img and img2img
 function createCivitAICardButtons() {
-    addOnClickToButtons();
     const copyButton = document.querySelector('.copy-path-button');
     let fontSize;
     if (!copyButton) {
