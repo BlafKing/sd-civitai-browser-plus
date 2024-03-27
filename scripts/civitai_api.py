@@ -16,7 +16,7 @@ from modules.images import read_info_from_image
 from modules.shared import cmd_opts, opts
 from modules.paths import models_path, extensions_dir, data_path
 from html import escape
-from scripts.civitai_global import print
+from scripts.civitai_global import print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 try:
@@ -214,15 +214,18 @@ def model_list_html(json_data):
                 date = item['modelVersions'][0]['publishedAt'].split('T')[0]
         except:
             date = "Not Found"
-            
+        
+        nsfw = item.get("nsfw")
+        debug_print(f"{item['name']} NSFW is: {nsfw}")
+        if nsfw:
+            nsfw = "civcardnsfw"
+
         if gl.sortNewest:
             if date not in sorted_models:
                 sorted_models[date] = []
         
         if any(item['modelVersions']):
             if len(item['modelVersions'][0]['images']) > 0:
-                if item["modelVersions"][0]["images"][0]['nsfw'] not in ["None", "Soft"]:
-                    nsfw = "civcardnsfw"
                 media_type = item["modelVersions"][0]["images"][0]["type"]
                 image = item["modelVersions"][0]["images"][0]["url"]
                 if media_type == "video":
@@ -283,7 +286,9 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
     base_url = "https://civitai.com/api/v1/models"
     
     if isNext is not None:
-        return gl.json_data['metadata']['nextPage' if isNext else 'prevPage']
+        api_url = gl.json_data['metadata']['nextPage' if isNext else 'prevPage']
+        debug_print(api_url)
+        return api_url
     
     params = {'limit': tile_count, 'sort': sort_type, 'period': period_type.replace(" ", "") if period_type else None}
     
@@ -291,7 +296,7 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
         params["types"] = content_type
     
     if use_search_term != "None" and search_term:
-        search_term = search_term.replace("\\", "\\\\")
+        search_term = search_term.replace("\\", "\\\\").lower()
         if "civitai.com" in search_term:
             model_number = re.search(r'models/(\d+)', search_term).group(1)
             params = {'ids': model_number}
@@ -318,9 +323,10 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
             query_parts.append((key, value))
     
     query_string = urllib.parse.urlencode(query_parts, doseq=True, quote_via=urllib.parse.quote)
-    full_url = f"{base_url}?{query_string}"
+    api_url = f"{base_url}?{query_string}"
     
-    return full_url
+    debug_print(api_url)
+    return api_url
 
 def convert_LORA_LoCon(content_type):
     use_LORA = getattr(opts, "use_LORA", False)
@@ -687,12 +693,12 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     if from_preview:
                         index = f"preview_{index}"
                     
-                    nsfw = 'class="model-block"'
-                    if pic['nsfw'] not in ["None", "Soft"]:
-                        nsfw = 'class="civnsfw model-block"'
+                    class_name = 'class="model-block"'
+                    if pic.get('nsfwLevel') >= 4:
+                        class_name = 'class="civnsfw model-block"'
 
                     img_html += f'''
-                    <div {nsfw} style="display:flex;align-items:flex-start;">
+                    <div {class_name} style="display:flex;align-items:flex-start;">
                     <div class="civitai-image-container">
                     <input type="radio" name="zoomRadio" id="zoomRadio{index}" class="zoom-radio">
                     <label for="zoomRadio{index}" class="zoom-img-container">

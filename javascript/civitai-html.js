@@ -42,20 +42,22 @@ function updateCardSize(width, height) {
 
 // Toggles NSFW display
 function toggleNSFWContent(hideAndBlur) {
-    const sheet = document.styleSheets[0];
+    const nsfwCards = document.querySelectorAll('.civcardnsfw');
+    nsfwCards.forEach(card => {
+        card.style.display = hideAndBlur ? 'block' : 'none';
+    })
 
-    const toggleRule = (selector, rules) => addOrUpdateRule(sheet, selector, rules);
-
-    toggleRule('.civcardnsfw', hideAndBlur ? 'display: block;' : 'display: none;');
-    toggleRule('.civnsfw img', hideAndBlur ? 'filter: none;' : 'filter: blur(10px);');
+    const nsfwImages = document.querySelectorAll('.civnsfw img');
+    nsfwImages.forEach(img => {
+        img.style.filter = hideAndBlur ? 'none' : 'blur(10px)';
+    });
 
     const dateSections = document.querySelectorAll('.date-section');
-    dateSections.forEach((section) => {
+    dateSections.forEach(section => {
         const cards = section.querySelectorAll('.civmodelcard');
         const nsfwCards = section.querySelectorAll('.civmodelcard.civcardnsfw');
         section.style.display = !hideAndBlur && cards.length === nsfwCards.length ? 'none' : 'block';
     });
-
 }
 
 // Updates site with css insertions
@@ -239,6 +241,10 @@ function updateSVGIcons() {
     const filterIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/a20124cedafad23d4eecc1367ec22896/raw/04a4dae0771353377747dadf57c91d55bf841bed/filter-light.svg" : "https://gistcdn.githack.com/BlafKing/686c3438f5d0d13e7e47135f25445ef3/raw/46477777faac7209d001829a171462d9a2ff1467/filter-dark.svg";
     const searchIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/3f95619089bac3b4fd5470a986e1b3bb/raw/ebaa9cceee3436711eb560a7a65e151f1d651c6a/search-light.svg" : "https://gistcdn.githack.com/BlafKing/57573592d5857e102a4bfde852f62639/raw/aa213e9e82d705651603507e26545eb0ffe60c90/search-dark.svg";
 
+    if (isDark) {
+        
+    }
+
     const element = document.querySelector("#filterBox, #filterBoxL");
     const childDiv = element?.querySelector("div:nth-child(3)");
 
@@ -334,12 +340,13 @@ function updateBackToTopVisibility(entries) {
 }
 
 // Create the accordion dropdown inside the settings tab
-function createAccordion(containerDiv, subfolders, name) {
+function createAccordion(containerDiv, subfolders, name, id_name) {
     if (containerDiv == null || subfolders.length == 0) {
         return;
     }
     var accordionContainer = document.createElement('div'); 
-    accordionContainer.id = 'settings-accordion';
+    accordionContainer.id = id_name;
+    accordionContainer.className = 'settings-accordion';
     var toggleButton = document.createElement('button');
     toggleButton.id = 'accordionToggle';
     toggleButton.innerHTML = name + '<div style="transition: transform 0.15s; transform: rotate(90deg)">▼</div>';
@@ -435,11 +442,7 @@ function addOnClickToButtons() {
     buttonIds.forEach(buttonId => {
         let button = document.getElementById(buttonId);
         if (button) {
-            const originalOnclick = button.onclick;
-            button.onclick = null;
-            
             button.addEventListener('click', (event) => {
-                if(originalOnclick) originalOnclick.call(button, event);
                 createCivitAICardButtons(button);
             });
         }
@@ -449,11 +452,7 @@ function addOnClickToButtons() {
         if (tab) {
             const buttons = tab.querySelectorAll('div > button:not(:first-child)');
             buttons.forEach(button => {
-                const originalOnclick = button.onclick;
-                button.onclick = null;
-    
                 button.addEventListener('click', (event) => {
-                    if(originalOnclick) originalOnclick.call(button, event);
                     createCivitAICardButtons(button);
                 });
             });
@@ -931,29 +930,23 @@ function onPageLoad() {
 
     let subfolderDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
     let downloadDiv = document.querySelector("#settings_civitai_browser_download > div > div");
-    let upscalerDiv = document.querySelector("#settings_civitai_browser_plus > div > div > #settings-accordion > div");
-    let downloadDivSub = document.querySelector("#settings_civitai_browser_download > div > div > #settings-accordion > div");
+    let upscalerDiv = document.querySelector("#settings_civitai_browser_plus > div > div > #default-sub-accordion > div");
+    let downloadDivSub = document.querySelector("#settings_civitai_browser_download > div > div > #default-sub-accordion > div");
     let settingsDiv = document.querySelector("#settings_civitai_browser > div > div");
 
     if (subfolderDiv || downloadDiv) {
         let div = subfolderDiv || downloadDiv;
         let subfolders = div.querySelectorAll("[id$='subfolder']");
-        createAccordion(div, subfolders, "Default sub folders");
-    }
+        createAccordion(div, subfolders, "Default sub folders", 'default-sub-accordion');
 
-    if (upscalerDiv || downloadDivSub) {
-        let div = upscalerDiv || downloadDivSub;
-        let upscalers = div.querySelectorAll("[id$='upscale_subfolder']");
-        createAccordion(div, upscalers, "Upscalers");
+        subfolders = div.querySelectorAll("[id^='setting_insert_sub']");
+        createAccordion(div, subfolders, "Insert sub folder options", 'insert-sub-accordion');
     }
 
     if (subfolderDiv || settingsDiv) {
         let div = subfolderDiv || settingsDiv;
-        let subfolders = div.querySelectorAll("[id^='setting_insert_sub']");
-        createAccordion(div, subfolders, "Insert sub folder options");
-
         let proxy = div.querySelectorAll("[id$='proxy']");
-        createAccordion(div, proxy, "Proxy options");
+        createAccordion(div, proxy, "Proxy options", 'proxy-accordion');
     }
 
     let toggle4L = document.getElementById('toggle4L');

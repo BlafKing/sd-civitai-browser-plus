@@ -336,7 +336,7 @@
 .civitai-tag,
 .civitai-meta,
 .civitai-meta-btn {
-    background-color: var(--neutral-800);
+    background-image: var(--button-secondary-background-fill);
     border-radius: 8px;
     padding: 4px 6px;
     border: 1px solid var(--input-border-color);
@@ -344,7 +344,7 @@
 
 .civitai-meta-btn:hover {
     cursor: pointer;
-    background-color: var(--neutral-700);
+    background-image: var(--button-secondary-background-fill-hover);
 }
 
 #select_all_models_container {
@@ -530,9 +530,9 @@
 }
 
 /* Custom settings Accordion */
-#settings-accordion {
+.settings-accordion {
     border: 1px solid var(--block-border-color);
-    border-radius: 8px;
+    border-radius: 8px !important;
     margin: 15px 0px 2px 0px;
     padding: 8px 8px;
 }
@@ -551,7 +551,7 @@
 }
 
 #civitai_preview_html .model-block {
-	box-shadow: 0px 0px 1px 3px #3339ff30;
+	box-shadow: 0px 0px 1px 3px var(--button-secondary-border-color);
     border-radius: 10px;
     padding: 1px 20px 10px;
     margin-bottom: 20px;
@@ -712,9 +712,16 @@
 }
 
 #civitai_preview_html dt {
-	font-size: medium;
+    font-size: medium;
     color: #80a6c8!important;
 }
+
+/*
+#civitai_preview_html dt {
+    font-size: medium;
+    color: #3966bb !important;
+}
+*/
 
 #civitai_preview_html dd {
 	padding: 0px 0px 10px 10px;

@@ -100,6 +100,15 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+
+<h3>v3.5.1</h3>
+
+* Temp fix: Quick fix for the new NSFW system
+   - NSFW models may be returned when NSFW is disabled, this is an issue with the public CivitAI API.
+   - Search results currently do not get influenced by the NSFW setting, also an issue with the API.
+* Bug fix: Better automatic coloring for white theme
+
+---
 <h3>v3.5.0</h3>
 
 * Bug fix: Extension now works again with the latest CivitAI API version!

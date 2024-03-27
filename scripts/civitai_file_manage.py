@@ -235,7 +235,7 @@ def save_images(preview_html, model_filename, install_path, sub_folder, api_resp
     urllib.request.install_opener(opener)
 
     for i, img_url in enumerate(img_urls):
-        filename = f'{name}_{i}.png'
+        filename = f'{name}_{i}.jpg'
         img_url = urllib.parse.quote(img_url, safe=':/=')
         try:
             with urllib.request.urlopen(img_url) as url:
@@ -437,8 +437,10 @@ def model_from_sent(model_name, content_type, tile_count):
         '#80a6c8': 'var(--secondary-300)',
         '#60A5FA': 'var(--link-text-color-hover)',
         '#1F2937': 'var(--neutral-700)',
+        '#1F2937': 'var(--button-secondary-background-fill-hover)',
         '#374151': 'var(--input-border-color)',
         '#111827': 'var(--neutral-800)',
+        '#111827': 'var(--button-secondary-background-fill)',
         'top: 50%;': '',
         'padding-top: 0px;': 'padding-top: 475px;',
         '.civitai_txt2img': '.civitai_placeholder'
@@ -528,7 +530,7 @@ def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_ht
         if use_local:
             img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
             for i, img_url in enumerate(img_urls):
-                img_name = f'{filename}_{i}.png'
+                img_name = f'{filename}_{i}.jpg'
                 preview_html = preview_html.replace(img_url,f'{os.path.join(image_path, img_name)}')
                 
         match = re.search(r'(\s*)<div class="model-block">', preview_html)
@@ -1018,6 +1020,7 @@ def finish_returns():
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=True, visible=True),
         gr.Button.update(interactive=True, visible=True),
+        gr.Button.update(interactive=True, visible=False), # Organize models hidden until implemented
         gr.Button.update(interactive=False, visible=False)
     )
     
@@ -1029,31 +1032,47 @@ def start_returns(number):
         gr.Button.update(interactive=False, visible=True),
         gr.Button.update(interactive=False, visible=True),
         gr.Button.update(interactive=False, visible=True),
+        gr.Button.update(interactive=False, visible=False), # Organize models hidden until implemented
         gr.HTML.update(value='<div style="min-height: 100px;"></div>')
     )
 
+def set_globals(input_global):
+    global from_tag, from_ver, from_installed, from_preview, from_organize
+    from_tag = from_ver = from_installed = from_preview = from_organize = False
+    if input_global == "from_tag":
+        from_tag = True
+    elif input_global == "from_ver":
+        from_ver = True
+    elif input_global == "from_installed":
+        from_installed = True
+    elif input_global == "from_preview":
+        from_preview = True
+    elif input_global == "from_organize":
+        from_organize = True
+        
 def save_tag_start(tag_start):
-    global from_tag, from_ver, from_installed, from_preview
-    from_tag, from_ver, from_installed, from_preview = True, False, False, False
+    set_globals('from_tag')
     number = _download.random_number(tag_start)
     return start_returns(number)
     
 def save_preview_start(preview_start):
-    global from_tag, from_ver, from_installed, from_preview
-    from_preview, from_tag, from_ver, from_installed = True, False, False, False
+    set_globals('from_preview')
     number = _download.random_number(preview_start)
     return start_returns(number)
 
 def installed_models_start(installed_start):
-    global from_installed, from_ver, from_tag, from_preview
-    from_installed, from_ver, from_tag, from_preview = True, False, False, False
+    set_globals('from_installed')
     number = _download.random_number(installed_start)
     return start_returns(number)
 
 def ver_search_start(ver_start):
-    global from_ver, from_tag, from_installed, from_preview
-    from_ver, from_tag, from_installed, from_preview = True, False, False, False
+    set_globals('from_ver')
     number = _download.random_number(ver_start)
+    return start_returns(number)
+
+def organize_start(organize_start):
+    set_globals('from_organize')
+    number = _download.random_number(organize_start)
     return start_returns(number)
 
 def save_tag_finish():
@@ -1072,6 +1091,7 @@ def scan_finish():
         gr.Button.update(interactive=no_update, visible=no_update),
         gr.Button.update(interactive=no_update, visible=no_update),
         gr.Button.update(interactive=no_update, visible=no_update),
+        gr.Button.update(interactive=no_update, visible=False),
         gr.Button.update(interactive=False, visible=False),
         gr.Button.update(interactive=not no_update, visible=not no_update)
     )

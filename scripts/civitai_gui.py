@@ -7,7 +7,7 @@ import re
 import subprocess
 from modules.shared import opts, cmd_opts
 from modules.paths import extensions_dir
-from scripts.civitai_global import print
+from scripts.civitai_global import print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
 import scripts.civitai_file_manage as _file
@@ -36,7 +36,6 @@ if not forge:
                 from modules import launch_utils
                 ver = launch_utils.git_tag()
             except:
-                print("Failed to fetch SD-WebUI version")
                 ver_bool = False
         if ver:
             ver = ver.split('-')[0].rsplit('-', 1)[0]
@@ -247,7 +246,7 @@ def on_ui_tabs():
                 back_to_top = gr.Button(value="↑", elem_id="backToTop")
         with gr.Tab("Update Models"):
             with gr.Row():
-                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Scan for:", choices=scan_choices)
+                selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Selected content types:", choices=scan_choices)
             with gr.Row(elem_id="civitai_update_toggles"):
                 overwrite_toggle = gr.Checkbox(elem_id="overwrite_toggle", label="Overwrite any existing previews, tags or descriptions.", value=True, min_width=300)
                 skip_hash_toggle = gr.Checkbox(elem_id="skip_hash_toggle", label="One-Time Hash Generation for externally downloaded models.", value=True, min_width=300)
@@ -274,6 +273,11 @@ def on_ui_tabs():
                 load_to_browser_installed = gr.Button(value="Load installed models to browser", interactive=False, visible=False)
             with gr.Row():
                 installed_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
+            with gr.Row():
+                organize_models = gr.Button(value="Organize model files", interactive=True, visible=False) # Organize models hidden until implemented
+                cancel_organize = gr.Button(value="Cancel loading models", interactive=False, visible=False)
+            with gr.Row():
+                organize_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
         with gr.Tab("Download Queue"):
             
             def get_style(size, left_border):
@@ -322,6 +326,8 @@ def on_ui_tabs():
         ver_finish = gr.Textbox(visible=False)
         installed_start = gr.Textbox(visible=None)
         installed_finish = gr.Textbox(visible=None)
+        organize_start = gr.Textbox(visible=None)
+        organize_finish = gr.Textbox(visible=None)
         delete_finish = gr.Textbox(visible=False)
         current_model = gr.Textbox(visible=False)
         current_sha256 = gr.Textbox(visible=False)
@@ -771,6 +777,7 @@ def on_ui_tabs():
                 load_installed,
                 save_all_tags,
                 update_preview,
+                organize_models,
                 version_progress
                 ]
         )
@@ -791,6 +798,7 @@ def on_ui_tabs():
                 save_all_tags,
                 load_installed,
                 update_preview,
+                organize_models,
                 cancel_ver_search,
                 load_to_browser
             ]
@@ -806,6 +814,7 @@ def on_ui_tabs():
                 ver_search,
                 save_all_tags,
                 update_preview,
+                organize_models,
                 installed_progress
             ]
         )
@@ -826,6 +835,7 @@ def on_ui_tabs():
                 save_all_tags,
                 load_installed,
                 update_preview,
+                organize_models,
                 cancel_installed,
                 load_to_browser_installed
             ]
@@ -841,6 +851,7 @@ def on_ui_tabs():
                 load_installed,
                 ver_search,
                 update_preview,
+                organize_models,
                 tag_progress
             ]
         )
@@ -861,6 +872,7 @@ def on_ui_tabs():
                 save_all_tags,
                 load_installed,
                 update_preview,
+                organize_models,
                 cancel_all_tags
             ]
         )
@@ -875,6 +887,7 @@ def on_ui_tabs():
                 load_installed,
                 ver_search,
                 save_all_tags,
+                organize_models,
                 preview_progress
             ]
         )
@@ -895,9 +908,47 @@ def on_ui_tabs():
                 save_all_tags,
                 load_installed,
                 update_preview,
+                organize_models,
                 cancel_update_preview
             ]
         )
+        
+        organize_models.click(
+            fn=_file.organize_start,
+            inputs=[organize_start],
+            outputs=[
+                organize_start,
+                organize_models,
+                cancel_organize,
+                load_installed,
+                ver_search,
+                save_all_tags,
+                update_preview,
+                organize_progress
+            ]
+        )
+        
+        organize_start.change(
+            fn=_file.file_scan,
+            inputs=file_scan_inputs,
+            outputs=[
+                organize_progress,
+                organize_finish
+            ]
+        )
+        
+        organize_finish.change(
+            fn=_file.save_preview_finish,
+            outputs=[
+                ver_search,
+                save_all_tags,
+                load_installed,
+                update_preview,
+                organize_models,
+                cancel_update_preview
+            ]
+        )
+        
         
         load_to_browser_installed.click(
             fn=_file.load_to_browser,
@@ -1277,7 +1328,7 @@ def on_ui_settings():
             shared.OptionInfo(
                 False,
                 f"Insert: [{string}]",
-                section=browser,
+                section=download,
                 **({'category_id': cat_id} if ver_bool else {})
             )
         )
