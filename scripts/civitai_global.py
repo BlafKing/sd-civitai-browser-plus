@@ -1,5 +1,5 @@
 from modules.shared import opts
-do_debug_print = getattr(opts, "use_LORA", False)
+do_debug_print = getattr(opts, "civitai_debug_prints", False)
 def init():
     import warnings
     from urllib3.exceptions import InsecureRequestWarning
