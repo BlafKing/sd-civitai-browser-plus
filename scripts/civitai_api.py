@@ -311,8 +311,7 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
     if only_liked:
         params["favorites"] = "true"
     
-    if nsfw is False:
-        params["nsfw"] = "false"
+    params["nsfw"] = "true" if nsfw else "false"
     
     query_parts = []
     for key, value in params.items():
