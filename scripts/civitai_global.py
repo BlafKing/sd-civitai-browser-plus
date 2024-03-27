@@ -1,3 +1,5 @@
+from modules.shared import opts
+do_debug_print = getattr(opts, "use_LORA", False)
 def init():
     import warnings
     from urllib3.exceptions import InsecureRequestWarning
@@ -25,3 +27,7 @@ def init():
 _print = print
 def print(print_message):
     _print(f'\033[96mCivitAI Browser+\033[0m: {print_message}')
+    
+def debug_print(print_message):
+    if do_debug_print:
+        _print(f'\033[96m[DEBUG] CivitAI Browser+\033[0m: {print_message}')
