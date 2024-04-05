@@ -248,7 +248,7 @@ def on_ui_tabs():
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Selected content types:", choices=scan_choices)
             with gr.Row(elem_id="civitai_update_toggles"):
-                overwrite_toggle = gr.Checkbox(elem_id="overwrite_toggle", label="Overwrite any existing previews, tags or descriptions.", value=True, min_width=300)
+                overwrite_toggle = gr.Checkbox(elem_id="overwrite_toggle", label="Overwrite any existing files. (previews, HTMLs, tags, descriptions)", value=True, min_width=300)
                 skip_hash_toggle = gr.Checkbox(elem_id="skip_hash_toggle", label="One-Time Hash Generation for externally downloaded models.", value=True, min_width=300)
                 do_html_gen = gr.Checkbox(elem_id="do_html_gen", label="Save HTML file for each model when updating info & tags (increases process time).", value=False, min_width=300)
             with gr.Row():
@@ -299,6 +299,7 @@ def on_ui_tabs():
                 ''')
         
         #Invisible triggers/variables
+        #Yes, there is probably a much better way of passing variables/triggering functions
         
         model_id = gr.Textbox(visible=False)
         queue_trigger = gr.Textbox(visible=False)
@@ -310,11 +311,13 @@ def on_ui_tabs():
         selected_type_list = gr.Textbox(elem_id="selected_type_list", visible=False)
         html_cancel_input = gr.Textbox(elem_id="html_cancel_input", visible=False)
         queue_html_input = gr.Textbox(elem_id="queue_html_input", visible=False)
+        send_to_browser = gr.Textbox(elem_id="send_to_browser", visible=False)
         arrange_dl_id = gr.Textbox(elem_id="arrange_dl_id", visible=False)
         remove_dl_id = gr.Textbox(elem_id="remove_dl_id", visible=False)
         model_select = gr.Textbox(elem_id="model_select", visible=False)
         model_sent = gr.Textbox(elem_id="model_sent", visible=False)
         type_sent = gr.Textbox(elem_id="type_sent", visible=False)
+        click_first_item = gr.Textbox(visible=False)
         empty = gr.Textbox(value="", visible=False)
         download_start = gr.Textbox(visible=False)
         download_finish = gr.Textbox(visible=False)
@@ -376,6 +379,8 @@ def on_ui_tabs():
         model_preview_html.change(fn=None, inputs=model_preview_html, _js="(html_input) => inputHTMLPreviewContent(html_input)")
         
         download_manager_html.change(fn=None, _js="() => setSortable()")
+        
+        click_first_item.change(fn=None, _js="() => clickFirstFigureInColumn()")
         
         # Filter button Functions #
         
@@ -484,11 +489,17 @@ def on_ui_tabs():
                 list_html
             ]
         )
-            
+        
         model_sent.change(
             fn=_file.model_from_sent,
-            inputs=[model_sent, type_sent, tile_count_slider],
+            inputs=[model_sent, type_sent],
             outputs=[model_preview_html]
+        )
+        
+        send_to_browser.change(
+            fn=_file.send_to_browser,
+            inputs=[send_to_browser, type_sent, click_first_item],
+            outputs=[list_html, get_prev_page , get_next_page, page_slider, click_first_item]
         )
         
         sub_folder.select(
@@ -1241,6 +1252,16 @@ def on_ui_settings():
         ).info('This saves the models description to the description field on model cards')
     )
 
+    shared.opts.add_option(
+        "civitai_send_to_browser",
+        shared.OptionInfo(
+            False,
+            'Send model from the cards CivitAI button to the browser, instead of showing a popup',
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        )
+    )
+    
     shared.opts.add_option(
         "image_location",
         shared.OptionInfo(

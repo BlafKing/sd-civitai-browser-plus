@@ -1,7 +1,7 @@
 "use strict";
 
 // Selects a model by pressing on card
-function select_model(model_name, event, bool = false, content_type = null) {
+function select_model(model_name, event, bool = false, content_type = null, sendToBrowser = false) {
     if (event) {
         var className = event.target.className;
         if (className.includes('custom-checkbox') || className.includes('model-checkbox')) {
@@ -9,7 +9,12 @@ function select_model(model_name, event, bool = false, content_type = null) {
         }
     }
 
-    const output = bool ? gradioApp().querySelector('#model_sent textarea') : gradioApp().querySelector('#model_select textarea');
+    let output;
+    if (sendToBrowser) {
+        output = gradioApp().querySelector('#send_to_browser textarea')
+    } else {
+        output = bool ? gradioApp().querySelector('#model_sent textarea') : gradioApp().querySelector('#model_select textarea');
+    }
 
     if (output && model_name) {
         const randomNumber = Math.floor(Math.random() * 1000);
@@ -25,6 +30,19 @@ function select_model(model_name, event, bool = false, content_type = null) {
         outputType.value = content_type + "." + paddedNumber;
         updateInput(outputType);
     }
+}
+
+// Clicks the first item in the browser cards list
+function clickFirstFigureInColumn() {
+    setTimeout(() => {
+        const columnDiv = document.querySelector('.column.civmodellist');
+        if (columnDiv) {
+            const firstFigure = columnDiv.querySelector('figure');
+            if (firstFigure) {
+                firstFigure.click();
+            }
+        }
+    }, 500);
 }
 
 // Changes the card size
@@ -367,16 +385,16 @@ function createAccordion(containerDiv, subfolders, name, id_name) {
 // Adds a button to the cards in txt2img and img2img
 function createCivitAICardButtons() {
     const copyButton = document.querySelector('.copy-path-button');
-    let fontSize;
+    let fontSize = '1.8rem';
     if (!copyButton) {
         const editButton = document.querySelector('.edit-button');
-        const originalDisplay = editButton.parentElement.style.display;
-        editButton.parentElement.style.display = 'flex';
-        const editButtonBeforeStyle = window.getComputedStyle(editButton, ':before');
-        fontSize = editButtonBeforeStyle.getPropertyValue('font-size');
-        editButton.parentElement.style.display = originalDisplay;
-    } else {
-        fontSize = '1.8rem';
+        if (editButton) {
+            const originalDisplay = editButton.parentElement.style.display;
+            editButton.parentElement.style.display = 'flex';
+            const editButtonBeforeStyle = window.getComputedStyle(editButton, ':before');
+            fontSize = editButtonBeforeStyle.getPropertyValue('font-size');
+            editButton.parentElement.style.display = originalDisplay;
+        }
     }
 
     const checkForCardDivs = setInterval(() => {
@@ -461,74 +479,94 @@ function addOnClickToButtons() {
 }
 
 function modelInfoPopUp(modelName, content_type) {
-    select_model(modelName, null, true, content_type);
+    const sendToBrowserElement = gradioApp().querySelector('#setting_civitai_send_to_browser input');
+    let sendToBrowser = false;
+    if (sendToBrowserElement) {
+        sendToBrowser = sendToBrowserElement.checked;
+    }
 
-    const createElementWithStyle = (tag, styles = {}) => {
-        const el = document.createElement(tag);
-        Object.assign(el.style, styles);
-        return el;
-    };
+    select_model(modelName, null, true, content_type, sendToBrowser);
+    if (sendToBrowser) {
+        const tabNav = document.querySelector('.tab-nav');
+        const buttons = tabNav.querySelectorAll('button');
+        for (const button of buttons) {
+            if (button.textContent.includes('Browser+')) {
+                button.click();
+                
+                const firstButton = document.querySelector('#tab_civitai_interface > div > div > div > button');
+                if (firstButton) {
+                    firstButton.click();
+                }
+            }
+        }
+    } else {
+        const createElementWithStyle = (tag, styles = {}) => {
+            const el = document.createElement(tag);
+            Object.assign(el.style, styles);
+            return el;
+        };
 
-    const overlay = createElementWithStyle('div', {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(20, 20, 20, 0.95)',
-        zIndex: '1001',
-        overflowY: 'auto'
-    });
-    overlay.classList.add('civitai-overlay');
-    overlay.addEventListener('keydown', handleKeyPress);
-    overlay.addEventListener('click', event => {
-        if (event.target === overlay) hidePopup();
-    });
+        const overlay = createElementWithStyle('div', {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(20, 20, 20, 0.95)',
+            zIndex: '1001',
+            overflowY: 'auto'
+        });
+        overlay.classList.add('civitai-overlay');
+        overlay.addEventListener('keydown', handleKeyPress);
+        overlay.addEventListener('click', event => {
+            if (event.target === overlay) hidePopup();
+        });
 
-    const closeButton = createElementWithStyle('div', {
-        zIndex: '1011',
-        position: 'fixed',
-        right: '22px',
-        top: '0',
-        cursor: 'pointer',
-        color: 'white',
-        fontSize: '32pt'
-    });
-    closeButton.classList.add('civitai-overlay-close');
-    closeButton.textContent = '×';
-    closeButton.addEventListener('click', hidePopup);
+        const closeButton = createElementWithStyle('div', {
+            zIndex: '1011',
+            position: 'fixed',
+            right: '22px',
+            top: '0',
+            cursor: 'pointer',
+            color: 'white',
+            fontSize: '32pt'
+        });
+        closeButton.classList.add('civitai-overlay-close');
+        closeButton.textContent = '×';
+        closeButton.addEventListener('click', hidePopup);
 
-    const inner = createElementWithStyle('div', {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        width: 'auto',
-        transform: 'translate(-50%, -50%)',
-        background: 'var(--neutral-950)',
-        padding: '2em',
-        borderRadius: 'var(--block-radius)',
-        borderStyle: 'solid',
-        borderWidth: 'var(--block-border-width)',
-        borderColor: 'var(--block-border-color)',
-        zIndex: '1001'
-    });
-    inner.classList.add('civitai-overlay-inner');
+        const inner = createElementWithStyle('div', {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            width: 'auto',
+            transform: 'translate(-50%, -50%)',
+            background: 'var(--neutral-950)',
+            padding: '2em',
+            borderRadius: 'var(--block-radius)',
+            borderStyle: 'solid',
+            borderWidth: 'var(--block-border-width)',
+            borderColor: 'var(--block-border-color)',
+            zIndex: '1001'
+        });
+        inner.classList.add('civitai-overlay-inner');
 
-    const modelInfo = createElementWithStyle('div', {
-        fontSize: '24px',
-        color: 'white',
-        fontFamily: 'var(--font)'
-    });
-    modelInfo.classList.add('civitai-overlay-text');
-    modelInfo.textContent = 'Loading model info, please wait!';
+        const modelInfo = createElementWithStyle('div', {
+            fontSize: '24px',
+            color: 'white',
+            fontFamily: 'var(--font)'
+        });
+        modelInfo.classList.add('civitai-overlay-text');
+        modelInfo.textContent = 'Loading model info, please wait!';
 
-    document.body.style.overflow = 'hidden';
-    document.body.appendChild(overlay);
-    overlay.append(closeButton, inner);
-    inner.appendChild(modelInfo);
+        document.body.style.overflow = 'hidden';
+        document.body.appendChild(overlay);
+        overlay.append(closeButton, inner);
+        inner.appendChild(modelInfo);
 
-    setDynamicWidth(inner);
-    window.addEventListener('resize', () => setDynamicWidth(inner));
+        setDynamicWidth(inner);
+        window.addEventListener('resize', () => setDynamicWidth(inner));
+    }
 }
 
 function setDynamicWidth(inner) {
@@ -919,19 +957,10 @@ function setDescriptionToggle() {
 
 // Runs all functions when the page is fully loaded
 function onPageLoad() {
-    const divElement = document.getElementById('setting_custom_api_key');
-    const infoElement = divElement?.querySelector('.info');
-    if (!infoElement) {
-        return;
-    }
-    clearInterval(intervalID);
-
     updateSVGIcons();
 
     let subfolderDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
     let downloadDiv = document.querySelector("#settings_civitai_browser_download > div > div");
-    let upscalerDiv = document.querySelector("#settings_civitai_browser_plus > div > div > #default-sub-accordion > div");
-    let downloadDivSub = document.querySelector("#settings_civitai_browser_download > div > div > #default-sub-accordion > div");
     let settingsDiv = document.querySelector("#settings_civitai_browser > div > div");
 
     if (subfolderDiv || downloadDiv) {
@@ -969,9 +998,18 @@ function onPageLoad() {
     createCivitAICardButtons();
     adjustFilterBoxAndButtons();
     setupClickOutsideListener();
-    createLink(infoElement);
     updateBackToTopVisibility([{isIntersecting: false}]);
 }
 
-// Checks every second if the page is fully loaded
-let intervalID = setInterval(onPageLoad, 1000);
+onUiLoaded(onPageLoad);
+
+function checkSettingsLoad() {
+    const divElement = gradioApp().querySelector('#setting_custom_api_key');
+    const infoElement = divElement?.querySelector('.info');
+    if (!infoElement) {
+        return;
+    }
+    clearInterval(settingsLoadInterval);
+    createLink(infoElement);
+}
+let settingsLoadInterval = setInterval(checkSettingsLoad, 1000);

@@ -15,7 +15,7 @@ from PIL import Image
 from pathlib import Path
 from urllib.parse import urlparse
 from modules.shared import cmd_opts, opts
-from scripts.civitai_global import print
+from scripts.civitai_global import print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_api as _api
 import scripts.civitai_file_manage as _file
@@ -362,7 +362,7 @@ def convert_local_images(html):
         simg["src"] = f"data:image/{imgtype};base64,{b64img}"
     return str(soup)
 
-def model_from_sent(model_name, content_type, tile_count):
+def model_from_sent(model_name, content_type):
     
     modelID_failed = False
     output_html = None
@@ -417,7 +417,7 @@ def model_from_sent(model_name, content_type, tile_count):
             output_html = _api.api_error_msg("offline")
             modelID_failed = True
         if not modelID_failed: 
-            json_data = _api.request_civit_api(f"https://civitai.com/api/v1/models?ids={modelID}")
+            json_data = _api.request_civit_api(f"https://civitai.com/api/v1/models?ids={modelID}&nsfw=true")
         else:
             json_data = None
         
@@ -464,7 +464,60 @@ def model_from_sent(model_name, content_type, tile_count):
     return (
         gr.Textbox.update(value=output_html, placeholder=number), # Preview HTML
     )
+
+def send_to_browser(model_name, content_type, click_first_item):
+    modelID_failed = False
+    output_html = None
+    model_file = None
+    number = click_first_item
     
+    model_name = re.sub(r'\.\d{3}$', '', model_name)
+    content_type = re.sub(r'\.\d{3}$', '', content_type).lower()
+    if 'inversion' in content_type:
+        content_type = ['TextualInversion']
+    elif 'hypernetwork' in content_type:
+        content_type = ['Hypernetwork']
+    elif 'checkpoint' in content_type:
+        content_type = ['Checkpoint']
+    elif 'lora' in content_type:
+        content_type = ['LORA', 'LoCon']
+    extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
+
+    for content_type_item in content_type:
+        folder = _api.contenttype_folder(content_type_item)
+        for folder_path, _, files in os.walk(folder, followlinks=True):
+            for file in files:
+                if file.startswith(model_name) and file.endswith(tuple(extensions)):
+                    model_file = os.path.join(folder_path, file)
+                    
+    if not model_file:
+        output_html = _api.api_error_msg("path_not_found")
+        print(f'Error: Could not find model path for model: "{model_name}"')
+        print(f'Content type: "{content_type}"')
+        print(f'Main folder path: "{folder}"')
+    if not output_html:
+        modelID = get_models(model_file, True)
+        if not modelID or modelID == "Model not found":
+            output_html = _api.api_error_msg("not_found")
+            modelID_failed = True
+        if modelID == "offline":
+            output_html = _api.api_error_msg("offline")
+            modelID_failed = True
+    
+        if not modelID_failed:
+            gl.json_data = _api.request_civit_api(f"https://civitai.com/api/v1/models?ids={modelID}&nsfw=true")
+            output_html = _api.model_list_html(gl.json_data)
+            
+            number = _download.random_number(click_first_item)
+    
+    return (
+        gr.HTML.update(output_html), # Card HTML
+        gr.Button.update(interactive=False), # Prev Button
+        gr.Button.update(interactive=False), # Next Button 
+        gr.Slider.update(value=1, maximum=1), # Page Slider
+        gr.Textbox.update(number) # Click first card trigger 
+    )
+
 def is_image_url(url):
     image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
     parsed = urlparse(url)
@@ -503,24 +556,15 @@ def make_dir(path):
     except Exception as e:
         print(f"Error creating directory: {e}")
 
-def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
-    filename = os.path.splitext(file_name)[0]
-    json_file = os.path.join(install_path, f'{filename}.json')
+def save_model_info(install_path, file_name, image_path, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
+    json_file = os.path.join(install_path, f'{file_name}.json')
     make_dir(install_path)
     
     save_api_info = getattr(opts, "save_api_info", False)
     use_local = getattr(opts, "local_path_in_html", False)
-    save_to_custom = getattr(opts, "save_to_custom", False)
     
     if not api_response:
         api_response = gl.json_data
-    
-    image_path = get_image_path(install_path, api_response, sub_folder)
-    
-    if save_to_custom:
-        save_path = image_path
-    else:
-        save_path = install_path
     
     result = find_and_save(api_response, sha256, file_name, json_file, False, overwrite_toggle)
     if result != "found":
@@ -530,7 +574,7 @@ def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_ht
         if use_local:
             img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
             for i, img_url in enumerate(img_urls):
-                img_name = f'{filename}_{i}.jpg'
+                img_name = f'{file_name}_{i}.jpg'
                 preview_html = preview_html.replace(img_url,f'{os.path.join(image_path, img_name)}')
                 
         match = re.search(r'(\s*)<div class="model-block">', preview_html)
@@ -542,14 +586,16 @@ def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_ht
         utf8_meta_tag = f'{indentation}<meta charset="UTF-8">'
         head_section = f'{indentation}<head>{indentation}    {utf8_meta_tag}{indentation}    {css_link}{indentation}</head>'
         HTML = head_section + preview_html
-        path_to_new_file = os.path.join(save_path, f'{filename}.html')
+        path_to_new_file = os.path.join(install_path, f'{file_name}.html')
         with open(path_to_new_file, 'wb') as f:
             f.write(HTML.encode('utf8'))
+        print(f'Saved HTML to "{path_to_new_file}"')
         
     if save_api_info:
-        path_to_new_file = os.path.join(save_path, f'{filename}.api_info.json')
-        with open(path_to_new_file, mode="w", encoding="utf-8") as f:
-            json.dump(gl.json_info, f, indent=4, ensure_ascii=False)
+        path_to_new_file = os.path.join(install_path, f'{file_name}.api_info.json')
+        if not os.path.exists(path_to_new_file) or overwrite_toggle:
+            with open(path_to_new_file, mode="w", encoding="utf-8") as f:
+                json.dump(gl.json_info, f, indent=4, ensure_ascii=False)
 
     
 def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_hash=None, overwrite_toggle=None):
@@ -598,14 +644,15 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                         content = {}
                     changed = False
                     if not overwrite_toggle:
-                        if "activation text" not in content or not content["activation text"]:
+                        if "activation text" not in content:
                             content["activation text"] = trained_tags
                             changed = True
-                        if save_desc:
-                            if "description" not in content or not content["description"]:
-                                content["description"] = description
-                                changed = True
-                        if "sd version" not in content or not content["sd version"]:
+                        if save_desc and ("description" not in content):
+                            debug_print("No description")
+                            content["description"] = description
+                            changed = True
+                        if "sd version" not in content:
+                            debug_print("No SD Version")
                             content["sd version"] = base_model
                             changed = True
                     else:
@@ -761,7 +808,7 @@ def get_content_choices(scan_choices=False):
     return content_list
     
 def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, gen_hash, create_html, progress=gr.Progress() if queue else None):
-    global from_ver, from_installed, no_update
+    global no_update
     proxies, ssl = _api.get_proxies()
     gl.scan_files = True
     no_update = False
@@ -779,7 +826,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             progress(0, desc=f"No model type selected.")
         no_update = True
         gl.scan_files = False
-        from_ver, from_installed = False, False
         time.sleep(2)
         return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                 gr.Textbox.update(value=number))
@@ -828,7 +874,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             progress(1, desc=f"No files in selected folder.")
         no_update = True
         gl.scan_files = False
-        from_ver, from_installed = False, False
         time.sleep(2)
         return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                 gr.Textbox.update(value=number))
@@ -845,7 +890,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
                 progress(files_done / total_files, desc=f"Processing files cancelled.")
             no_update = True
             gl.scan_files = False
-            from_ver, from_installed = False, False
             time.sleep(2)
             return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                     gr.Textbox.update(value=number))
@@ -875,7 +919,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         print("Could not retrieve any Model IDs, please make sure to turn on the \"One-Time Hash Generation for externally downloaded models.\" option if you haven't already.")
         no_update = True
         gl.scan_files = False
-        from_ver, from_installed = False, False
         time.sleep(2)
         return (gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
                 gr.Textbox.update(value=number))
@@ -887,7 +930,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     if not from_installed:
         model_chunks = list(chunks(all_model_ids, 500))
 
-        base_url = "https://civitai.com/api/v1/models?limit=100"
+        base_url = "https://civitai.com/api/v1/models?limit=100&nsfw=true"
         url_list = [f"{base_url}{''.join(chunk)}" for chunk in model_chunks]
 
         url_count = len(all_model_ids) // 100
@@ -954,7 +997,6 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         if len(all_model_ids) == 0:
             no_update = True
             gl.scan_files = False
-            from_ver = False
             return  (
                     gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px !important;">No updates found for selected models.</div>'),
                     gr.Textbox.update(value=number)
@@ -962,7 +1004,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     
     model_chunks = list(chunks(all_model_ids, tile_count))
 
-    base_url = "https://civitai.com/api/v1/models?limit=100"
+    base_url = "https://civitai.com/api/v1/models?limit=100&nsfw=true"
     gl.url_list = {i+1: f"{base_url}{''.join(chunk)}" for i, chunk in enumerate(model_chunks)}
     
     if from_ver:
@@ -980,15 +1022,33 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             )
 
     elif from_tag:
+        completed_tags = 0
+        tag_count = len(file_paths)
+        save_to_custom = getattr(opts, "save_to_custom", False)
+        
         for file_path, id_value in zip(file_paths, all_ids):
             install_path, file_name = os.path.split(file_path)
+            name = os.path.splitext(file_name)[0]
             model_versions = _api.update_model_versions(id_value, api_response)
-            if create_html:
+            sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
+            
+            image_path = get_image_path(install_path, api_response, sub_folder)
+    
+            if save_to_custom:
+                save_path = image_path
+            else:
+                save_path = install_path
+            
+            html_path = os.path.join(save_path, f'{name}.html')
+            
+            if create_html and not os.path.exists(html_path) or overwrite_toggle:
                 preview_html = _api.update_model_info(None, model_versions.get('value'), True, id_value, api_response, True)
             else:
                 preview_html = None
-            sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
-            save_model_info(install_path, file_name, sub_folder, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
+            completed_tags += 1
+            if progress != None:
+                progress(completed_tags / tag_count, desc=f'Saving tags{" & HTML" if preview_html else ""}... {completed_tags}/{tag_count} | {name}')
+            save_model_info(save_path, name, image_path, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
         if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
         gl.scan_files = False
@@ -1004,10 +1064,10 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         for file in file_paths:
             _, file_name = os.path.split(file)
             name = os.path.splitext(file_name)[0]
+            completed_preview += 1
             if progress != None:
                 progress(completed_preview / preview_count, desc=f"Saving preview images... {completed_preview}/{preview_count} | {name}")
             save_preview(file, api_response, overwrite_toggle)
-            completed_preview += 1
         gl.scan_files = False
         return  (
                 gr.HTML.update(value='<div style="min-height: 0px;"></div>'),
@@ -1036,10 +1096,12 @@ def start_returns(number):
         gr.HTML.update(value='<div style="min-height: 100px;"></div>')
     )
 
-def set_globals(input_global):
+def set_globals(input_global=None):
     global from_tag, from_ver, from_installed, from_preview, from_organize
     from_tag = from_ver = from_installed = from_preview = from_organize = False
-    if input_global == "from_tag":
+    if input_global == "reset":
+        return
+    elif input_global == "from_tag":
         from_tag = True
     elif input_global == "from_ver":
         from_ver = True
@@ -1076,16 +1138,15 @@ def organize_start(organize_start):
     return start_returns(number)
 
 def save_tag_finish():
-    global from_tag
-    from_tag = False
+    set_globals("reset")
     return finish_returns()
 
 def save_preview_finish():
-    global from_preview
-    from_preview = False
+    set_globals("reset")
     return finish_returns()
 
 def scan_finish():
+    set_globals("reset")
     return (
         gr.Button.update(interactive=no_update, visible=no_update),
         gr.Button.update(interactive=no_update, visible=no_update),

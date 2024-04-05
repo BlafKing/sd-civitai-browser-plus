@@ -215,9 +215,7 @@ def model_list_html(json_data):
         except:
             date = "Not Found"
         
-        nsfw = item.get("nsfw")
-        debug_print(f"{item['name']} NSFW is: {nsfw}")
-        if nsfw:
+        if item.get("nsfw"):
             nsfw = "civcardnsfw"
 
         if gl.sortNewest:
@@ -284,6 +282,7 @@ def model_list_html(json_data):
 
 def create_api_url(content_type=None, sort_type=None, period_type=None, use_search_term=None, base_filter=None, only_liked=None, tile_count=None, search_term=None, nsfw=None, isNext=None):
     base_url = "https://civitai.com/api/v1/models"
+    version_url = "https://civitai.com/api/v1/model-versions"
     
     if isNext is not None:
         api_url = gl.json_data['metadata']['nextPage' if isNext else 'prevPage']
@@ -300,6 +299,7 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
         if "civitai.com" in search_term:
             model_number = re.search(r'models/(\d+)', search_term).group(1)
             params = {'ids': model_number}
+
         else:
             key_map = {"User name": "username", "Tag": "tag"}
             search_key = key_map.get(use_search_term, "query")

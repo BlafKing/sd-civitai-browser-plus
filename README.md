@@ -100,6 +100,14 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.5.3</h3>
+
+* New Setting: Send model from the cards CivitAI button to the browser, instead of showing a popup.
+* Bug fix: No longer fetch HTML info when the file already exists and overwrite is off. 
+* Bug fix: Fix NSFW models update functions.
+* Bug fix: Fixed CivitAI button on NSFW model cards.
+
+---
 <h3>v3.5.2</h3>
 
 * Bug fix: NSFW filtering fixed.
