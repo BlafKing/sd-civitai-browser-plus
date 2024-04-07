@@ -100,6 +100,14 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.5.4</h3>
+
+* Feature: Added support for DoRA (Requires SD-WebUI v1.9)
+* Bug fix: No longer rescans models that were previously not found on CivitAI
+* Bug fix: Fixed placement of HTML & api_info files when custom images location was used.
+* Bug fix: Fixed incorrect json naming.
+
+---
 <h3>v3.5.3</h3>
 
 * New Setting: Send model from the cards CivitAI button to the browser, instead of showing a popup.

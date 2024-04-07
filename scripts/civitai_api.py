@@ -79,6 +79,12 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
                 folder = cmd_opts.lora_dir
             else:
                 folder = folder = os.path.join(main_models, "Lora")
+
+    elif content_type == "DoRA":
+        if cmd_opts.lora_dir and not custom_folder:
+            folder = cmd_opts.lora_dir
+        else:
+            folder = folder = os.path.join(main_models, "Lora")
             
     elif content_type == "VAE":
         if cmd_opts.vae_dir and not custom_folder:
@@ -330,12 +336,14 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
 def convert_LORA_LoCon(content_type):
     use_LORA = getattr(opts, "use_LORA", False)
     if content_type:
-        if use_LORA and 'LORA & LoCon' in content_type:
-            content_type.remove('LORA & LoCon')
+        if use_LORA and 'LORA, LoCon, DoRA' in content_type:
+            content_type.remove('LORA, LoCon, DoRA')
             if 'LORA' not in content_type:
                 content_type.append('LORA')
             if 'LoCon' not in content_type:
                 content_type.append('LoCon')
+            if 'DoRA' not in content_type:
+                content_type.append('DoRA')
     return content_type
 
 def initial_model_page(content_type=None, sort_type=None, period_type=None, use_search_term=None, search_term=None, current_page=None, base_filter=None, only_liked=None, nsfw=None, tile_count=None, from_update_tab=False):

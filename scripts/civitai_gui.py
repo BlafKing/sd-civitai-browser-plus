@@ -1176,10 +1176,10 @@ def on_ui_settings():
         "use_LORA",
         shared.OptionInfo(
             ver_bool,
-            "Treat LoCon's as LORA's",
+            "Combine LoCon, LORA & DoRA as one option",
             section=browser,
             **({'category_id': cat_id} if ver_bool else {})
-        ).info("SD-WebUI v1.5 and higher treats LoCON's the same as LORA's, Requires UI reload")
+        ).info("LoCon requires SD-WebUI v1.5 or higher,  DoRA requires v1.9 or higher")
     )
 
     shared.opts.add_option(
@@ -1252,6 +1252,16 @@ def on_ui_settings():
         ).info('This saves the models description to the description field on model cards')
     )
 
+    shared.opts.add_option(
+        "civitai_not_found_print",
+        shared.OptionInfo(
+            True,
+            'Show "Model not found" print during update scanning',
+            section=browser,
+            **({'category_id': cat_id} if ver_bool else {})
+        )
+    )
+    
     shared.opts.add_option(
         "civitai_send_to_browser",
         shared.OptionInfo(
@@ -1359,8 +1369,9 @@ def on_ui_settings():
     # Default sub folders
     folders = [
         "Checkpoint",
-        "LORA & LoCon" if use_LORA else "LORA",
+        "LORA, LoCon, DoRA" if use_LORA else "LORA",
         "LoCon" if not use_LORA else None,
+        "DoRA" if not use_LORA else None,
         "TextualInversion",
         "Poses",
         "Controlnet",
@@ -1390,7 +1401,7 @@ def on_ui_settings():
         else:
             folder_name = folder
             setting_name = folder
-        if folder == "LORA & LoCon":
+        if folder == "LORA, LoCon, DoRA":
             folder = "LORA"
             setting_name = "LORA_LoCon"
         

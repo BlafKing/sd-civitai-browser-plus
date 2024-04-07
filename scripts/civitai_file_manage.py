@@ -556,8 +556,9 @@ def make_dir(path):
     except Exception as e:
         print(f"Error creating directory: {e}")
 
-def save_model_info(install_path, file_name, image_path, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
-    json_file = os.path.join(install_path, f'{file_name}.json')
+def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
+    save_path, filename = get_save_path_and_name(install_path, file_name, api_response, sub_folder)
+    json_file = os.path.join(install_path, f'{filename}.json')
     make_dir(install_path)
     
     save_api_info = getattr(opts, "save_api_info", False)
@@ -574,8 +575,8 @@ def save_model_info(install_path, file_name, image_path, sha256=None, preview_ht
         if use_local:
             img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
             for i, img_url in enumerate(img_urls):
-                img_name = f'{file_name}_{i}.jpg'
-                preview_html = preview_html.replace(img_url,f'{os.path.join(image_path, img_name)}')
+                img_name = f'{filename}_{i}.jpg'
+                preview_html = preview_html.replace(img_url,f'{os.path.join(save_path, img_name)}')
                 
         match = re.search(r'(\s*)<div class="model-block">', preview_html)
         if match:
@@ -586,13 +587,13 @@ def save_model_info(install_path, file_name, image_path, sha256=None, preview_ht
         utf8_meta_tag = f'{indentation}<meta charset="UTF-8">'
         head_section = f'{indentation}<head>{indentation}    {utf8_meta_tag}{indentation}    {css_link}{indentation}</head>'
         HTML = head_section + preview_html
-        path_to_new_file = os.path.join(install_path, f'{file_name}.html')
+        path_to_new_file = os.path.join(save_path, f'{filename}.html')
         with open(path_to_new_file, 'wb') as f:
             f.write(HTML.encode('utf8'))
-        print(f'Saved HTML to "{path_to_new_file}"')
+        print(f"HTML saved at \"{path_to_new_file}\"")
         
     if save_api_info:
-        path_to_new_file = os.path.join(install_path, f'{file_name}.api_info.json')
+        path_to_new_file = os.path.join(save_path, f'{filename}.api_info.json')
         if not os.path.exists(path_to_new_file) or overwrite_toggle:
             with open(path_to_new_file, mode="w", encoding="utf-8") as f:
                 json.dump(gl.json_info, f, indent=4, ensure_ascii=False)
@@ -648,11 +649,9 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
                             content["activation text"] = trained_tags
                             changed = True
                         if save_desc and ("description" not in content):
-                            debug_print("No description")
                             content["description"] = description
                             changed = True
                         if "sd version" not in content:
-                            debug_print("No SD Version")
                             content["sd version"] = base_model
                             changed = True
                     else:
@@ -687,7 +686,7 @@ def get_models(file_path, gen_hash=None):
         except Exception as e:
             print(f"Failed to open {json_file}: {e}")
     
-    if not modelId or not sha256 or modelId == "Model not found":
+    if not modelId or not sha256:
         if gen_hash:
             if not sha256:
                 sha256 = gen_sha256(file_path)
@@ -699,7 +698,7 @@ def get_models(file_path, gen_hash=None):
                 return None
     proxies, ssl = _api.get_proxies()
     try:
-        if not modelId or modelId == "Model not found":
+        if not modelId:
             response = requests.get(by_hash, timeout=(60,30), proxies=proxies, verify=ssl)
             if response.status_code == 200:
                 api_response = response.json()
@@ -799,14 +798,29 @@ def version_match(file_paths, api_response):
 def get_content_choices(scan_choices=False):
     use_LORA = getattr(opts, "use_LORA", False)
     if use_LORA:
-        content_list = ["Checkpoint", "TextualInversion", "LORA & LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
+        content_list = ["Checkpoint", "TextualInversion", "LORA, LoCon, DoRA", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
     else:
-        content_list = ["Checkpoint", "TextualInversion", "LORA", "LoCon", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
+        content_list = ["Checkpoint", "TextualInversion", "LORA", "LoCon", "DoRA", "Poses", "Controlnet", "Hypernetwork", "AestheticGradient", "VAE", "Upscaler", "MotionModule", "Wildcards", "Workflows", "Other"]
     if scan_choices:
         content_list.insert(0, 'All')
         return content_list
     return content_list
     
+def get_save_path_and_name(install_path, file_name, api_response, sub_folder=None):
+    save_to_custom = getattr(opts, "save_to_custom", False)
+    
+    name = os.path.splitext(file_name)[0]
+    if not sub_folder:
+        sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
+    image_path = _file.get_image_path(install_path, api_response, sub_folder)
+
+    if save_to_custom:
+        save_path = image_path
+    else:
+        save_path = install_path
+    
+    return save_path, name
+
 def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish, overwrite_toggle, tile_count, gen_hash, create_html, progress=gr.Progress() if queue else None):
     global no_update
     proxies, ssl = _api.get_proxies()
@@ -835,11 +849,14 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         folders = _file.get_content_choices()
         
     for item in folders:
-        if item == "LORA & LoCon":
+        if item == "LORA, LoCon, DoRA":
             folder = _api.contenttype_folder("LORA")
             if folder:
                 folders_to_check.append(folder)
             folder = _api.contenttype_folder("LoCon", fromCheck=True)
+            if folder:
+                folders_to_check.append(folder)
+            folder = _api.contenttype_folder("DoRA")
             if folder:
                 folders_to_check.append(folder)
         elif item == "Upscaler":
@@ -884,6 +901,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     file_paths = []
     all_ids = []
     
+    not_found_print = getattr(opts, "civitai_not_found_print", True)
+    
     for file_path in files:
         if gl.cancel_status:
             if progress != None:
@@ -901,7 +920,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
         if model_id == "offline":
             print("The CivitAI servers did not respond, unable to retrieve Model ID")
         elif model_id == "Model not found":
-            print(f"model: \"{file_name}\" not found on CivitAI servers.")
+            if not_found_print:
+                print(f"model: \"{file_name}\" not found on CivitAI servers.")
         elif model_id != None:
             all_model_ids.append(f"&ids={model_id}")
             all_ids.append(model_id)
@@ -1024,21 +1044,11 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
     elif from_tag:
         completed_tags = 0
         tag_count = len(file_paths)
-        save_to_custom = getattr(opts, "save_to_custom", False)
         
         for file_path, id_value in zip(file_paths, all_ids):
             install_path, file_name = os.path.split(file_path)
-            name = os.path.splitext(file_name)[0]
+            save_path, name = get_save_path_and_name(install_path, file_name, api_response)
             model_versions = _api.update_model_versions(id_value, api_response)
-            sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
-            
-            image_path = get_image_path(install_path, api_response, sub_folder)
-    
-            if save_to_custom:
-                save_path = image_path
-            else:
-                save_path = install_path
-            
             html_path = os.path.join(save_path, f'{name}.html')
             
             if create_html and not os.path.exists(html_path) or overwrite_toggle:
@@ -1048,7 +1058,8 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             completed_tags += 1
             if progress != None:
                 progress(completed_tags / tag_count, desc=f'Saving tags{" & HTML" if preview_html else ""}... {completed_tags}/{tag_count} | {name}')
-            save_model_info(save_path, name, image_path, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
+            sub_folder = os.path.normpath(os.path.relpath(install_path, gl.main_folder))
+            save_model_info(install_path, file_name, sub_folder, preview_html=preview_html, api_response=api_response, overwrite_toggle=overwrite_toggle)
         if progress != None:
             progress(1, desc=f"All tags succesfully saved!")
         gl.scan_files = False
