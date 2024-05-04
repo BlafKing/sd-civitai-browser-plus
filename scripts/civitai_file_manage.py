@@ -672,6 +672,7 @@ def find_and_save(api_response, sha256=None, file_name=None, json_file=None, no_
 
 def get_models(file_path, gen_hash=None):
     modelId = None
+    modelVersionId = None
     sha256 = None
     json_file = os.path.splitext(file_path)[0] + ".json"
     if os.path.exists(json_file):
@@ -681,6 +682,8 @@ def get_models(file_path, gen_hash=None):
                 
                 if 'modelId' in data:
                     modelId = data['modelId']
+                if 'modelVersionId' in data:
+                    modelVersionId = data['modelVersionId']
                 if 'sha256' in data and data['sha256']:
                     sha256 = data['sha256']
         except Exception as e:
@@ -698,7 +701,7 @@ def get_models(file_path, gen_hash=None):
                 return None
     proxies, ssl = _api.get_proxies()
     try:
-        if not modelId:
+        if not modelId or not modelVersionId:
             response = requests.get(by_hash, timeout=(60,30), proxies=proxies, verify=ssl)
             if response.status_code == 200:
                 api_response = response.json()
@@ -707,6 +710,7 @@ def get_models(file_path, gen_hash=None):
                     return None
                 else:
                     modelId = api_response.get("modelId", "")
+                    modelVersionId = api_response.get("id", "")
             elif response.status_code == 503:
                 return "offline"
             elif response.status_code == 404:
@@ -719,6 +723,7 @@ def get_models(file_path, gen_hash=None):
                         data = json.load(f)
 
                     data['modelId'] = modelId
+                    data['modelVersionId'] = modelVersionId
                     data['sha256'] = sha256.upper()
                         
                     with open(json_file, 'w', encoding="utf-8") as f:
@@ -728,6 +733,7 @@ def get_models(file_path, gen_hash=None):
             else:
                 data = {
                     'modelId': modelId,
+                    'modelVersionId': modelVersionId,
                     'sha256': sha256.upper()
                     }
                 with open(json_file, 'w', encoding="utf-8") as f:
