@@ -689,7 +689,7 @@ def get_models(file_path, gen_hash=None):
         except Exception as e:
             print(f"Failed to open {json_file}: {e}")
     
-    if not modelId or not sha256:
+    if not modelId or not modelVersionId or not sha256:
         if gen_hash:
             if not sha256:
                 sha256 = gen_sha256(file_path)
