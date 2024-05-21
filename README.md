@@ -2,7 +2,7 @@
 ![CivitAI Browser-05+](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/95afcc41-56f0-4398-8779-51cb2a9e2f55)
 
 ---
-### Extension for [Automatic1111's Stable Difussion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
+### Extension for [Automatic1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
 
 
 <h1>Features 🚀</h1>
@@ -27,7 +27,7 @@
 <h3>Quick Model Info Access 📊</h3>
 
 * A button for each model card in txt2img and img2img to load it into the extension.
-* A button under each image in model info to send it's generation info to txt2img.
+* A button under each image in model info to send its generation info to txt2img.
 
 <h3>High-speed downloads with Aria2 🚄</h3>
 
@@ -210,7 +210,7 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 * Bug fix: Changed model selection to Model ID instead of model name
    - This previously caused issues when 2 models were named the same.
 * Bug fix: Fixed an issue where the default file was not properly used by default.
-* Bug fix: Fixed some tiles not being selectable due to having "'" in it's title
+* Bug fix: Fixed some tiles not being selectable due to having "'" in its title
 * Bug fix: Now automatically removes residual Aria2 files.
 
 ---
@@ -272,7 +272,7 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 * Feature: Hide installed models filter toggle.
 * Feature: Better display of permissions and tags in model info.
 * New setting: Append sub folders to custom image path.
-* New setting: Toggle gif/video playback, Disable if video's are taking high CPU usage.
+* New setting: Toggle gif/video playback, Disable if videos are causing high CPU usage.
 * Bug fix: Better handling if hash is not found.
 
 ---
