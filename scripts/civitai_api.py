@@ -19,10 +19,6 @@ from html import escape
 from scripts.civitai_global import print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
-try:
-    from fake_useragent import UserAgent
-except ImportError:
-    print("Python module 'fake_useragent' has not been imported correctly, please try to restart or install it manually.")
 
 gl.init()
 
@@ -66,6 +62,7 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
             folder = os.path.join(extensions_dir, "stable-diffusion-webui-aesthetic-gradients", "aesthetic_embeddings")
         else:
             folder = os.path.join(custom_folder, "aesthetic_embeddings")
+            
     elif content_type == "LORA":
         if cmd_opts.lora_dir and not custom_folder:
             folder = cmd_opts.lora_dir
@@ -92,8 +89,11 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
         else:
             folder = os.path.join(main_models, "VAE")
             
-    elif content_type == "Controlnet":  
-        folder = os.path.join(main_models, "ControlNet")
+    elif content_type == "Controlnet":
+        if cmd_opts.controlnet_dir and not custom_folder:
+            folder = cmd_opts.controlnet_dir
+        else:
+            folder = os.path.join(main_models, "ControlNet")
             
     elif content_type == "Poses":
         folder = os.path.join(main_models, "Poses")
@@ -1165,16 +1165,11 @@ def get_proxies():
     return proxies, ssl
 
 def get_headers(referer=None, no_api=None):
-    
     api_key = getattr(opts, "custom_api_key", "")
-    try:
-        user_agent = UserAgent().chrome
-    except ImportError:
-        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
     headers = {
         "Connection": "keep-alive",
         "Sec-Ch-Ua-Platform": "Windows",
-        "User-Agent": user_agent,
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
         "Content-Type": "application/json"
     }
     if referer:
