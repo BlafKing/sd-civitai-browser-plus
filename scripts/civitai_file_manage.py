@@ -1056,7 +1056,7 @@ def file_scan(folders, ver_finish, tag_finish, installed_finish, preview_finish,
             model_versions = _api.update_model_versions(id_value, api_response)
             html_path = os.path.join(save_path, f'{name}.html')
             
-            if create_html and not os.path.exists(html_path) or overwrite_toggle:
+            if create_html and not os.path.exists(html_path) or create_html and overwrite_toggle:
                 preview_html = _api.update_model_info(None, model_versions.get('value'), True, id_value, api_response, True)
             else:
                 preview_html = None

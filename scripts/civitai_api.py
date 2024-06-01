@@ -90,7 +90,7 @@ def contenttype_folder(content_type, desc=None, fromCheck=False, custom_folder=N
             folder = os.path.join(main_models, "VAE")
             
     elif content_type == "Controlnet":
-        if cmd_opts.controlnet_dir and not custom_folder:
+        if hasattr(cmd_opts, 'controlnet_dir') and cmd_opts.controlnet_dir and not custom_folder:
             folder = cmd_opts.controlnet_dir
         else:
             folder = os.path.join(main_models, "ControlNet")
