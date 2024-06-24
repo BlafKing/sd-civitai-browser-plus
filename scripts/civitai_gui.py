@@ -217,7 +217,7 @@ def on_ui_tabs():
                 download_progress = gr.HTML(value='<div style="min-height: 0px;"></div>', elem_id="DownloadProgress")
             with gr.Row():
                 list_models = gr.Dropdown(label="Model:", choices=[], interactive=False, elem_id="quicksettings1", value=None)
-                list_versions = gr.Dropdown(label="Version:", choices=[], interactive=False, elem_id="quicksettings", value=None)
+                list_versions = gr.Dropdown(label="Version:", choices=[], interactive=False, elem_id="quicksettings0", value=None)
                 file_list = gr.Dropdown(label="File:", choices=[], interactive=False, elem_id="file_list", value=None)
             with gr.Row():
                 with gr.Column(scale=4):

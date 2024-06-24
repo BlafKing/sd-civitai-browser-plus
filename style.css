@@ -55,7 +55,7 @@
 
 /* End of Card list HTML */
 
-#quicksettings > div{
+#quicksettings0 > div{
 	max-width: None !important;
 	width: auto !important;
 }
@@ -107,7 +107,7 @@
     z-index: 60;
 }
 
-.acss-14flpmm .gap:has(#quicksettings):first-child {
+.acss-14flpmm .gap:has(#quicksettings0):first-child {
     gap: var(--layout-gap);
 }
 
