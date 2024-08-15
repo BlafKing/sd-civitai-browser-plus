@@ -1,4 +1,4 @@
-**For bugs and issues, go to original repository to report, this repo is only forked to made small contribution for the things that restricted me from using the extension. But I am grateful for this extension to exist. Big thanks to Blafking.
+**For bugs and issues, go to [Original repository](https://github.com/BlafKing/sd-civitai-browser-plus) to report, this repo is only forked to made small contribution for the things that restricted me from using the extension. But I am grateful for this extension to exist. Big thanks to [Blafking](https://github.com/BlafKing/).
 **
 
 ![CivitAI Browser-05+](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/95afcc41-56f0-4398-8779-51cb2a9e2f55)
