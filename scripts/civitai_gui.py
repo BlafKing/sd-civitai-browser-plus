@@ -1014,30 +1014,50 @@ def subfolder_list(folder, desc=None):
         sub_folders.remove("None")
         sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
         sub_folders.insert(0, "None")
+
+        #Added different flavor I liked for directory structure when creating folders
         if insert_sub_1:
-            sub_folders.insert(1, f"{os.sep}Base model")
+            #sub_folders.insert(1, f"{os.sep}Base model")
+            sub_folders.insert(1, f"{os.sep}byBaseModel{os.sep}Base model")
         if insert_sub_2:
-            sub_folders.insert(2, f"{os.sep}Base model{os.sep}Author name")
+            #sub_folders.insert(2, f"{os.sep}Base model{os.sep}Author name")
+            sub_folders.insert(2, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name")
         if insert_sub_3:
-            sub_folders.insert(3, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
+            #sub_folders.insert(3, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
+            sub_folders.insert(3, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name")
         if insert_sub_4:
-            sub_folders.insert(4, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+            #sub_folders.insert(4, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+            sub_folders.insert(4, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
         if insert_sub_5:
-            sub_folders.insert(5, f"{os.sep}Base model{os.sep}Model name")
+            #sub_folders.insert(5, f"{os.sep}Base model{os.sep}Model name")
+
+            ##sub_folders.insert(5, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name")
+            ## Changed abovecustom entry to exclude "byBaseModel" and include author name
+            sub_folders.insert(5, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
         if insert_sub_6:
-            sub_folders.insert(6, f"{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+            #sub_folders.insert(6, f"{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+
+            #sub_folders.insert(6, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+            ## Changed above custom entry to exclude "byBaseModel" and include author name
+            sub_folders.insert(6, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
         if insert_sub_7:
-            sub_folders.insert(7, f"{os.sep}Author name")
+            #sub_folders.insert(7, f"{os.sep}Author name")
+            sub_folders.insert(7, f"{os.sep}byUser{os.sep}Author name")
         if insert_sub_8:
-            sub_folders.insert(8, f"{os.sep}Author name{os.sep}Base model")
+            #sub_folders.insert(8, f"{os.sep}Author name{os.sep}Base model")
+            sub_folders.insert(8, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model")
         if insert_sub_9:
-            sub_folders.insert(9, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name")
+            #sub_folders.insert(9, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name")
+            sub_folders.insert(9, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name")
         if insert_sub_10:
-            sub_folders.insert(10, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+            #sub_folders.insert(10, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+            sub_folders.insert(10, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
         if insert_sub_11:
-            sub_folders.insert(11, f"{os.sep}Author name{os.sep}Model name")
+            #sub_folders.insert(11, f"{os.sep}Author name{os.sep}Model name")
+            sub_folders.insert(11, f"{os.sep}byUser{os.sep}Author name{os.sep}Model name")
         if insert_sub_12:
-            sub_folders.insert(12, f"{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+            #sub_folders.insert(12, f"{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+            sub_folders.insert(12, f"{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")
         if insert_sub_13:
             sub_folders.insert(13, f"{os.sep}Model name")
         if insert_sub_14:
@@ -1336,19 +1356,39 @@ def on_ui_settings():
         ).info("Not recommended for security, may be required if you do not have the correct CA Bundle available")
     )
 
+    #Added different flavor I liked for directory structure
     id_and_sub_options = {
-        "1" : f"{os.sep}Base model",
-        "2" : f"{os.sep}Base model{os.sep}Author name",
-        "3" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name",
-        "4" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
-        "5" : f"{os.sep}Base model{os.sep}Model name",
-        "6" : f"{os.sep}Base model{os.sep}Model name{os.sep}Model version",
-        "7" : f"{os.sep}Author name",
-        "8" : f"{os.sep}Author name{os.sep}Base model",
-        "9" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name",
-        "10" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
-        "11" : f"{os.sep}Author name{os.sep}Model name",
-        "12" : f"{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        #"1" : f"{os.sep}Base model",
+        "1" : f"{os.sep}byBaseModel{os.sep}Base model",
+        #"2" : f"{os.sep}Base model{os.sep}Author name",
+        "2" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name",
+        #"3" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name",
+        "3" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name",
+        #"4" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        "4" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        
+        #"5" : f"{os.sep}Base model{os.sep}Model name",
+        #"5" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name",
+        ## Changed above custom entry to exclude "byBaseModel" and include author name - For Checkpoint file types makes more sense
+        "5" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name",
+        
+        #"6" : f"{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        #"6" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        ## Changed above custom entry to exclude "byBaseModel" and include author name - For Checkpoint file types makes more sense
+        "6" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+
+        #"7" : f"{os.sep}Author name",
+        "7" : f"{os.sep}byUser{os.sep}Author name",
+        #"8" : f"{os.sep}Author name{os.sep}Base model",
+        "8" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model",
+        #"9" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name",
+        "9" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name",
+        #"10" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        "10" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        #"11" : f"{os.sep}Author name{os.sep}Model name",
+        "11" : f"{os.sep}byUser{os.sep}Author name{os.sep}Model name",
+        #"12" : f"{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        "12" : f"{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",
         "13" : f"{os.sep}Model name",
         "14" : f"{os.sep}Model name{os.sep}Model version",
     }

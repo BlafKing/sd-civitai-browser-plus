@@ -536,12 +536,25 @@ def update_model_versions(model_id, json_input=None):
 
 def cleaned_name(file_name):
     if platform.system() == "Windows":
-        illegal_chars_pattern = r'[\\/:*?"<>|]'
+        #original line:
+        #illegal_chars_pattern = r'[\\/:*?"<>|]'
+        #Added exclusion of ^ character:
+        illegal_chars_pattern = r'[\\/:*?"<>|\^]'
     else:
         illegal_chars_pattern = r'/'
 
     name, extension = os.path.splitext(file_name)
-    clean_name = re.sub(illegal_chars_pattern, '', name)
+
+    #Custom added to clean leading and trailing spaces in filename:
+    normalized_name = ' '.join(name.strip().split('?<=\s) +|^ +(?=\s)| (?= +[\n\0])'))
+    
+    #Original line:
+    #clean_name = re.sub(illegal_chars_pattern, '', name)
+    #Custom added to proceed exeucting regex after spliting filename removing spaces:
+    clean_name = re.sub(illegal_chars_pattern, '', normalized_name)
+    
+    #Custom added to clean further using RegEx Method
+    clean_name = re.sub(' +', ' ', clean_name)
 
     return f"{clean_name}{extension}"
 
@@ -913,19 +926,45 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             author = cleaned_name(model_uploader)
             name = cleaned_name(model_name)
             ver = cleaned_name(model_version)
+
+            #Custom added for directory structure
+            byUser = "byUser"
+            byBaseModel = "byBaseModel"
+
+            #Also using Replace here to fix version naming, regex of cleaned_name does not seem to work for "Model version name" at least not pipe character
+            print("Original Version name of the selected model is: \"" +ver +"\"")
+            replace_dict= {"|": " ", "^": " "}
+            
+            for old, new in replace_dict.items():
+                ver = ver.replace(old, new)
+
+            #Only useful for debugging in case renaming fails for other characters:
+            #print("Renaming Model version name to: \"" +ver+"\"")
+                
+            ver = ' '.join(ver.strip().split('?<=\s) +|^ +(?=\s)| (?= +[\n\0])'))
+            print("Model version name \"" +ver +"\" will be used for sub-folder creation if configured in settings") #Cleaned version name 
+            
             
             if insert_sub_1:
-                sub_folders.insert(1, os.path.join(os.sep, base))
+                #sub_folders.insert(1, os.path.join(os.sep, base))
+                sub_folders.insert(1, os.path.join(os.sep, byBaseModel, base))
             if insert_sub_2:
-                sub_folders.insert(2, os.path.join(os.sep, base, author))
+                #sub_folders.insert(2, os.path.join(os.sep, base, author))
+                sub_folders.insert(2, os.path.join(os.sep, byBaseModel, base, author))
             if insert_sub_3:
-                sub_folders.insert(3, os.path.join(os.sep, base, author, name))
+                #sub_folders.insert(3, os.path.join(os.sep, base, author, name))
+                sub_folders.insert(3, os.path.join(os.sep, byBaseModel, base, author, name))
             if insert_sub_4:
-                sub_folders.insert(4, os.path.join(os.sep, base, author, name, ver))
+                #sub_folders.insert(4, os.path.join(os.sep, base, author, name, ver))
+                sub_folders.insert(4, os.path.join(os.sep, byBaseModel, base, author, name, ver))
             if insert_sub_5:
-                sub_folders.insert(5, os.path.join(os.sep, base, name))
+                #sub_folders.insert(5, os.path.join(os.sep, base, name))
+                ## Changed to exclude custom "byBaseModel" folder and add author folder to it:
+                sub_folders.insert(5, os.path.join(os.sep, base, author, name))
             if insert_sub_6:
-                sub_folders.insert(6, os.path.join(os.sep, base, name, ver))
+                #sub_folders.insert(6, os.path.join(os.sep, base, name, ver))
+                ## Changed to exclude custom "byBaseModel" folder and add author folder to it:
+                sub_folders.insert(6, os.path.join(os.sep, base, author, name, ver))
             if insert_sub_7:
                 sub_folders.insert(7, os.path.join(os.sep, author))
             if insert_sub_8:
