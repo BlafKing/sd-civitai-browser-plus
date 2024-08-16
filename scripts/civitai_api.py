@@ -536,10 +536,7 @@ def update_model_versions(model_id, json_input=None):
 
 def cleaned_name(file_name):
     if platform.system() == "Windows":
-        #original line:
-        #illegal_chars_pattern = r'[\\/:*?"<>|]'
-        #Added exclusion of ^ character:
-        illegal_chars_pattern = r'[\\/:*?"<>|\^]'
+        illegal_chars_pattern = r'[\\/:*?"<>|]'
     else:
         illegal_chars_pattern = r'/'
 
@@ -933,7 +930,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
 
             #Also using Replace here to fix version naming, regex of cleaned_name does not seem to work for "Model version name" at least not pipe character
             print("Original Version name of the selected model is: \"" +ver +"\"")
-            replace_dict= {"|": " ", "^": " "}
+            replace_dict= {"|": " "}
             
             for old, new in replace_dict.items():
                 ver = ver.replace(old, new)
