@@ -176,6 +176,13 @@ def model_list_html(json_data):
     json_data['items'] = filtered_items
     
     HTML = '<div class="column civmodellist">'
+    base_filter = gl.previous_inputs[6] if gl.previous_inputs else None
+    is_flux_filter = base_filter and "Flux.1 D" in base_filter
+    
+    for item in json_data['items']:
+        base_model = item['modelVersions'][0]['baseModel'] if item['modelVersions'] else None
+        if is_flux_filter and base_model != "Flux.1 D":
+            continue
     sorted_models = {}
     existing_files = set()
     existing_files_sha256 = set()
@@ -288,11 +295,10 @@ def model_list_html(json_data):
 
 def create_api_url(content_type=None, sort_type=None, period_type=None, use_search_term=None, base_filter=None, only_liked=None, tile_count=None, search_term=None, nsfw=None, isNext=None):
     base_url = "https://civitai.com/api/v1/models"
-    version_url = "https://civitai.com/api/v1/model-versions"
     
     if isNext is not None:
         api_url = gl.json_data['metadata']['nextPage' if isNext else 'prevPage']
-        debug_print(api_url)
+        print(f"Debug - Next/Prev URL: {api_url}")
         return api_url
     
     params = {'limit': tile_count, 'sort': sort_type, 'period': period_type.replace(" ", "") if period_type else None}
@@ -305,14 +311,25 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
         if "civitai.com" in search_term:
             model_number = re.search(r'models/(\d+)', search_term).group(1)
             params = {'ids': model_number}
-
         else:
             key_map = {"User name": "username", "Tag": "tag"}
             search_key = key_map.get(use_search_term, "query")
             params[search_key] = search_term
     
     if base_filter:
-        params["baseModels"] = base_filter
+        print(f"Debug - Base filter: {base_filter}")
+        flux_tags = []
+        if "Flux.1 D" in base_filter:
+            flux_tags.append("flux.1d")  # Changed from flux1.d to flux.1d
+        if "Flux.1" in base_filter:
+            flux_tags.append("flux.1")
+        
+        if flux_tags:
+            params["tag"] = flux_tags
+            print(f"Debug - Flux tags selected: {flux_tags}")
+        else:
+            params["baseModels"] = [model for model in base_filter if model not in ["Flux.1 D", "Flux.1"]]
+            print(f"Debug - Other base models selected: {params['baseModels']}")
     
     if only_liked:
         params["favorites"] = "true"
@@ -330,7 +347,7 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
     query_string = urllib.parse.urlencode(query_parts, doseq=True, quote_via=urllib.parse.quote)
     api_url = f"{base_url}?{query_string}"
     
-    debug_print(api_url)
+    print(f"Debug - Final API URL: {api_url}")
     return api_url
 
 def convert_LORA_LoCon(content_type):
