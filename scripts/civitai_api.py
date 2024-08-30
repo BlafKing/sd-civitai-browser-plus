@@ -318,18 +318,23 @@ def create_api_url(content_type=None, sort_type=None, period_type=None, use_sear
     
     if base_filter:
         print(f"Debug - Base filter: {base_filter}")
-        flux_tags = []
-        if "Flux.1 D" in base_filter:
-            flux_tags.append("flux.1d")  # Changed from flux1.d to flux.1d
-        if "Flux.1" in base_filter:
-            flux_tags.append("flux.1")
+        flux_models = [model for model in base_filter if model.startswith("Flux")]
+        other_models = [model for model in base_filter if not model.startswith("Flux")]
         
-        if flux_tags:
-            params["tag"] = flux_tags
-            print(f"Debug - Flux tags selected: {flux_tags}")
-        else:
-            params["baseModels"] = [model for model in base_filter if model not in ["Flux.1 D", "Flux.1"]]
-            print(f"Debug - Other base models selected: {params['baseModels']}")
+        if flux_models:
+            flux_tags = []
+            if "flux1.d" in flux_models:
+                flux_tags.append("flux1.d")
+            if "Flux.1" in flux_models:
+                flux_tags.append("flux.1")
+            
+            if flux_tags:
+                params["tag"] = ",".join(flux_tags)  # Join multiple tags with a comma
+            print(f"Debug - Flux tag(s): {params.get('tag')}")
+        
+        if other_models:
+            params["baseModels"] = other_models
+            print(f"Debug - Other base models: {params['baseModels']}")
     
     if only_liked:
         params["favorites"] = "true"
