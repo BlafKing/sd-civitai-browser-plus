@@ -511,7 +511,7 @@ def send_to_browser(model_name, content_type, click_first_item):
             number = _download.random_number(click_first_item)
     
     return (
-        gr.HTML.update(output_html), # Card HTML
+        gr.Textbox.update(output_html), # Card HTML
         gr.Button.update(interactive=False), # Prev Button
         gr.Button.update(interactive=False), # Next Button 
         gr.Slider.update(value=1, maximum=1), # Page Slider
