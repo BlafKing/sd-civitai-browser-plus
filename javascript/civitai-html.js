@@ -253,40 +253,34 @@ function pressRefresh() {
     }, 200);
 }
 
-// Update SVG Icons based on dark theme or light theme
-function updateSVGIcons() {
-    const isDark = document.body.classList.contains('dark');
-    const filterIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/a20124cedafad23d4eecc1367ec22896/raw/04a4dae0771353377747dadf57c91d55bf841bed/filter-light.svg" : "https://gistcdn.githack.com/BlafKing/686c3438f5d0d13e7e47135f25445ef3/raw/46477777faac7209d001829a171462d9a2ff1467/filter-dark.svg";
-    const searchIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/3f95619089bac3b4fd5470a986e1b3bb/raw/ebaa9cceee3436711eb560a7a65e151f1d651c6a/search-light.svg" : "https://gistcdn.githack.com/BlafKing/57573592d5857e102a4bfde852f62639/raw/aa213e9e82d705651603507e26545eb0ffe60c90/search-dark.svg";
-
-    if (isDark) {
+// // Update SVG Icons based on dark theme or light theme
+// function updateSVGIcons() {
+//     const isDark = document.body.classList.contains('dark');
+//     const filterIconUrl = isDark ? "https://gistcdn.githack.com/BlafKing/a20124cedafad23d4eecc1367ec22896/raw/04a4dae0771353377747dadf57c91d55bf841bed/filter-light.svg" : "https://gistcdn.githack.com/BlafKing/686c3438f5d0d13e7e47135f25445ef3/raw/46477777faac7209d001829a171462d9a2ff1467/filter-dark.svg";
+    
+//     if (isDark) {
         
-    }
+//     }
 
-    const element = document.querySelector("#filterBox, #filterBoxL");
-    const childDiv = element?.querySelector("div:nth-child(3)");
+//     const element = document.querySelector("#filterBox, #filterBoxL");
+//     const childDiv = element?.querySelector("div:nth-child(3)");
 
-    if (childDiv) {
-        childDiv.style.cssText = `box-shadow: ${isDark ? '#ffffff' : '#000000'} 0px 0px 2px 0px; display: none;`;
-    }
+//     if (childDiv) {
+//         childDiv.style.cssText = `box-shadow: ${isDark ? '#ffffff' : '#000000'} 0px 0px 2px 0px; display: none;`;
+//     }
 
-    const style = document.createElement('style');
-    style.innerHTML = `
-        #filterBox > div:nth-child(2) > span:nth-child(2)::before,
-        #filterBoxL > div:nth-child(2) > span:nth-child(2)::before {
-            background: url('${filterIconUrl}') no-repeat center center;
-            background-size: contain;
-        }
-    `;
-    document.head.appendChild(style);
+//     const style = document.createElement('style');
+//     style.innerHTML = `
+//         #filterBox > div:nth-child(2) > span:nth-child(2)::before,
+//         #filterBoxL > div:nth-child(2) > span:nth-child(2)::before {
+//             background: url('${filterIconUrl}') no-repeat center center;
+//             background-size: contain;
+//         }
+//     `;
+//     document.head.appendChild(style);
 
-    const refreshBtn = document.querySelector("#refreshBtn, #refreshBtnL");
-    const targetSearchElement = refreshBtn?.firstChild || refreshBtnL?.firstChild;
-
-    if (targetSearchElement) {
-        targetSearchElement.src = searchIconUrl;
-    }
-}
+//     const refreshBtn = document.querySelector("#refreshBtn, #refreshBtnL");
+// }
 
 // Creates a tooltip if the user wants to filter liked models without a personal API key
 function createTooltip(element, hover_element, insertText) {
@@ -957,7 +951,6 @@ function setDescriptionToggle() {
 
 // Runs all functions when the page is fully loaded
 function onPageLoad() {
-    updateSVGIcons();
 
     let subfolderDiv = document.querySelector("#settings_civitai_browser_plus > div > div");
     let downloadDiv = document.querySelector("#settings_civitai_browser_download > div > div");

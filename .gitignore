@@ -1,3 +1,7 @@
 __pycache__
 .vscode
 running
+
+/testing_venv/
+
+old_aria2.exe.bak

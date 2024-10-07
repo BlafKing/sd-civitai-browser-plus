@@ -240,14 +240,6 @@
     min-height: 42px !important;
     max-height: 42px !important;
     max-width: 42px !important;
-    min-width: 42px !important;
-    width: 42px !important;
-    padding: 0px !important;
-}
-
-#refreshBtn > img,
-#refreshBtnL > img {
-    margin: unset;
 }
 
 #searchRow {

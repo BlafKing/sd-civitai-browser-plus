@@ -177,9 +177,9 @@ def on_ui_tabs():
     content_choices = _file.get_content_choices()
     scan_choices = _file.get_content_choices(scan_choices=True)
     with gr.Blocks() as civitai_interface:
-        with gr.Tab(label="Browser", elem_id="browserTab"):
+        with gr.Tab(label="Browser", elem_id="browserTab", id="browserTab"):
             with gr.Row(elem_id="searchRow"):
-                with gr.Accordion(label="", open=False, elem_id=filterBox):
+                with gr.Accordion(open=False, elem_id=filterBox):
                     with gr.Row():
                         use_search_term = gr.Radio(label="Search type:", choices=["Model name", "User name", "Tag"], value="Model name", elem_id="searchType")
                     with gr.Row():
@@ -201,7 +201,7 @@ def on_ui_tabs():
                     with gr.Row(elem_id="save_set_box"):
                         save_settings = gr.Button(value="Save settings as default", elem_id="save_set_btn")
                 search_term = gr.Textbox(label="", placeholder="Search CivitAI", elem_id="searchBox")
-                refresh = gr.Button(value="", elem_id=refreshbtn, icon="placeholder")
+                refresh = gr.Button(value="Search", elem_id=refreshbtn)
             with gr.Row(elem_id=header):
                 with gr.Row(elem_id="pageBox"):
                     get_prev_page = gr.Button(value="Prev page", interactive=False, elem_id="pageBtn1")
@@ -244,7 +244,7 @@ def on_ui_tabs():
                 preview_html = gr.HTML(elem_id="civitai_preview_html")
             with gr.Row(elem_id="backToTopContainer"):
                 back_to_top = gr.Button(value="↑", elem_id="backToTop")
-        with gr.Tab("Update Models"):
+        with gr.Tab(label="Update Models", id="updateTab"):
             with gr.Row():
                 selected_tags = gr.CheckboxGroup(elem_id="selected_tags", label="Selected content types:", choices=scan_choices)
             with gr.Row(elem_id="civitai_update_toggles"):
@@ -278,7 +278,7 @@ def on_ui_tabs():
                 cancel_organize = gr.Button(value="Cancel loading models", interactive=False, visible=False)
             with gr.Row():
                 organize_progress = gr.HTML(value='<div style="min-height: 0px;"></div>')
-        with gr.Tab("Download Queue"):
+        with gr.Tab(label="Download Queue", id="queueTab"):
             
             def get_style(size, left_border):
                 return f"flex-grow: {size};" + ("border-left: 1px solid var(--border-color-primary);" if left_border else "") + "border-bottom: 1px solid var(--border-color-primary);padding: 5px 10px 5px 10px;width: 0;"
