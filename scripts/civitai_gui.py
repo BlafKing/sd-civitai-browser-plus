@@ -1100,7 +1100,7 @@ def on_ui_settings():
     shared.opts.add_option(
         "split_aria2",
         shared.OptionInfo(
-            64,
+            16,
             "Number of connections to use for downloading a model",
             gr.Slider,
             lambda: {"maximum": "64", "minimum": "1", "step": "1"},
