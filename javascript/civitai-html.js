@@ -272,11 +272,17 @@ function updateSVGIcons() {
 
     const style = document.createElement('style');
     style.innerHTML = `
-        #filterBox > div:nth-child(2) > span:nth-child(2),
-        #filterBoxL > div:nth-child(2) > span:nth-child(2) {
+        #filterBox > div:nth-child(2) > span:nth-child(2)::before,
+        #filterBoxL > div:nth-child(2) > span:nth-child(2)::before {
             background: url('${filterIconUrl}') no-repeat center center;
             background-size: contain;
         }
+        #refreshBtn > img,
+        #refreshBtnL > img {
+            content: url('${searchIconUrl}');
+        }
+            
+        /* Gradio 4 */
         #filterBox > button:nth-child(2),
         #filterBoxL > button:nth-child(2) {
             background: url('${filterIconUrl}') no-repeat center center !important;
@@ -285,10 +291,6 @@ function updateSVGIcons() {
         #filterBox > button:nth-child(2) > span,
         #filterBoxL > button:nth-child(2) > span {
             visibility: hidden;
-        }
-        #refreshBtn > img,
-        #refreshBtnL > img {
-            content: url('${searchIconUrl}');
         }
     `;
     document.head.appendChild(style);
