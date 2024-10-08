@@ -185,7 +185,7 @@ def on_ui_tabs():
                     with gr.Row():
                         content_type = gr.Dropdown(label='Content type:', choices=content_choices, value=None, type="value", multiselect=True, elem_id="centerText")
                     with gr.Row():
-                        base_filter = gr.Dropdown(label='Base model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 1.5 LCM","SD 2.0","SD 2.0 768","SD 2.1","SD 2.1 768","SD 2.1 Unclip","SDXL 0.9","SDXL 1.0","SDXL 1.0 LCM","SDXL Distilled","SDXL Turbo","SDXL Lightning","Stable Cascade","Pony","SVD","SVD XT","Playground v2","PixArt a","Other"], value=None, type="value", elem_id="centerText")
+                        base_filter = gr.Dropdown(label='Base model:', multiselect=True, choices=["SD 1.4","SD 1.5","SD 1.5 LCM","SD 2.0","SD 2.0 768","SD 2.1","SD 2.1 768","SD 2.1 Unclip","SDXL 0.9","SDXL 1.0","SDXL 1.0 LCM","SDXL Distilled","SDXL Turbo","SDXL Lightning","Stable Cascade","Pony","SVD","SVD XT","Playground v2","PixArt a", "Flux.1 S", "Flux.1 D","Other"], value=None, type="value", elem_id="centerText")
                     with gr.Row():
                         period_type = gr.Dropdown(label='Time period:', choices=["All Time", "Year", "Month", "Week", "Day"], value="All Time", type="value", elem_id="centerText")
                         sort_type = gr.Dropdown(label='Sort by:', choices=["Newest","Oldest","Most Downloaded","Highest Rated","Most Liked","Most Buzz","Most Discussed","Most Collected","Most Images"], value="Most Downloaded", type="value", elem_id="centerText")
@@ -996,7 +996,37 @@ def subfolder_list(folder, desc=None):
     insert_sub_13 = getattr(opts, "insert_sub_13", False)
     insert_sub_14 = getattr(opts, "insert_sub_14", False)
     dot_subfolders = getattr(opts, "dot_subfolders", True)
-    
+
+    #Added more entries to support custom sub folders:
+    insert_sub_15 = getattr(opts, "insert_sub_15", False)
+    insert_sub_16 = getattr(opts, "insert_sub_16", False)
+    insert_sub_17 = getattr(opts, "insert_sub_17", False)
+    insert_sub_18 = getattr(opts, "insert_sub_18", False)
+    insert_sub_19 = getattr(opts, "insert_sub_19", False)
+    insert_sub_20 = getattr(opts, "insert_sub_20", False)
+    insert_sub_21 = getattr(opts, "insert_sub_21", False)
+    insert_sub_22 = getattr(opts, "insert_sub_22", False)
+    insert_sub_23 = getattr(opts, "insert_sub_23", False)
+    insert_sub_24 = getattr(opts, "insert_sub_24", False)
+    insert_sub_25 = getattr(opts, "insert_sub_25", False)
+    insert_sub_26 = getattr(opts, "insert_sub_26", False)
+    insert_sub_27 = getattr(opts, "insert_sub_27", False)
+    insert_sub_28 = getattr(opts, "insert_sub_28", False)
+    insert_sub_29 = getattr(opts, "insert_sub_29", False)
+    insert_sub_30 = getattr(opts, "insert_sub_30", False)
+    insert_sub_31 = getattr(opts, "insert_sub_31", False)
+    insert_sub_32 = getattr(opts, "insert_sub_32", False)
+    insert_sub_33 = getattr(opts, "insert_sub_33", False)
+    insert_sub_34 = getattr(opts, "insert_sub_34", False)
+    insert_sub_35 = getattr(opts, "insert_sub_35", False)
+    insert_sub_36 = getattr(opts, "insert_sub_36", False)
+    insert_sub_37 = getattr(opts, "insert_sub_37", False)
+    insert_sub_38 = getattr(opts, "insert_sub_38", False)
+    insert_sub_39 = getattr(opts, "insert_sub_39", False)
+    #insert_sub_40 = getattr(opts, "insert_sub_40", False)
+    # End of added folder entries
+
+
     if folder == None:
         return
     try:
@@ -1015,53 +1045,103 @@ def subfolder_list(folder, desc=None):
         sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
         sub_folders.insert(0, "None")
 
-        #Added different flavor I liked for directory structure when creating folders
+        ##This is for settings, section "Default sub folders"
+        
         if insert_sub_1:
-            #sub_folders.insert(1, f"{os.sep}Base model")
-            sub_folders.insert(1, f"{os.sep}byBaseModel{os.sep}Base model")
+            sub_folders.insert(1, f"{os.sep}Base model")
         if insert_sub_2:
-            #sub_folders.insert(2, f"{os.sep}Base model{os.sep}Author name")
-            sub_folders.insert(2, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name")
+            sub_folders.insert(2, f"{os.sep}Base model{os.sep}Author name")
         if insert_sub_3:
-            #sub_folders.insert(3, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
-            sub_folders.insert(3, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name")
+            sub_folders.insert(3, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
         if insert_sub_4:
-            #sub_folders.insert(4, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
-            sub_folders.insert(4, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+            sub_folders.insert(4, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
         if insert_sub_5:
-            #sub_folders.insert(5, f"{os.sep}Base model{os.sep}Model name")
-
-            ##sub_folders.insert(5, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name")
-            ## Changed abovecustom entry to exclude "byBaseModel" and include author name
-            sub_folders.insert(5, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name")
+            sub_folders.insert(5, f"{os.sep}Base model{os.sep}Model name")
         if insert_sub_6:
-            #sub_folders.insert(6, f"{os.sep}Base model{os.sep}Model name{os.sep}Model version")
-
-            #sub_folders.insert(6, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name{os.sep}Model version")
-            ## Changed above custom entry to exclude "byBaseModel" and include author name
-            sub_folders.insert(6, f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+            sub_folders.insert(6, f"{os.sep}Base model{os.sep}Model name{os.sep}Model version")
         if insert_sub_7:
-            #sub_folders.insert(7, f"{os.sep}Author name")
-            sub_folders.insert(7, f"{os.sep}byUser{os.sep}Author name")
+            sub_folders.insert(7, f"{os.sep}Author name")
         if insert_sub_8:
-            #sub_folders.insert(8, f"{os.sep}Author name{os.sep}Base model")
-            sub_folders.insert(8, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model")
+            sub_folders.insert(8, f"{os.sep}Author name{os.sep}Base model")
         if insert_sub_9:
-            #sub_folders.insert(9, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name")
-            sub_folders.insert(9, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name")
+            sub_folders.insert(9, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name")
         if insert_sub_10:
-            #sub_folders.insert(10, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
-            sub_folders.insert(10, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+            sub_folders.insert(10, f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
         if insert_sub_11:
-            #sub_folders.insert(11, f"{os.sep}Author name{os.sep}Model name")
-            sub_folders.insert(11, f"{os.sep}byUser{os.sep}Author name{os.sep}Model name")
+            sub_folders.insert(11, f"{os.sep}Author name{os.sep}Model name")
         if insert_sub_12:
-            #sub_folders.insert(12, f"{os.sep}Author name{os.sep}Model name{os.sep}Model version")
-            sub_folders.insert(12, f"{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+            sub_folders.insert(12, f"{os.sep}Author name{os.sep}Model name{os.sep}Model version")
         if insert_sub_13:
             sub_folders.insert(13, f"{os.sep}Model name")
         if insert_sub_14:
             sub_folders.insert(14, f"{os.sep}Model name{os.sep}Model version")
+
+        ##Custom added entries:
+        # ---- Added different flavor I liked for directory structure ---
+
+        #Adding "byBaseModel" in the folder name to organize better in case folder is messy with other files.
+        if insert_sub_15:
+            sub_folders.insert(15, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name")
+        if insert_sub_16:
+            sub_folders.insert(16, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version")                  ## For checkpoint models, this one could make sense
+        if insert_sub_17:
+            sub_folders.insert(17, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+        if insert_sub_18:
+            sub_folders.insert(18, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version")
+        if insert_sub_19:
+            sub_folders.insert(19, f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+
+        #Use Base model name as parent folder structure + byUser nesting
+        if insert_sub_20:
+            sub_folders.insert(20, f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name")                                            ## Used #3 as template to include "byUser" subfolder
+        if insert_sub_21:
+            sub_folders.insert(21, f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")                       ## For checkpoint models, this one could make sense. (Used #4 as template to include "byUser" subfolder)
+            
+        #Adding "byTagName" in between "byUser" entries for specific user categorizing.
+        if insert_sub_22:
+            sub_folders.insert(22, f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Tag name{os.sep}Model name{os.sep}Model version")
+        if insert_sub_23:
+            sub_folders.insert(23, f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version")
+
+        #Using base folder as first folder and nesting "byTagName" and include the first found civitAI tag in the folder name to organize folder structure better.
+        if insert_sub_24:
+            sub_folders.insert(24, f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}Model name")
+        if insert_sub_25:
+            sub_folders.insert(25, f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version")
+        if insert_sub_26:
+            sub_folders.insert(26, f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name")
+        if insert_sub_27:
+            sub_folders.insert(27, f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name{os.sep}Model name")
+        if insert_sub_28:
+            sub_folders.insert(28, f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")
+
+
+        #Modified entries, by using "byUser" sa first folder before generating the username folder. (Modified from source insert_sub_7 till insert_sub_12)
+        if insert_sub_29:
+            sub_folders.insert(29, f"{os.sep}byUser{os.sep}Author name")                                                                                ## Used #7 as template to include "byUser" subfolder
+        if insert_sub_30:
+            sub_folders.insert(30, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name")                                            ## Used #9 as template to include "byUser" subfolder
+        if insert_sub_31:
+            sub_folders.insert(31, f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version")                       ## Used #10 as template to include "byUser" subfolder
+        if insert_sub_32:
+            sub_folders.insert(32, f"{os.sep}byUser{os.sep}Author name{os.sep}Model name")                                                              ## Used #11 as template to include "byUser" subfolder
+        if insert_sub_33:
+            sub_folders.insert(33, f"{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")                                         ## Used #12 as template to include "byUser" subfolder
+        if insert_sub_34:
+            sub_folders.insert(34, f"{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version")        ## Used #12 as template to include "byUser" subfolder and included Tag Name in addition
+
+        ## Options for adding first found tagname in folder structure
+        #Using "byTagName" as first folder sorting. The first found civitAI tag is used in the folder name to organize folder structure differently.
+        if insert_sub_35:
+            sub_folders.insert(35, f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}Model name")
+        if insert_sub_36:
+            sub_folders.insert(36, f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}Model name{os.sep}Model version")
+        if insert_sub_37:
+            sub_folders.insert(37, f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}byUser{os.sep}Author name")
+        if insert_sub_38:
+            sub_folders.insert(38, f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name")
+        if insert_sub_39:
+            sub_folders.insert(39, f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version")
         
         list = set()
         sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -1356,41 +1436,65 @@ def on_ui_settings():
         ).info("Not recommended for security, may be required if you do not have the correct CA Bundle available")
     )
 
-    #Added different flavor I liked for directory structure
+    ##This is for settings, section "Insert sub folder options"
+    
     id_and_sub_options = {
-        #"1" : f"{os.sep}Base model",
-        "1" : f"{os.sep}byBaseModel{os.sep}Base model",
-        #"2" : f"{os.sep}Base model{os.sep}Author name",
-        "2" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name",
-        #"3" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name",
-        "3" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name",
-        #"4" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
-        "4" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
-        
-        #"5" : f"{os.sep}Base model{os.sep}Model name",
-        #"5" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name",
-        ## Changed above custom entry to exclude "byBaseModel" and include author name - For Checkpoint file types makes more sense
-        "5" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name",
-        
-        #"6" : f"{os.sep}Base model{os.sep}Model name{os.sep}Model version",
-        #"6" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Model name{os.sep}Model version",
-        ## Changed above custom entry to exclude "byBaseModel" and include author name - For Checkpoint file types makes more sense
-        "6" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
-
-        #"7" : f"{os.sep}Author name",
-        "7" : f"{os.sep}byUser{os.sep}Author name",
-        #"8" : f"{os.sep}Author name{os.sep}Base model",
-        "8" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model",
-        #"9" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name",
-        "9" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name",
-        #"10" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
-        "10" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
-        #"11" : f"{os.sep}Author name{os.sep}Model name",
-        "11" : f"{os.sep}byUser{os.sep}Author name{os.sep}Model name",
-        #"12" : f"{os.sep}Author name{os.sep}Model name{os.sep}Model version",
-        "12" : f"{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        "1" : f"{os.sep}Base model",
+        "2" : f"{os.sep}Base model{os.sep}Author name",
+        "3" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name",
+        "4" : f"{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+        "5" : f"{os.sep}Base model{os.sep}Model name",
+        "6" : f"{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        "7" : f"{os.sep}Author name",
+        "8" : f"{os.sep}Author name{os.sep}Base model",
+        "9" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name",
+        "10" : f"{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        "11" : f"{os.sep}Author name{os.sep}Model name",
+        "12" : f"{os.sep}Author name{os.sep}Model name{os.sep}Model version",
         "13" : f"{os.sep}Model name",
         "14" : f"{os.sep}Model name{os.sep}Model version",
+
+        ##Custom added entries:
+        # ---- Added different flavor I liked for directory structure ---
+        
+        #Adding "byBaseModel" in the folder name to organize better in case folder is messy with other files.
+        "15" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name",                                                                       #Adds "byBaseModel" sub folder to organize folders, for checkpoint models
+        "16" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",                                                  #Adds "byBaseModel" sub folder to organize folders, for checkpoint models, this one could make sense
+        "17" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",                                    #Adds "byBaseModel" sub folder to organize folders, for checkpoint models, this one could make sense
+        "18" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version",   #Added this entry for "tag" to support in "byBaseModel" as well.
+        "19" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",   #sort by byTagName Before byUser 
+
+        #Use Base model name as parent folder structure + byUser nesting
+        "20" : f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name",                                                                        ## Included author name +byUser sub folder - For Checkpoint file types makes more sense or option 14 maybe better?
+        "21" : f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",                                                   ## For checkpoint models, this one could make sense. (Used #4 as template to include "byUser" subfolder)
+
+        #Adding "byTagName" in between "byUser" entries for specific user categorizing.                                                                         ## 2408 Changed above custom entry to exclude "byBaseModel" and include author name - For Checkpoint file types makes more sense
+        "22" : f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Tag name{os.sep}Model name{os.sep}Model version",                                   ## 2408 Changed previous custom entry to exclude "byBaseModel" and include byUser and author name - For Checkpoint file types makes more sense
+        "23" : f"{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version",
+        "24" : f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",
+
+        #Using base folder as first folder and nesting "byTagName" and include the first found civitAI tag in the folder name to organize folder structure better.
+        "25" : f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}Model name",
+        "26" : f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version",
+        "27" : f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name",
+        "28" : f"{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name{os.sep}Model name",
+
+
+        #Modified entries, by using "byUser" sa first folder before generating the username folder. (Modified from source insert_sub_7 till insert_sub_12)
+        "29" : f"{os.sep}byUser{os.sep}Author name",                                                                                                            ## Used #7 as template to include "byUser" subfolder
+        "30" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name",                                                                        ## Used #9 as template to include "byUser" subfolder
+        "31" : f"{os.sep}byUser{os.sep}Author name{os.sep}Base model{os.sep}Model name{os.sep}Model version",                                                   ## Used #10 as template to include "byUser" subfolder
+        "32" : f"{os.sep}byUser{os.sep}Author name{os.sep}Model name",                                                                                          ## Used #11 as template to include "byUser" subfolder
+        "33" : f"{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",                                                                     ## Used #12 as template to include "byUser" subfolder
+        "34" : f"{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version",                                    ## Used #12 as template to include "byUser" subfolder and included tag name in addition
+
+        ## Options for adding first found tagname in folder structure
+        #Using "byTagName" as first folder sorting. The first found civitAI tag is used in the folder name to organize folder structure differently.
+        "35" : f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}Model name",
+        "36" : f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}Model name{os.sep}Model version",
+        "37" : f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}byUser{os.sep}Author name",
+        "38" : f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name",                                       ## For checkpoint models, this one could make sense
+        "39" : f"{os.sep}byTagName{os.sep}Tag name{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version"                   ## For checkpoint models, this one could make sense
     }
     
     for number, string in id_and_sub_options.items():

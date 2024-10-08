@@ -616,6 +616,9 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
         default_file = None
         model_filename = None
         sha256_value = None
+        #Custom Added fir DirTag
+        categoryTagArray = []
+        
         for item in api_data['items']:
             if int(item['id']) == int(model_id):
                 content_type = item['type']
@@ -636,6 +639,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 uploader_avatar = f'<div class="avatar"><img src={uploader_avatar}></div>'
                 tags = item.get('tags', "")
                 model_desc = item.get('description', "")
+                                    
                 if model_desc:
                     model_desc = model_desc.replace('<img', '<img style="max-width: -webkit-fill-available;"')
                     model_desc = model_desc.replace('<code>', '<code style="text-wrap: wrap">')
@@ -654,6 +658,10 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     output_training = output_training.strip(', ')
                 if selected_version['baseModel']:
                     output_basemodel = selected_version['baseModel']
+
+                #Custom Added for DirTag
+                categoryTagArray = item['tags']
+                    
                 for file in selected_version['files']:
                     dl_dict[file['name']] = file['downloadUrl']
                     
@@ -904,6 +912,35 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
         insert_sub_13 = getattr(opts, "insert_sub_13", False)
         insert_sub_14 = getattr(opts, "insert_sub_14", False)
         dot_subfolders = getattr(opts, "dot_subfolders", True)
+
+        #Added more entries to support custom sub folders:
+        insert_sub_15 = getattr(opts, "insert_sub_15", False)
+        insert_sub_16 = getattr(opts, "insert_sub_16", False)
+        insert_sub_17 = getattr(opts, "insert_sub_17", False)
+        insert_sub_18 = getattr(opts, "insert_sub_18", False)
+        insert_sub_19 = getattr(opts, "insert_sub_19", False)
+        insert_sub_20 = getattr(opts, "insert_sub_20", False)
+        insert_sub_21 = getattr(opts, "insert_sub_21", False)
+        insert_sub_22 = getattr(opts, "insert_sub_22", False)
+        insert_sub_23 = getattr(opts, "insert_sub_23", False)
+        insert_sub_24 = getattr(opts, "insert_sub_24", False)
+        insert_sub_25 = getattr(opts, "insert_sub_25", False)
+        insert_sub_26 = getattr(opts, "insert_sub_26", False)
+        insert_sub_27 = getattr(opts, "insert_sub_27", False)
+        insert_sub_28 = getattr(opts, "insert_sub_28", False)
+        insert_sub_29 = getattr(opts, "insert_sub_29", False)
+        insert_sub_30 = getattr(opts, "insert_sub_30", False)
+        insert_sub_31 = getattr(opts, "insert_sub_31", False)
+        insert_sub_32 = getattr(opts, "insert_sub_32", False)
+        insert_sub_33 = getattr(opts, "insert_sub_33", False)
+        insert_sub_34 = getattr(opts, "insert_sub_34", False)        
+        insert_sub_35 = getattr(opts, "insert_sub_35", False)
+        insert_sub_36 = getattr(opts, "insert_sub_36", False)
+        insert_sub_37 = getattr(opts, "insert_sub_37", False)
+        insert_sub_38 = getattr(opts, "insert_sub_38", False)
+        insert_sub_39 = getattr(opts, "insert_sub_39", False)
+        #insert_sub_40 = getattr(opts, "insert_sub_40", False)
+        # End of added folder entries
         
         try:
             sub_folders = ["None"]
@@ -924,12 +961,13 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             name = cleaned_name(model_name)
             ver = cleaned_name(model_version)
 
-            #Custom added for directory structure
-            byUser = "byUser"
-            byBaseModel = "byBaseModel"
+            #added for tag directory name 
+            #test print standard tag
+            #tags_html is an array, above is a loop that append some html span codes around each civitAI tag found. Might be useful to split it back to tags only?
+            #print("This is default definition of the Tag value: \"" +tags_html +"\".")
 
             #Also using Replace here to fix version naming, regex of cleaned_name does not seem to work for "Model version name" at least not pipe character
-            print("Original Version name of the selected model is: \"" +ver +"\"")
+            print("Selected model: \"" +name + "\" Version: \"" + ver +"\"")
             replace_dict= {"|": " "}
             
             for old, new in replace_dict.items():
@@ -939,29 +977,81 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             #print("Renaming Model version name to: \"" +ver+"\"")
                 
             ver = ' '.join(ver.strip().split('?<=\s) +|^ +(?=\s)| (?= +[\n\0])'))
-            print("Model version name \"" +ver +"\" will be used for sub-folder creation if configured in settings") #Cleaned version name 
-            
+            if not ver == model_version:
+                print("Model version name \"" +ver +"\" will be used for sub-folder creation if configured in settings") #Cleaned version name 
+
+            #Custom added for directory structure
+            byUser = "byUser"
+            byBaseModel = "byBaseModel"
+            byTagName = "byTagName"
+
+            #Using first CivitAI tag for Directory creation
+            #Trying with this:
+            #singleTagString = ''.join([str(tag) for tag )
+            singleTagDirString = "".join(item['tags'][0])
+            tagDirectory = item['tags'][0]                      #testing purpose, works same as the join above line
+            # print("Multi Tags is: " +tag)
+            #For debugging purpose:
+
+            if singleTagDirString == "":
+                dirTagName = "Uncategorized"
+                print("No civitAI tag assigned to the model. Using following to create the tag instead: \"" +dirTagName +"\".")
+            else:
+                dirTagName = singleTagDirString
+                #print("Value in dirTagName array is \"" +dirTagName +"\".")
+                print("civitAI automatic tagging is: \"" +tagDirectory +"\".") #Works the same as above line and vice versa.
+
+            ##Getting the first civitai tag for the sub-folder creation
+            #Determining whether we have a civitAI tag or not, if not, use "Uncategorized" as placeholder.
+            if not categoryTagArray:
+                categoryTagArray.append ("Uncategorized")
+                print("No civitAI tags found for this model. Name \"" +categoryTagArray[0] + "\"will be used.")
+                categoryTagConverter = "".join(categoryTagArray[0])
+                tag = categoryTagConverter
+
+            #Cleaning tag name before using, as there is no standard for tag names. Some users use weird symbol in as a civitAI tag.
+            else:
+                categoryTagConverter = "".join(categoryTagArray[0])
+                tag = cleaned_name(categoryTagConverter)
+                print("Cleaned tagName value is: \"" +tag + "\".")
+
+                #Trying to do something with all the found civitAI tags part.
+                #First tag does not always makes sense to use, some users put it as 2nd while others put it at the end or don't use it at all.
+
+                numOfTags = len(categoryTagArray)
+                numOfTagsString = f'{numOfTags}'
+                print("This model has " +numOfTagsString + " civitAI tags.")
+
+                #For debugging:
+                #Printing the civitAI tags as string after convering from array
+                #print("These are all the found civitAI tags of this model that is stored as an array: " + str(categoryTagArray))
+
+                #Converting the tags in the array to string to show in print... maybe something with weight can be done later to use correct tagging.
+                civitaiTagsString = ', '.join(str(e) for e in categoryTagArray)
+                print("Found the following civitAI tags categorized by author: \"" +civitaiTagsString +"\".")            
+
+                #Trying to do something with all the found civitAI tags part 2.
+                if categoryTagConverter == tag:
+                    #Do nothing...yet
+                    print("The first civitAI tag \"" +tag + "\" will be used.")
+
+                else:
+                    print("The first civitAI tag is: \"" +categoryTagConverter +"\". It contains some symbols we need to clean the name. Check whether the tag is correctly assigned by the user or modify the folder name.")
+                    print("Cleaned tagName value is: \"" +tag + "\".")
+                
             
             if insert_sub_1:
-                #sub_folders.insert(1, os.path.join(os.sep, base))
-                sub_folders.insert(1, os.path.join(os.sep, byBaseModel, base))
+                sub_folders.insert(1, os.path.join(os.sep, base))
             if insert_sub_2:
-                #sub_folders.insert(2, os.path.join(os.sep, base, author))
-                sub_folders.insert(2, os.path.join(os.sep, byBaseModel, base, author))
+                sub_folders.insert(2, os.path.join(os.sep, base, author))
             if insert_sub_3:
-                #sub_folders.insert(3, os.path.join(os.sep, base, author, name))
-                sub_folders.insert(3, os.path.join(os.sep, byBaseModel, base, author, name))
+                sub_folders.insert(3, os.path.join(os.sep, base, author, name))
             if insert_sub_4:
-                #sub_folders.insert(4, os.path.join(os.sep, base, author, name, ver))
-                sub_folders.insert(4, os.path.join(os.sep, byBaseModel, base, author, name, ver))
+                sub_folders.insert(4, os.path.join(os.sep, base, author, name, ver))
             if insert_sub_5:
-                #sub_folders.insert(5, os.path.join(os.sep, base, name))
-                ## Changed to exclude custom "byBaseModel" folder and add author folder to it:
-                sub_folders.insert(5, os.path.join(os.sep, base, author, name))
+                sub_folders.insert(5, os.path.join(os.sep, base, name))
             if insert_sub_6:
-                #sub_folders.insert(6, os.path.join(os.sep, base, name, ver))
-                ## Changed to exclude custom "byBaseModel" folder and add author folder to it:
-                sub_folders.insert(6, os.path.join(os.sep, base, author, name, ver))
+                sub_folders.insert(6, os.path.join(os.sep, base, name, ver))
             if insert_sub_7:
                 sub_folders.insert(7, os.path.join(os.sep, author))
             if insert_sub_8:
@@ -978,6 +1068,74 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 sub_folders.insert(13, os.path.join(os.sep, name))
             if insert_sub_14:
                 sub_folders.insert(14, os.path.join(os.sep, name, ver))
+                
+            ##Custom entries:
+                
+            #Adding "byBaseModel" in the folder name to organize better in case folder is messy with other files.
+            if insert_sub_15:
+                sub_folders.insert(15, os.path.join(os.sep, byBaseModel, base, author, name))                                       #Adds "byBaseModel" sub folder to organize folders
+            if insert_sub_16:
+                sub_folders.insert(16, os.path.join(os.sep, byBaseModel, base, author, name, ver))                                  #Adds "byBaseModel" sub folder to organize folders, for checkpoint models, this one could make sense
+            if insert_sub_17:
+                sub_folders.insert(17, os.path.join(os.sep, byBaseModel, base, byUser, author, name, ver))                          #Adds "byBaseModel" sub folder to organize folders, for checkpoint models, this one could make sense
+            if insert_sub_18:
+                sub_folders.insert(18, os.path.join(os.sep, byBaseModel, base, byUser, author, byTagName, tag, name, ver))          #Added this entry for "tag" to support in "byBaseModel" as well.
+            if insert_sub_19:
+                sub_folders.insert(19, os.path.join(os.sep, byBaseModel, base, byTagName, tag, byUser, author, name, ver))          #sort by byTagName Before byUser               
+
+
+            #Use Base model name as parent folder structure + byUser nesting
+            if insert_sub_20:
+                sub_folders.insert(20, os.path.join(os.sep, base, byUser, author, name))                                            ## Included author name +byUser sub folder - For Checkpoint file types makes more sense or option 14 maybe better?
+            if insert_sub_21:
+                sub_folders.insert(21, os.path.join(os.sep, base, byUser, author, name, ver))                                       ## For checkpoint models, this one could make sense. (Used #4 as template to include "byUser" subfolder)
+
+            #Adding "byTagName" in between "byUser" entries for specific user categorizing.
+            if insert_sub_22:
+                sub_folders.insert(22, os.path.join(os.sep, base, byUser, author, tag, name, ver))
+            if insert_sub_23:
+                sub_folders.insert(23, os.path.join(os.sep, base, byUser, author, byTagName, tag, name, ver))
+
+            #Using base folder as first folder and nesting "byTagName" and include the first found civitAI tag in the folder name to organize folder structure better.
+            if insert_sub_24:
+                sub_folders.insert(24, os.path.join(os.sep, base, byTagName, tag, name))
+            if insert_sub_25:
+                sub_folders.insert(25, os.path.join(os.sep, base, byTagName, tag, name, ver))
+            if insert_sub_26:
+                sub_folders.insert(26, os.path.join(os.sep, base, byTagName, tag, byUser, author))
+            if insert_sub_27:
+                sub_folders.insert(27, os.path.join(os.sep, base, byTagName, tag, byUser, author, name))
+            if insert_sub_28:
+                sub_folders.insert(28, os.path.join(os.sep, base, byTagName, tag, byUser, author, name, ver))
+                
+
+            #Modified entries, by using "byUser" sa first folder before generating the username folder. (Modified from source insert_sub_7 till insert_sub_12)
+            if insert_sub_29:
+                sub_folders.insert(29, os.path.join(os.sep, byUser, author))                                                        ## Used #7 as template to include "byUser" subfolder
+            if insert_sub_30:
+                sub_folders.insert(30, os.path.join(os.sep, byUser, author, base, name))                                            ## Used #9 as template to include "byUser" subfolder
+            if insert_sub_31:
+                sub_folders.insert(31, os.path.join(os.sep, byUser, author, base, name, ver))                                       ## Used #10 as template to include "byUser" subfolder
+            if insert_sub_32:
+                sub_folders.insert(32, os.path.join(os.sep, byUser, author, name))                                                  ## Used #11 as template to include "byUser" subfolder
+            if insert_sub_33:
+                sub_folders.insert(33, os.path.join(os.sep, byUser, author, name, ver))                                             ## Used #12 as template to include "byUser" subfolder
+            if insert_sub_34:
+                sub_folders.insert(34, os.path.join(os.sep, byUser, author, byTagName, tag, name, ver))                             ## Used #12 as template to include "byUser" subfolder and included Tag Name in addition
+
+
+            #Using "byTagName" as first folder sorting. The first found civitAI tag is used in the folder name to organize folder structure differently.
+            if insert_sub_35:
+                sub_folders.insert(35, os.path.join(os.sep, byTagName, tag, base, name))
+            if insert_sub_36:
+                sub_folders.insert(36, os.path.join(os.sep, byTagName, tag, base, name, ver)) 
+            if insert_sub_37:
+                sub_folders.insert(37, os.path.join(os.sep, byTagName, tag, base, byUser, author))
+            if insert_sub_38:
+                sub_folders.insert(38, os.path.join(os.sep, byTagName, tag, base, byUser, author, name))
+            if insert_sub_39:
+                sub_folders.insert(39, os.path.join(os.sep, byTagName, tag, base, byUser, author, name, ver))
+
             
             list = set()
             sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
@@ -991,7 +1149,13 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             "Base model": base,
             "Author name": author,
             "Model name": name,
-            "Model version": ver
+            "Model version": ver,
+            #Added for tagname, only using first found tag defined as category on civitai
+            "Tag name": tag,
+            
+            #Unsure whether this mapping is needed. These are only used for static text:
+            "byBaseModel": byBaseModel,
+            "byUser": byUser
         }
 
         if any(key in default_sub for key in variable_mapping.keys()):
