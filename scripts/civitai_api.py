@@ -952,7 +952,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
                     if sub_folder:
                         sub_folders.append(f'{os.sep}{sub_folder}')
-            
+
             sub_folders.remove("None")
             sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
             sub_folders.insert(0, "None")
@@ -960,67 +960,85 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             author = cleaned_name(model_uploader)
             name = cleaned_name(model_name)
             ver = cleaned_name(model_version)
+            tag = ""
 
-            #added for tag directory name 
-            #test print standard tag
-            #tags_html is an array, above is a loop that append some html span codes around each civitAI tag found. Might be useful to split it back to tags only?
-            #print("This is default definition of the Tag value: \"" +tags_html +"\".")
-
+            # -- Replace " | " (pipe character) in model version to use in sub-folder (does not consider what OS you have):
             #Also using Replace here to fix version naming, regex of cleaned_name does not seem to work for "Model version name" at least not pipe character
-            print("Selected model: \"" +name + "\" Version: \"" + ver +"\"")
-            replace_dict= {"|": " "}
+            replace_dict_modelVersion = {"|": " "}
             
-            for old, new in replace_dict.items():
+            for old, new in replace_dict_modelVersion.items():
                 ver = ver.replace(old, new)
 
+            # -- Replace pipe " | " (pipe charcter) for Model name to use in sub-folder (does not consider what OS you have):
+            #Using Replace here to Model name, noticed that specifically the pipe character does not get cleaned properly with regex. Only replace seems to work.
+            replace_dict_modelName = {"|": "--"}
+            
+            for old, new in replace_dict_modelName.items():
+                name = name.replace(old, new)
+
+
+            print("Selected model: \"" +name + "\" Version: \"" + ver +"\"")
+            
             #Only useful for debugging in case renaming fails for other characters:
             #print("Renaming Model version name to: \"" +ver+"\"")
                 
             ver = ' '.join(ver.strip().split('?<=\s) +|^ +(?=\s)| (?= +[\n\0])'))
             if not ver == model_version:
-                print("Model version name \"" +ver +"\" will be used for sub-folder creation if configured in settings") #Cleaned version name 
+                print("Model version name \"" +ver +"\" will be used for sub-folder creation if configured in settings.") #Cleaned version name
+            
+            #added for tag directory name 
+            #test print standard tag
+            #tags_html is an array, above is a loop that append some html span codes around each civitAI tag found. Might be useful to split it back to tags only?
+            #print("This is default definition of the Tag value: \"" +tags_html +"\".")
 
             #Custom added for directory structure
             byUser = "byUser"
             byBaseModel = "byBaseModel"
             byTagName = "byTagName"
-
+            
             #Using first CivitAI tag for Directory creation
             #Trying with this:
-            #singleTagString = ''.join([str(tag) for tag )
-            singleTagDirString = "".join(item['tags'][0])
-            tagDirectory = item['tags'][0]                      #testing purpose, works same as the join above line
-            # print("Multi Tags is: " +tag)
-            #For debugging purpose:
+            #singleTagString = ''.join([str(tag))
 
-            if singleTagDirString == "":
-                dirTagName = "Uncategorized"
-                print("No civitAI tag assigned to the model. Using following to create the tag instead: \"" +dirTagName +"\".")
+            #This block is for handling automatic category/tagging of civitai. Sometimes a model does not have a tag.
+            if not item['tags']:
+                tagDirectory = "Uncategorized"
+                print("Informational: No automatic tags were assigned by civitAI for this model. CivitAI considers this model as \"" +tagDirectory+ "\".")
             else:
-                dirTagName = singleTagDirString
+                singleTagDirString = "".join(item['tags'][0])
+                tagDirectory = item['tags'][0]                      #testing purpose, works same as the join above line
+
+            # print("Multi Tags is: " +tag)
+            # For debugging purpose:
+
+            #if singleTagDirString == "":
+            #    dirTagName = "Uncategorized"
+            #    print("No civitAI tag assigned to the model. Using following to create the tag instead: \"" +dirTagName +"\".")
+            #else:
+                #dirTagName = singleTagDirString
+                dirTagName = tagDirectory
                 #print("Value in dirTagName array is \"" +dirTagName +"\".")
-                print("civitAI automatic tagging is: \"" +tagDirectory +"\".") #Works the same as above line and vice versa.
+                print("civitAI automatic tagging for this model is: \"" +tagDirectory +"\"") #Works the same as above line and vice versa.
 
             ##Getting the first civitai tag for the sub-folder creation
             #Determining whether we have a civitAI tag or not, if not, use "Uncategorized" as placeholder.
             if not categoryTagArray:
                 categoryTagArray.append ("Uncategorized")
-                print("No civitAI tags found for this model. Name \"" +categoryTagArray[0] + "\"will be used.")
+                print("No civitAI tags found for this model. Name \"" +categoryTagArray[0] + "\" will be used for sub-folder creation if configured in settings.")
                 categoryTagConverter = "".join(categoryTagArray[0])
                 tag = categoryTagConverter
 
             #Cleaning tag name before using, as there is no standard for tag names. Some users use weird symbol in as a civitAI tag.
             else:
-                categoryTagConverter = "".join(categoryTagArray[0])
-                tag = cleaned_name(categoryTagConverter)
-                print("Cleaned tagName value is: \"" +tag + "\".")
 
                 #Trying to do something with all the found civitAI tags part.
-                #First tag does not always makes sense to use, some users put it as 2nd while others put it at the end or don't use it at all.
-
                 numOfTags = len(categoryTagArray)
                 numOfTagsString = f'{numOfTags}'
-                print("This model has " +numOfTagsString + " civitAI tags.")
+                #print("This model has " +numOfTagsString + " civitAI tags defined by the author.") #For debug purpose
+
+                #First tag does not always makes sense to use, some users put it as 2nd while others put it at the end or don't use it at all.
+                categoryTagConverter = "".join(categoryTagArray[0])
+                tag = cleaned_name(categoryTagConverter)
 
                 #For debugging:
                 #Printing the civitAI tags as string after convering from array
@@ -1028,16 +1046,18 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
 
                 #Converting the tags in the array to string to show in print... maybe something with weight can be done later to use correct tagging.
                 civitaiTagsString = ', '.join(str(e) for e in categoryTagArray)
-                print("Found the following civitAI tags categorized by author: \"" +civitaiTagsString +"\".")            
+                print("The author assigned the following " +numOfTagsString+ " civitAI tag(s) for this model: \"" +civitaiTagsString+ "\".")            
 
                 #Trying to do something with all the found civitAI tags part 2.
                 if categoryTagConverter == tag:
                     #Do nothing...yet
-                    print("The first civitAI tag \"" +tag + "\" will be used.")
+                    #Ideally a feature where the user can maintain a list of tags based on the order will be used first if found. Also include using the automatic tag by civitai (unsure why they have that tbh as its not user visible).
+                    #If none matches, just use first tag civitAI tag defined by the author.
+                    print("The first civitAI tag \"" + tag + "\" will be used for sub-folder creation if configured in settings.\n===============================================================================")
 
                 else:
                     print("The first civitAI tag is: \"" +categoryTagConverter +"\". It contains some symbols we need to clean the name. Check whether the tag is correctly assigned by the user or modify the folder name.")
-                    print("Cleaned tagName value is: \"" +tag + "\".")
+                    print("We will use this cleaned Tag instead for the sub-folder (if chosen in settings): \"" + tag + "\".\n===============================================================================")
                 
             
             if insert_sub_1:

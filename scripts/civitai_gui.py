@@ -1461,7 +1461,7 @@ def on_ui_settings():
         "15" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name",                                                                       #Adds "byBaseModel" sub folder to organize folders, for checkpoint models
         "16" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}Author name{os.sep}Model name{os.sep}Model version",                                                  #Adds "byBaseModel" sub folder to organize folders, for checkpoint models, this one could make sense
         "17" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",                                    #Adds "byBaseModel" sub folder to organize folders, for checkpoint models, this one could make sense
-        "18" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version",   #Added this entry for "tag" to support in "byBaseModel" as well.
+        "18" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byUser{os.sep}Author name{os.sep}byTagName{os.sep}Tag name{os.sep}Model name{os.sep}Model version",   #Added this entry for "Tag name" to support in "byBaseModel" as well.
         "19" : f"{os.sep}byBaseModel{os.sep}Base model{os.sep}byTagName{os.sep}Tag name{os.sep}byUser{os.sep}Author name{os.sep}Model name{os.sep}Model version",   #sort by byTagName Before byUser 
 
         #Use Base model name as parent folder structure + byUser nesting
