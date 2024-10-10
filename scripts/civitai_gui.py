@@ -89,6 +89,9 @@ def saveSettings(ust, ct, pt, st, bf, cj, td, ol, hi, sn, ss, ts):
 
 def all_visible(html_check):
     return gr.Button.update(visible="model-checkbox" in html_check)
+        
+def HTMLChange(input):
+    return gr.HTML.update(value=input)
 
 def show_multi_buttons(model_list, type_list, version_value):
     model_list = json.loads(model_list)
@@ -201,7 +204,7 @@ def on_ui_tabs():
                     with gr.Row(elem_id="save_set_box"):
                         save_settings = gr.Button(value="Save settings as default", elem_id="save_set_btn")
                 search_term = gr.Textbox(label="", placeholder="Search CivitAI", elem_id="searchBox")
-                refresh = gr.Button(label="", value="", elem_id=refreshbtn, icon="placeholder")
+                refresh = gr.Button(value="", elem_id=refreshbtn, icon="placeholder")
             with gr.Row(elem_id=header):
                 with gr.Row(elem_id="pageBox"):
                     get_prev_page = gr.Button(value="Prev page", interactive=False, elem_id="pageBtn1")
@@ -300,7 +303,7 @@ def on_ui_tabs():
         
         #Invisible triggers/variables
         #Yes, there is probably a much better way of passing variables/triggering functions
-        
+
         model_id = gr.Textbox(visible=False)
         queue_trigger = gr.Textbox(visible=False)
         dl_url = gr.Textbox(visible=False)
@@ -311,6 +314,8 @@ def on_ui_tabs():
         selected_type_list = gr.Textbox(elem_id="selected_type_list", visible=False)
         html_cancel_input = gr.Textbox(elem_id="html_cancel_input", visible=False)
         queue_html_input = gr.Textbox(elem_id="queue_html_input", visible=False)
+        list_html_input = gr.Textbox(elem_id="list_html_input", visible=False)
+        preview_html_input = gr.Textbox(elem_id="preview_html_input", visible=False)
         send_to_browser = gr.Textbox(elem_id="send_to_browser", visible=False)
         arrange_dl_id = gr.Textbox(elem_id="arrange_dl_id", visible=False)
         remove_dl_id = gr.Textbox(elem_id="remove_dl_id", visible=False)
@@ -334,7 +339,7 @@ def on_ui_tabs():
         delete_finish = gr.Textbox(visible=False)
         current_model = gr.Textbox(visible=False)
         current_sha256 = gr.Textbox(visible=False)
-        model_preview_html = gr.Textbox(visible=False)
+        model_preview_html_input = gr.Textbox(visible=False)
         
         def ToggleDate(toggle_date):
             gl.sortNewest = toggle_date
@@ -348,7 +353,7 @@ def on_ui_tabs():
 
         # Javascript Functions #
         
-        list_html.change(fn=None, inputs=hide_installed, _js="(toggleValue) => hideInstalled(toggleValue)")
+        list_html_input.change(fn=None, inputs=hide_installed, _js="(toggleValue) => hideInstalled(toggleValue)")
         hide_installed.input(fn=None, inputs=hide_installed, _js="(toggleValue) => hideInstalled(toggleValue)")
         
         civitai_text2img_output.change(fn=None, inputs=civitai_text2img_output, _js="(genInfo) => genInfo_to_txt2img(genInfo)")
@@ -359,8 +364,8 @@ def on_ui_tabs():
         
         list_models.select(fn=None, inputs=list_models, _js="(list_models) => select_model(list_models)")
         
-        preview_html.change(fn=None, _js="() => adjustFilterBoxAndButtons()")
-        preview_html.change(fn=None, _js="() => setDescriptionToggle()")
+        preview_html_input.change(fn=None, _js="() => adjustFilterBoxAndButtons()")
+        preview_html_input.change(fn=None, _js="() => setDescriptionToggle()")
         
         back_to_top.click(fn=None, _js="() => BackToTop()")
         
@@ -370,24 +375,23 @@ def on_ui_tabs():
         for func in card_updates:
             func.change(fn=None, inputs=current_model, _js="(modelName) => updateCard(modelName)")
         
-        list_html.change(fn=None, inputs=show_nsfw, _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)")
+        list_html_input.change(fn=None, inputs=show_nsfw, _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)")
         show_nsfw.change(fn=None, inputs=show_nsfw, _js="(hideAndBlur) => toggleNSFWContent(hideAndBlur)")
         
-        list_html.change(fn=None, inputs=size_slider, _js="(size) => updateCardSize(size, size * 1.5)")
+        list_html_input.change(fn=None, inputs=size_slider, _js="(size) => updateCardSize(size, size * 1.5)")
         size_slider.change(fn=None, inputs=size_slider, _js="(size) => updateCardSize(size, size * 1.5)")
         
-        model_preview_html.change(fn=None, inputs=model_preview_html, _js="(html_input) => inputHTMLPreviewContent(html_input)")
+        model_preview_html_input.change(fn=None, inputs=model_preview_html_input, _js="(html_input) => inputHTMLPreviewContent(html_input)")
         
-        download_manager_html.change(fn=None, _js="() => setSortable()")
+        queue_html_input.change(fn=None, _js="() => setSortable()")
         
         click_first_item.change(fn=None, _js="() => clickFirstFigureInColumn()")
         
         # Filter button Functions #
         
-        def HTMLChange(input):
-            return gr.HTML.update(value=input)
-        
         queue_html_input.change(fn=HTMLChange, inputs=[queue_html_input], outputs=download_manager_html)
+        list_html_input.change(fn=HTMLChange, inputs=[list_html_input], outputs=list_html)
+        preview_html_input.change(fn=HTMLChange, inputs=[preview_html_input], outputs=preview_html)
 
         remove_dl_id.change(
             fn=_download.remove_from_queue,
@@ -432,14 +436,14 @@ def on_ui_tabs():
         
         civitai_text2img_input.change(fn=txt2img_output,inputs=civitai_text2img_input,outputs=civitai_text2img_output)
         
-        list_html.change(fn=all_visible,inputs=list_html,outputs=select_all)
+        list_html_input.change(fn=all_visible, inputs=list_html, outputs=select_all)
         
         def update_models_dropdown(input):
             if not gl.json_data:
                 return (
                     gr.Dropdown.update(value=None, choices=[], interactive=False), # List models
                     gr.Dropdown.update(value=None, choices=[], interactive=False), # List version
-                    gr.HTML.update(value=None), # Preview HTML
+                    gr.Textbox.update(value=None), # Preview HTML
                     gr.Textbox.update(value=None, interactive=False), # Trained Tags
                     gr.Textbox.update(value=None, interactive=False), # Base Model
                     gr.Textbox.update(value=None, interactive=False), # Model filename
@@ -453,7 +457,7 @@ def on_ui_tabs():
                     gr.Textbox.update(value=None), # Model ID
                     gr.Textbox.update(value=None), # Current sha256
                     gr.Button.update(interactive=False),  # Save model info
-                    gr.HTML.update(value='<div style="font-size: 24px; text-align: center; margin: 50px;">Click the search icon to load models.<br>Use the filter icon to filter results.</div>') # Model list
+                    gr.Textbox.update(value='<div style="font-size: 24px; text-align: center; margin: 50px;">Click the search icon to load models.<br>Use the filter icon to filter results.</div>') # Model list
                 )
             
             model_string = re.sub(r'\.\d{3}$', '', input)
@@ -463,7 +467,7 @@ def on_ui_tabs():
             return (gr.Dropdown.update(value=model_string, interactive=True),
                     model_versions,html,tags,base_mdl,filename,install_path,sub_folder,DwnButton,SaveImages,DelButton,filelist,dl_url,id,current_sha256,
                     gr.Button.update(interactive=True),
-                    gr.HTML.update()
+                    gr.Textbox.update()
                     )
         
         model_select.change(
@@ -486,20 +490,20 @@ def on_ui_tabs():
                 model_id,
                 current_sha256,
                 save_info,
-                list_html
+                list_html_input
             ]
         )
         
         model_sent.change(
             fn=_file.model_from_sent,
             inputs=[model_sent, type_sent],
-            outputs=[model_preview_html]
+            outputs=[model_preview_html_input]
         )
         
         send_to_browser.change(
             fn=_file.send_to_browser,
             inputs=[send_to_browser, type_sent, click_first_item],
-            outputs=[list_html, get_prev_page , get_next_page, page_slider, click_first_item]
+            outputs=[list_html_input, get_prev_page , get_next_page, page_slider, click_first_item]
         )
         
         sub_folder.select(
@@ -515,7 +519,7 @@ def on_ui_tabs():
                 list_versions
                 ],
             outputs=[
-                preview_html,
+                preview_html_input,
                 trained_tags,
                 base_model,
                 download_model,
@@ -672,7 +676,7 @@ def on_ui_tabs():
                 model_filename,
                 sub_folder,
                 current_sha256,
-                preview_html
+                preview_html_input
                 ],
             outputs=[]
         )
@@ -680,7 +684,7 @@ def on_ui_tabs():
         save_images.click(
             fn=_file.save_images,
             inputs=[
-                preview_html,
+                preview_html_input,
                 model_filename,
                 install_path,
                 sub_folder
@@ -708,7 +712,7 @@ def on_ui_tabs():
         page_outputs = [
             list_models,
             list_versions,
-            list_html,
+            list_html_input,
             get_prev_page,
             get_next_page,
             page_slider,
@@ -719,7 +723,7 @@ def on_ui_tabs():
             install_path,
             sub_folder,
             file_list,
-            preview_html,
+            preview_html_input,
             trained_tags,
             base_model,
             model_filename

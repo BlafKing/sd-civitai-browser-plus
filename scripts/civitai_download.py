@@ -211,7 +211,7 @@ def selected_to_queue(model_list, subfolder, download_start, create_json, curren
             total_count += 1
     
     html = download_manager_html(current_html)
-    
+
     return  (
             gr.Button.update(interactive=False, visible=False), # Download Button
             gr.Button.update(interactive=True, visible=True), # Cancel Button
@@ -220,6 +220,41 @@ def selected_to_queue(model_list, subfolder, download_start, create_json, curren
             gr.HTML.update(value='<div style="min-height: 100px;"></div>'), # Download Progress
             gr.HTML.update(value=html) # Download Manager HTML
     )
+
+
+def gr_progress_threadable():
+    """
+    Gradio progress bars can no longer be updated from a separate thread, 
+    so we need to use this to update them from the main thread.
+    """
+    
+    # Gradio 3 does not need a wrapper
+    if not hasattr(gr, "__version__") or int(gr.__version__.split(".")[0]) <= 3:
+        return gr.Progress()
+    
+    gr_progress=gr.Progress()
+    value = [0, None, False] # progress, desc, has_update
+
+    def progress(p, desc=None):
+        value[0] = p
+        value[1] = desc
+        value[2] = True
+
+    def _update_progress():
+        if value[2]:
+            gr_progress(value[0], desc=value[1])
+            value[2] = False
+    
+    def join(thread):
+        _update_progress()
+        while thread.is_alive():
+            thread.join(timeout=0.1)
+            _update_progress()
+
+    progress.join = join
+    
+    return progress
+
     
 def download_start(download_start, dl_url, model_filename, install_path, model_string, version_name, model_sha256, model_id, create_json, current_html):
     global total_count, current_count
@@ -238,7 +273,7 @@ def download_start(download_start, dl_url, model_filename, install_path, model_s
         current_count = 0
     
     html = download_manager_html(current_html)
-    
+
     return  (
             gr.Button.update(interactive=False, visible=True), # Download Button
             gr.Button.update(interactive=True, visible=True), # Cancel Button
@@ -289,6 +324,8 @@ def download_cancel():
     gl.download_fail = True
     if gl.download_queue:
         item = gl.download_queue[0]
+    else:
+        item = None
     
     while True:        
         if not gl.isDownloading:
@@ -622,7 +659,7 @@ def download_file_old(url, file_path, model_id, progress=gr.Progress() if queue 
             os.remove(file_path)
         time.sleep(5)
 
-def download_create_thread(download_finish, queue_trigger, progress=gr.Progress() if queue else None):
+def download_create_thread(download_finish, queue_trigger, progress=gr_progress_threadable() if queue else None):
     global current_count
     current_count += 1
     if not gl.download_queue:
@@ -654,7 +691,10 @@ def download_create_thread(download_finish, queue_trigger, progress=gr.Progress(
     else:
         thread = threading.Thread(target=download_file_old, args=(item['dl_url'], path_to_new_file, item['model_id'], progress))
     thread.start()
-    thread.join()
+    if progress is not None and hasattr(progress, "join"):
+        progress.join(thread)
+    else:
+        thread.join()
     
     if not gl.cancel_status or gl.download_fail:
         if os.path.exists(path_to_new_file):
