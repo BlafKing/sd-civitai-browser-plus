@@ -637,6 +637,9 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             selected_version = model
                             break
                     
+                model_availability = selected_version.get('availability', 'Unknown')
+                model_date_published = selected_version.get('publishedAt', '').split('T')[0]
+
                 if selected_version['trainedWords']:
                     output_training = ",".join(selected_version['trainedWords'])
                     output_training = re.sub(r'<[^>]*:[^>]*>', '', output_training)
@@ -818,6 +821,10 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             <dd>{escape(str(model_version))}</dd>
                             <dt>Base Model</dt>
                             <dd>{escape(str(output_basemodel))}</dd>
+                            <dt>Published</dt>
+                            <dd>{model_date_published}</dd>
+                            <dt>Availability</dt>
+                            <dd>{model_availability}</dd>
                             <dt>CivitAI Tags</dt>
                             <dd>
                                 <div class="civitai-tags-container">
