@@ -104,7 +104,7 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 * Feature: Ability to set custom default sub folders.
 * Feature: Automatically fetches latest available Basemodels.
-* Bug fix: Lag fixed on SD-WebUI Forge/Gradio 4+, thanks to @BenjaminSymons and @channelcat!
+* Bug fix: Lag fixed on SD-WebUI Forge/Gradio 4+, thanks to [@BenjaminSymons](https://github.com/BenjaminSymons) and [@channelcat](https://github.com/channelcat)!
 * Bug fix: Version ID has been suffixed to filename to avoid detecting different models as installed.
 * Bug fix: Filename comparing to detect installed models is no longer case sensitive.
 * Bug fix: CivitAI button on model cards correctly works again.
