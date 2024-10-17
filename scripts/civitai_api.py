@@ -19,6 +19,7 @@ from html import escape
 from scripts.civitai_global import print, debug_print
 import scripts.civitai_global as gl
 import scripts.civitai_download as _download
+import scripts.civitai_file_manage as _file
 
 gl.init()
 
@@ -188,7 +189,7 @@ def model_list_html(json_data):
     for folder in model_folders:
         for root, dirs, files in os.walk(folder, followlinks=True):
             for file in files:
-                existing_files.add(file)
+                existing_files.add(file.lower())
                 if file.endswith('.json'):
                     json_path = os.path.join(root, file)
                     with open(json_path, 'r', encoding="utf-8") as f:
@@ -244,10 +245,13 @@ def model_list_html(json_data):
             
             for version in reversed(item['modelVersions']):
                 for file in version.get('files', []):
-                    file_name = file['name']
+                    file_name = os.path.splitext(file['name'])[0]
+                    file_extension = os.path.splitext(file['name'])[1]
+                    file_name = f"{file_name}_{file['id']}{file_extension}"
                     file_sha256 = file.get('hashes', {}).get('SHA256', "").upper()
                     
-                    name_match = file_name in existing_files
+                    #filename_check
+                    name_match = file_name.lower() in existing_files
                     sha256_match = file_sha256 in existing_files_sha256
                     if name_match or sha256_match:
                         if version == item['modelVersions'][0]:
@@ -500,7 +504,9 @@ def update_model_versions(model_id, json_input=None):
                 versions_dict[version['name']].append(item["name"])
                 for version_file in version['files']:
                     file_sha256 = version_file.get('hashes', {}).get('SHA256', "").upper()
-                    version_filename = version_file['name']
+                    version_filename = os.path.splitext(version_file['name'])[0]
+                    version_extension = os.path.splitext(version_file['name'])[1]
+                    version_filename = f"{version_filename}_{version_file['id']}{version_extension}"
                     version_files.add((version['name'], version_filename, file_sha256))
 
             for root, _, files in os.walk(model_folder, followlinks=True):
@@ -520,8 +526,9 @@ def update_model_versions(model_id, json_input=None):
                         except Exception as e:
                             print(f"failed to read: \"{file}\": {e}")
 
+                    #filename_check
                     for version_name, version_filename, _ in version_files:
-                        if file == version_filename:
+                        if file.lower() == version_filename.lower():
                             installed_versions.add(version_name)
                             break
 
@@ -542,6 +549,7 @@ def cleaned_name(file_name):
 
     name, extension = os.path.splitext(file_name)
     clean_name = re.sub(illegal_chars_pattern, '', name)
+    clean_name = re.sub(r'\s+', ' ', clean_name.strip())
 
     return f"{clean_name}{extension}"
 
@@ -616,6 +624,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 model_folder = os.path.join(contenttype_folder(content_type, desc))
                 model_uploader = None
                 uploader_avatar = None
+                nsfw = item['nsfw']
                 creator = item.get('creator', None)
                 if creator:
                     model_uploader = creator.get('username', None)
@@ -639,6 +648,8 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     
                 model_availability = selected_version.get('availability', 'Unknown')
                 model_date_published = selected_version.get('publishedAt', '').split('T')[0]
+                version_name = selected_version['name']
+                version_id = selected_version['id']
 
                 if selected_version['trainedWords']:
                     output_training = ",".join(selected_version['trainedWords'])
@@ -651,7 +662,9 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     dl_dict[file['name']] = file['downloadUrl']
                     
                     if not model_filename:
-                        model_filename = file['name']
+                        model_filename = os.path.splitext(file['name'])[0]
+                        model_extension = os.path.splitext(file['name'])[1]
+                        model_filename = f"{model_filename}_{file['id']}{model_extension}"
                         dl_url = file['downloadUrl']
                         gl.json_info = item
                         sha256_value = file['hashes'].get('SHA256', 'Unknown')
@@ -671,7 +684,9 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     })
                     if is_primary:
                         default_file = unique_file_name
-                        model_filename = file['name']
+                        model_filename = os.path.splitext(file['name'])[0]
+                        model_extension = os.path.splitext(file['name'])[1]
+                        model_filename = f"{model_filename}_{file['id']}{model_extension}"
                         dl_url = file['downloadUrl']
                         gl.json_info = item
                         sha256_value = file['hashes'].get('SHA256', 'Unknown')
@@ -855,7 +870,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                           
         folder_location = "None"
         default_subfolder = "None"
-        sub_folders = ["None"]
+        sub_folders = _file.getSubfolders(model_folder, output_basemodel, nsfw, model_uploader, model_name, model_id, version_name, version_id)
 
         for root, dirs, files in os.walk(model_folder, followlinks=True):
             for filename in files:
@@ -876,8 +891,9 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                         except Exception as e:
                             print(f"Error decoding JSON: {str(e)}")
             else:
+                #filename_check
                 for filename in files:
-                    if filename == model_filename or filename == cleaned_name(model_filename):
+                    if filename.lower() == model_filename.lower() or filename.lower() == cleaned_name(model_filename).lower():
                         folder_location = root
                         BtnDownInt = False
                         BtnDel = True
@@ -886,99 +902,20 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
             if folder_location != "None":
                 break
 
-        insert_sub_1 = getattr(opts, "insert_sub_1", False)
-        insert_sub_2 = getattr(opts, "insert_sub_2", False)
-        insert_sub_3 = getattr(opts, "insert_sub_3", False)
-        insert_sub_4 = getattr(opts, "insert_sub_4", False)
-        insert_sub_5 = getattr(opts, "insert_sub_5", False)
-        insert_sub_6 = getattr(opts, "insert_sub_6", False)
-        insert_sub_7 = getattr(opts, "insert_sub_7", False)
-        insert_sub_8 = getattr(opts, "insert_sub_8", False)
-        insert_sub_9 = getattr(opts, "insert_sub_9", False)
-        insert_sub_10 = getattr(opts, "insert_sub_10", False)
-        insert_sub_11 = getattr(opts, "insert_sub_11", False)
-        insert_sub_12 = getattr(opts, "insert_sub_12", False)
-        insert_sub_13 = getattr(opts, "insert_sub_13", False)
-        insert_sub_14 = getattr(opts, "insert_sub_14", False)
-        dot_subfolders = getattr(opts, "dot_subfolders", True)
-        
-        try:
-            sub_folders = ["None"]
-            for root, dirs, _ in os.walk(model_folder, followlinks=True):
-                if dot_subfolders:
-                    dirs = [d for d in dirs if not d.startswith('.')]
-                    dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
-                for d in dirs:
-                    sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
-                    if sub_folder:
-                        sub_folders.append(f'{os.sep}{sub_folder}')
-            
-            sub_folders.remove("None")
-            sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
-            sub_folders.insert(0, "None")
-            base = cleaned_name(output_basemodel)
-            author = cleaned_name(model_uploader)
-            name = cleaned_name(model_name)
-            ver = cleaned_name(model_version)
-            
-            if insert_sub_1:
-                sub_folders.insert(1, os.path.join(os.sep, base))
-            if insert_sub_2:
-                sub_folders.insert(2, os.path.join(os.sep, base, author))
-            if insert_sub_3:
-                sub_folders.insert(3, os.path.join(os.sep, base, author, name))
-            if insert_sub_4:
-                sub_folders.insert(4, os.path.join(os.sep, base, author, name, ver))
-            if insert_sub_5:
-                sub_folders.insert(5, os.path.join(os.sep, base, name))
-            if insert_sub_6:
-                sub_folders.insert(6, os.path.join(os.sep, base, name, ver))
-            if insert_sub_7:
-                sub_folders.insert(7, os.path.join(os.sep, author))
-            if insert_sub_8:
-                sub_folders.insert(8, os.path.join(os.sep, author, base))
-            if insert_sub_9:
-                sub_folders.insert(9, os.path.join(os.sep, author, base, name))
-            if insert_sub_10:
-                sub_folders.insert(10, os.path.join(os.sep, author, base, name, ver))
-            if insert_sub_11:
-                sub_folders.insert(11, os.path.join(os.sep, author, name))
-            if insert_sub_12:
-                sub_folders.insert(12, os.path.join(os.sep, author, name, ver))
-            if insert_sub_13:
-                sub_folders.insert(13, os.path.join(os.sep, name))
-            if insert_sub_14:
-                sub_folders.insert(14, os.path.join(os.sep, name, ver))
-            
-            list = set()
-            sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
-        except Exception as e:
-            print(e)
-            sub_folders = ["None"]
-            
-        default_sub = sub_folder_value(content_type, desc)
-        
-        variable_mapping = {
-            "Base model": base,
-            "Author name": author,
-            "Model name": name,
-            "Model version": ver
-        }
-
-        if any(key in default_sub for key in variable_mapping.keys()):
-            path_components = [variable_mapping.get(component.strip(os.sep), component.strip(os.sep)) for component in default_sub.split(os.sep)]
-            default_sub = os.path.join(os.sep, *path_components)
-            
+        default_subfolder = sub_folder_value(content_type, desc)
+        if default_subfolder != "None":
+            default_subfolder = _file.convertCustomFolder(default_subfolder, output_basemodel, nsfw, model_uploader, model_name, model_id, version_name, version_id)
         if folder_location == "None":
             folder_location = model_folder
-            if default_sub != "None":
-                folder_path = folder_location + default_sub
+            if default_subfolder != "None":
+                folder_path = folder_location + default_subfolder
             else:
                 folder_path = folder_location
         else:
             folder_path = folder_location
+
         relative_path = os.path.relpath(folder_location, model_folder)
-        default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_sub if BtnDel == False else "None"
+        default_subfolder = f'{os.sep}{relative_path}' if relative_path != "." else default_subfolder if BtnDel == False else "None"
         if gl.isDownloading:
             item = gl.download_queue[0]
             if int(model_id) == int(item['model_id']):
@@ -1026,14 +963,14 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
 def sub_folder_value(content_type, desc=None):
     use_LORA = getattr(opts, "use_LORA", False)
     if content_type in ["LORA", "LoCon"] and use_LORA:
-        folder = getattr(opts, "LORA_LoCon_subfolder", "None")
+        folder = getattr(opts, "LORA_LoCon_default_subfolder", "None")
     elif content_type == "Upscaler":
         for upscale_type in ["SWINIR", "REALESRGAN", "GFPGAN", "BSRGAN"]:
             if upscale_type in desc:
-                folder = getattr(opts, f"{upscale_type}_subfolder", "None")
-        folder = getattr(opts, "ESRGAN_subfolder", "None")
+                folder = getattr(opts, f"{upscale_type}_default_subfolder", "None")
+        folder = getattr(opts, "ESRGAN_default_subfolder", "None")
     else:
-        folder = getattr(opts, f"{content_type}_subfolder", "None")
+        folder = getattr(opts, f"{content_type}_default_subfolder", "None")
     if folder == None:
         return "None"
     return folder
@@ -1186,11 +1123,15 @@ def get_headers(referer=None, no_api=None):
     
     return headers
 
-def request_civit_api(api_url=None):
+def request_civit_api(api_url=None, skip_error_check=False):
     headers = get_headers()
     proxies, ssl = get_proxies()
     try:
         response = requests.get(api_url, headers=headers, timeout=(60,30), proxies=proxies, verify=ssl)
+        if skip_error_check:
+            response.encoding = "utf-8"
+            data = json.loads(response.text)
+            return data
         response.raise_for_status()
     except requests.exceptions.Timeout as e:
         print("The request timed out. Please try again later.")

@@ -100,6 +100,18 @@ https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/44c5c7a0-4854
 
 # Changelog 📋
 
+<h3>v3.6.0</h3>
+
+* Feature: Ability to set custom default sub folders.
+* Feature: Automatically fetches latest available Basemodels.
+* Bug fix: Lag fixed on SD-WebUI Forge/Gradio 4+, thanks to @BenjaminSymons and @channelcat!
+* Bug fix: Version ID has been suffixed to filename to avoid detecting different models as installed.
+* Bug fix: Filename comparing to detect installed models is no longer case sensitive.
+* Bug fix: CivitAI button on model cards correctly works again.
+* Bug fix: Correct image path now gets used when local images in HTML are used.
+* Bug fix: Any trailing or leading spaces get removed from model/version names now.
+
+---
 <h3>v3.5.4</h3>
 
 * Feature: Added support for DoRA (Requires SD-WebUI v1.9)

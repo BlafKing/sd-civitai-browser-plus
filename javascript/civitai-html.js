@@ -367,7 +367,7 @@ function updateBackToTopVisibility(entries) {
 
 // Create the accordion dropdown inside the settings tab
 function createAccordion(containerDiv, subfolders, name, id_name) {
-    if (containerDiv == null || subfolders.length == 0) {
+    if (containerDiv == null) {
         return;
     }
     var accordionContainer = document.createElement('div'); 
@@ -380,12 +380,15 @@ function createAccordion(containerDiv, subfolders, name, id_name) {
         accordionDiv.style.display = (accordionDiv.style.display === 'none') ? 'block' : 'none';
         toggleButton.lastChild.style.transform = accordionDiv.style.display === 'none' ? 'rotate(90deg)' : 'rotate(0)';
     };
-    
+
     accordionContainer.appendChild(toggleButton);
     var accordionDiv = document.createElement('div');
     accordionDiv.classList.add('accordion');
-    accordionDiv.append(...subfolders);
-    accordionDiv.style.display = 'none';
+    if (subfolders && subfolders.length > 0) {
+        accordionDiv.append(...subfolders);
+    }
+    
+    accordionDiv.style.display = 'none'; // Initially hidden
     accordionContainer.appendChild(accordionDiv);
     containerDiv.appendChild(accordionContainer);
 }
@@ -486,14 +489,15 @@ function addOnClickToButtons() {
     });
 }
 
-function modelInfoPopUp(modelName, content_type) {
+function modelInfoPopUp(modelName=null, content_type=null, no_message=false) {
     const sendToBrowserElement = gradioApp().querySelector('#setting_civitai_send_to_browser input');
     let sendToBrowser = false;
     if (sendToBrowserElement) {
         sendToBrowser = sendToBrowserElement.checked;
     }
-
-    select_model(modelName, null, true, content_type, sendToBrowser);
+    if (modelName) {
+        select_model(modelName, null, true, content_type, sendToBrowser);
+    }
     if (sendToBrowser) {
         const tabNav = document.querySelector('.tab-nav');
         const buttons = tabNav.querySelectorAll('button');
@@ -558,19 +562,24 @@ function modelInfoPopUp(modelName, content_type) {
             zIndex: '1001'
         });
         inner.classList.add('civitai-overlay-inner');
-
-        const modelInfo = createElementWithStyle('div', {
-            fontSize: '24px',
-            color: 'white',
-            fontFamily: 'var(--font)'
-        });
-        modelInfo.classList.add('civitai-overlay-text');
-        modelInfo.textContent = 'Loading model info, please wait!';
+        
+        var modelInfo;
+        if (!no_message) {
+            modelInfo = createElementWithStyle('div', {
+                fontSize: '24px',
+                color: 'white',
+                fontFamily: 'var(--font)'
+            });
+            modelInfo.classList.add('civitai-overlay-text');
+            modelInfo.textContent = 'Loading model info, please wait!';
+        }
 
         document.body.style.overflow = 'hidden';
         document.body.appendChild(overlay);
         overlay.append(closeButton, inner);
-        inner.appendChild(modelInfo);
+        if (!no_message) {
+            inner.appendChild(modelInfo);
+        }
 
         setDynamicWidth(inner);
         window.addEventListener('resize', () => setDynamicWidth(inner));
@@ -601,11 +610,15 @@ function handleKeyPress(event) {
 }
 
 function inputHTMLPreviewContent(html_input) {
+    //console.log("Last 500 characters of HTML input:", html_input.slice(-500));
     var inner = document.querySelector('.civitai-overlay-inner')
     let startIndex = html_input.indexOf("'value': '");
     if (startIndex !== -1) {
         startIndex += "'value': '".length;
-        const endIndex = html_input.indexOf("', 'type': None,", startIndex);
+        let endIndex = html_input.indexOf(", 'placeholder'", startIndex);
+        if (endIndex === -1) {
+            endIndex = html_input.indexOf("', 'type': None,", startIndex);
+        }
         if (endIndex !== -1) {
             let extractedText = html_input.substring(startIndex, endIndex);
             var modelIdNotFound = extractedText.includes(">Model ID not found.<br>The");
@@ -625,6 +638,9 @@ function inputHTMLPreviewContent(html_input) {
             }
             modelInfo.innerHTML = extractedText;
             inner.appendChild(modelInfo);
+
+            inner.style.top = 'unset';
+            inner.style.transform = 'translate(-50%, 0%)'
 
             setDescriptionToggle();
         }
@@ -963,6 +979,188 @@ function setDescriptionToggle() {
     }
 }
 
+function submitNewSubfolder(subfolderId, subfolderValue) {
+    const output = gradioApp().querySelector('#create_subfolder textarea');
+    output.value = subfolderId + ".add." + subfolderValue;
+    updateInput(output)
+}
+
+function deleteSubfolder(subfolderId) {
+    const output = gradioApp().querySelector('#create_subfolder textarea');
+    output.value = subfolderId + ".delete.";
+    updateInput(output)
+}
+
+function createCustomSubfolder(subfolderDiv, subfolderId, subfolderValue) {
+    if (typeof subfolderId === 'undefined') {
+        console.error('subfolderId is required.');
+        return;
+    }
+
+    const newContainerDiv = document.createElement("div");
+    newContainerDiv.classList.add("svelte-1f354aw", "container", "CivitDefaultSubfolder");
+    newContainerDiv.style.display = "flex";
+    newContainerDiv.style.alignItems = "center";
+
+    newContainerDiv.setAttribute("subfolder_id", subfolderId);
+
+    const newTextArea = document.createElement("textarea");
+    newTextArea.setAttribute("data-testid", "textbox");
+    newTextArea.classList.add("scroll-hide", "svelte-1f354aw");
+    newTextArea.setAttribute("dir", "ltr");
+    newTextArea.setAttribute("placeholder", "{BASEMODEL}/{NSFW}/{AUTHOR}/{MODELNAME}/{MODELID}/{VERSIONNAME}/{VERSIONID}");
+    newTextArea.setAttribute("rows", "1");
+    newTextArea.style.overflowY = "scroll";
+    newTextArea.style.height = "42px";
+    newTextArea.style.flex = "1";
+
+    if (typeof subfolderValue !== 'undefined') {
+        newTextArea.value = subfolderValue;
+    }
+
+    newTextArea.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            submitNewSubfolder(subfolderId, newTextArea.value);
+        }
+    });
+
+    const saveButton = document.createElement("button");
+    saveButton.textContent = "Save";
+    saveButton.classList.add("save-button", "lg", "primary", "gradio-button", "svelte-cmf5ev");
+    saveButton.setAttribute("title", "")
+    saveButton.style.marginRight = "10px";
+    saveButton.addEventListener("click", function() {
+        submitNewSubfolder(subfolderId, newTextArea.value);
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.textContent = "Delete";
+    deleteButton.classList.add("delete-button", "lg", "primary", "gradio-button", "svelte-cmf5ev");
+    deleteButton.style.marginRight = "10px";
+    deleteButton.addEventListener("click", function() {
+        deleteSubfolder(subfolderId);
+        newContainerDiv.remove();
+    });
+
+    newContainerDiv.appendChild(deleteButton);
+    newContainerDiv.appendChild(saveButton);
+    newContainerDiv.appendChild(newTextArea);
+
+    subfolderDiv.appendChild(newContainerDiv);
+}
+
+function insertExistingSubfolders(input) {
+    const subfolder = document.querySelectorAll("civitai-custom-subfolder-div");
+    createCustomSubfolder(subfolder, Id, Value);
+}
+
+function createSubfolderButton() {
+    const subfolderParent = document.getElementById("create-sub-accordion");
+    const subfolderDiv = subfolderParent.querySelector(".accordion");
+    
+    const subfolder = document.createElement("div");
+    subfolder.classList.add("flex-column-layout", "civitai-custom-subfolder-div");
+
+    const customSubfoldersList = document.querySelector('#custom_subfolders_list');
+    const textarea = customSubfoldersList.querySelector('textarea');
+    const subfoldersString = textarea ? textarea.value : '';
+
+    const subfoldersArray = subfoldersString.split('␞␞');
+
+    for (let i = 0; i < subfoldersArray.length; i += 2) {
+        const subfolderId = subfoldersArray[i];
+        const subfolderValue = subfoldersArray[i + 1];
+
+        createCustomSubfolder(subfolder, subfolderId, subfolderValue);
+    }
+
+    const buttonContainer = document.createElement("div");
+    buttonContainer.classList.add("sub-folder-button-container");
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.gap = "10px";
+    
+    const optionsDiv = document.createElement("div");
+    optionsDiv.classList.add("placeholder-options-container");
+    optionsDiv.style.display = "flex";
+    optionsDiv.style.justifyContent = "center";
+
+    const plusButton = document.createElement("button");
+    plusButton.textContent = "Create new default sub folder entry";
+    plusButton.classList.add("plus-button", "lg", "primary", "gradio-button", "svelte-cmf5ev");
+    plusButton.style.marginTop = "10px";
+    plusButton.addEventListener("click", function() {
+        const existingSubfolderDivs = document.querySelectorAll("div.CivitDefaultSubfolder");
+        let highestSubfolderId = 0;
+
+        existingSubfolderDivs.forEach((div) => {
+            const subfolderId = parseInt(div.getAttribute('subfolder_id'), 10);
+            if (subfolderId > highestSubfolderId) {
+                highestSubfolderId = subfolderId;
+            }
+        });
+
+        const newSubfolderId = highestSubfolderId + 1;
+        createCustomSubfolder(subfolder, newSubfolderId);
+    });
+
+    // Create the guide button
+    const guide_html = `
+    <div style="text-align: center;">
+        <div>These options can be used to add sub-folder options.</div>
+        <div>There are a few placeholders you can use which will be automatically replaced with the selected model's information:</div>
+        <div>‎</div>
+        <div>{BASEMODEL}: Replaced with the base model name.</div>
+        <div>{NSFW}: Creates a folder named "nsfw", folder will not be created if model is sfw.</div>
+        <div>{AUTHOR}: Replaced with the author of the model.</div>
+        <div>{MODELNAME}: Replaced with the name of the model.</div>
+        <div>{MODELID}: Replaced with the unique ID of the model.</div>
+        <div>{VERSIONNAME}: Replaced with the version name of the model.</div>
+        <div>{VERSIONID}: Replaced with the unique ID of the model version.</div>
+        <div>‎</div>
+        <div>For example, if I select a model called 'ReV Animated'</div>
+        <div>and it's version is called 'V2 Rebirth' then the following:</div>
+        <div>{MODELNAME}/{VERSIONNAME}</div>
+        <div>Will be replaced with:</div>
+        <div>ReV Animated/V2 Rebirth</div>
+        <div>‎</div>
+        <div>Always use '/' as a seperator, regardless of your OS</div>
+    </div>
+    `;
+    const guideButton = document.createElement("button");
+    guideButton.textContent = "Guide";
+    guideButton.classList.add("guide-button", "lg", "primary", "gradio-button", "svelte-cmf5ev");
+    guideButton.style.marginTop = "10px";
+    guideButton.addEventListener("click", function() {
+        modelInfoPopUp(null, null, true);
+        insertGuideMessage(guide_html);
+    });
+
+    const optionsText = document.createElement("span");
+    optionsText.textContent = "Available options: {BASEMODEL} {NSFW} {AUTHOR} {MODELNAME} {MODELID} {VERSIONNAME} {VERSIONID}";
+
+    // Append buttons to the container
+    buttonContainer.appendChild(guideButton);
+    buttonContainer.appendChild(plusButton);
+
+    optionsDiv.appendChild(optionsText);
+
+    subfolder.insertBefore(optionsDiv, subfolder.firstChild);
+    subfolder.insertBefore(buttonContainer, subfolder.firstChild);
+    subfolderDiv.appendChild(subfolder);
+}
+
+function insertGuideMessage(html_input) {
+    const overlayContainer = document.querySelector(".civitai-overlay-inner");
+    if (overlayContainer) {
+        const guideHtml = document.createElement('div');
+        guideHtml.innerHTML = html_input;
+        while (guideHtml.firstChild) {
+            overlayContainer.appendChild(guideHtml.firstChild);
+        }
+    }
+}
+
 // Runs all functions when the page is fully loaded
 function onPageLoad() {
     updateSVGIcons();
@@ -975,9 +1173,8 @@ function onPageLoad() {
         let div = subfolderDiv || downloadDiv;
         let subfolders = div.querySelectorAll("[id$='subfolder']");
         createAccordion(div, subfolders, "Default sub folders", 'default-sub-accordion');
-
-        subfolders = div.querySelectorAll("[id^='setting_insert_sub']");
-        createAccordion(div, subfolders, "Insert sub folder options", 'insert-sub-accordion');
+        createAccordion(div, null, "Create sub folder entries", 'create-sub-accordion');
+        createSubfolderButton();
     }
 
     if (subfolderDiv || settingsDiv) {

@@ -180,16 +180,11 @@ def selected_to_queue(model_list, subfolder, download_start, create_json, curren
                 break
                 
         model_folder = _api.contenttype_folder(content_type, desc)
-        
-        sub_opt1 = os.path.join(os.sep, _api.cleaned_name(model_name))
-        sub_opt2 = os.path.join(os.sep, _api.cleaned_name(model_name), _api.cleaned_name(version_name))
             
-        default_sub = _api.sub_folder_value(content_type, desc)
-        if default_sub == f"{os.sep}Model Name":
-            default_sub = sub_opt1
-        elif default_sub == f"{os.sep}Model Name{os.sep}Version Name":
-            default_sub = sub_opt2
-           
+        default_subfolder = _api.sub_folder_value(content_type, desc)
+        if default_subfolder != "None":
+            default_subfolder = _file.convertCustomFolder(default_subfolder, output_basemodel, nsfw, model_uploader, model_name, model_id, version_name, version_id)
+
         if subfolder and subfolder != "None" and subfolder != "Only available if the selected files are of the same model type":
             from_batch = False
             if platform.system() == "Windows":
@@ -200,8 +195,8 @@ def selected_to_queue(model_list, subfolder, download_start, create_json, curren
             install_path = model_folder + subfolder
         else:
             from_batch = True
-            if default_sub != "None":
-                install_path = model_folder + default_sub
+            if default_subfolder != "None":
+                install_path = model_folder + default_subfolder
             else:
                 install_path = model_folder
         

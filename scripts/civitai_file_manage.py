@@ -363,7 +363,6 @@ def convert_local_images(html):
     return str(soup)
 
 def model_from_sent(model_name, content_type):
-    
     modelID_failed = False
     output_html = None
     model_file = None
@@ -459,6 +458,8 @@ def model_from_sent(model_name, content_type):
     output_html = output_html.replace('zoom-overlay', 'zoom-preview-overlay')
     output_html = output_html.replace('resetZoom', 'resetPreviewZoom')
     
+    debug_print(output_html)
+
     number = _download.random_number()
     
     return (
@@ -511,12 +512,98 @@ def send_to_browser(model_name, content_type, click_first_item):
             number = _download.random_number(click_first_item)
     
     return (
-        gr.Textbox.update(output_html), # Card HTML
+        gr.Textbox.update(value=output_html), # Card HTML
         gr.Button.update(interactive=False), # Prev Button
         gr.Button.update(interactive=False), # Next Button 
         gr.Slider.update(value=1, maximum=1), # Page Slider
-        gr.Textbox.update(number) # Click first card trigger 
+        gr.Textbox.update(value=number) # Click first card trigger 
     )
+
+def convertCustomFolder(folderValue, basemodel, nsfw, author, modelName, modelId, versionName, versionId):
+    replacements = {
+        "BASEMODEL": _api.cleaned_name(str(basemodel)),
+        "AUTHOR": _api.cleaned_name(str(author)),
+        "MODELNAME": _api.cleaned_name(str(modelName)),
+        "MODELID": _api.cleaned_name(str(modelId)),
+        "VERSIONNAME": _api.cleaned_name(str(versionName)),
+        "VERSIONID": _api.cleaned_name(str(versionId))
+    }
+
+    if not nsfw:
+        segments = folderValue.split(os.sep)
+        segments = [seg for seg in segments if "{NSFW}" not in seg]
+        folderValue = os.sep.join(segments)
+    else:
+        replacements["NSFW"] = "nsfw"
+
+    formatted_value = folderValue.format(**replacements)
+    
+    converted_folder = formatted_value.replace('/', os.sep).replace('\\', os.sep)
+    converted_folder = os.sep.join(part for part in converted_folder.split(os.sep) if part)
+
+    if not converted_folder.startswith(os.sep):
+        converted_folder = os.sep + converted_folder
+
+    return converted_folder
+
+def getSubfolders(model_folder, basemodel=None, nsfw=None, author=None, modelName=None, modelId=None, versionName=None, versionId=None):
+    try:
+        dot_subfolders = getattr(opts, "dot_subfolders", True)
+        sub_folders = ["None"]
+        for root, dirs, _ in os.walk(model_folder, followlinks=True):
+            if dot_subfolders:
+                dirs = [d for d in dirs if not d.startswith('.')]
+                dirs = [d for d in dirs if not any(part.startswith('.') for part in os.path.join(root, d).split(os.sep))]
+            for d in dirs:
+                sub_folder = os.path.relpath(os.path.join(root, d), model_folder)
+                if sub_folder:
+                    if not sub_folder.startswith(os.sep):
+                        sub_folder = os.sep + sub_folder
+                    sub_folders.append(sub_folder)
+        
+        with open(gl.subfolder_json, 'r') as json_file:
+            config_data = json.load(json_file)
+        
+        for key, value in config_data.items():
+            if basemodel:
+                try:
+                    converted_value = convertCustomFolder(value, basemodel, nsfw, author, modelName, modelId, versionName, versionId)
+                    sub_folders.append(converted_value)
+                except Exception as e:
+                    print(f"Error: Failed to process custom subfolder: {e}")
+            else:
+                upper_value = value.upper()
+                if not upper_value.startswith(os.sep):
+                    upper_value = os.sep + upper_value
+                sub_folders.append(upper_value)
+        
+        sub_folders.remove("None")
+        sub_folders = sorted(sub_folders, key=lambda x: (x.lower(), x))
+        sub_folders.insert(0, "None")
+
+    except Exception as e:
+        print(e)
+        sub_folders = ["None"]
+    
+    list = set()
+    sub_folders = [x for x in sub_folders if not (x in list or list.add(x))]
+    
+    return sub_folders
+
+def updateSubfolder(subfolderInput):
+    with open(gl.subfolder_json, 'r') as f:
+        data = json.load(f)
+
+    index, action, value = subfolderInput.split('.', 2)
+    index = str(index)
+
+    if action == "delete":
+        data.pop(index, None)
+    elif action == "add":
+        data[index] = value
+
+    with open(gl.subfolder_json, 'w') as f:
+        json.dump(data, f, indent=4)
 
 def is_image_url(url):
     image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
@@ -558,6 +645,7 @@ def make_dir(path):
 
 def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_html=None, overwrite_toggle=False, api_response=None):
     save_path, filename = get_save_path_and_name(install_path, file_name, api_response, sub_folder)
+    image_path = get_image_path(install_path, api_response, sub_folder)
     json_file = os.path.join(install_path, f'{filename}.json')
     make_dir(install_path)
     
@@ -576,7 +664,7 @@ def save_model_info(install_path, file_name, sub_folder, sha256=None, preview_ht
             img_urls = re.findall(r'data-sampleimg="true" src=[\'"]?([^\'" >]+)', preview_html)
             for i, img_url in enumerate(img_urls):
                 img_name = f'{filename}_{i}.jpg'
-                preview_html = preview_html.replace(img_url,f'{os.path.join(save_path, img_name)}')
+                preview_html = preview_html.replace(img_url,f'{os.path.join(image_path, img_name)}')
                 
         match = re.search(r'(\s*)<div class="model-block">', preview_html)
         if match:
