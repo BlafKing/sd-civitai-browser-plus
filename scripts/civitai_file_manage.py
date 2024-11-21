@@ -340,11 +340,14 @@ def gen_sha256(file_path):
     
     return hash_value
 
-def convert_local_images(html):
+def convert_local_images(html, basePath=None):
     soup = BeautifulSoup(html)
     for simg in soup.find_all("img", attrs={"data-sampleimg": "true"}):
         url = urlparse(simg["src"])
         path = url.path
+        if basePath and not os.path.exists(path):
+            # Try to assume the path is relative to the given basePath
+            path = os.path.join(basePath, path)
         if not os.path.exists(path):
             print("URL path does not exist: %s" % url.path)
             # Try the raw url, files can be saved in windows as "C:\..." and
@@ -405,7 +408,7 @@ def model_from_sent(model_name, content_type):
                 if index != -1:
                     output_html = output_html[index + len("</head>"):]
                 if local_path_in_html:
-                    output_html = convert_local_images(output_html)
+                    output_html = convert_local_images(output_html, os.path.dirname(html_file))
     
     if not output_html:
         modelID = get_models(model_file, True)
