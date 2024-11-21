@@ -382,11 +382,13 @@ def model_from_sent(model_name, content_type):
     
     extensions = ['.pt', '.ckpt', '.pth', '.safetensors', '.th', '.zip', '.vae']
 
+    model_file_length = 0
     for content_type_item in content_type:
         folder = _api.contenttype_folder(content_type_item)
         for folder_path, _, files in os.walk(folder, followlinks=True):
             for file in files:
-                if file.startswith(model_name) and file.endswith(tuple(extensions)):
+                if (not model_file_length or len(file) < model_file_length) and file.startswith(model_name) and file.endswith(tuple(extensions)):
+                    model_file_length = len(file)
                     model_file = os.path.join(folder_path, file)
                     
     if not model_file:
