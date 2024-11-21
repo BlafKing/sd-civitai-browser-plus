@@ -386,7 +386,7 @@ def model_from_sent(model_name, content_type):
         folder = _api.contenttype_folder(content_type_item)
         for folder_path, _, files in os.walk(folder, followlinks=True):
             for file in files:
-                if file.startswith(model_name) and file.endswith(tuple(extensions)):
+                if (not model_file or len(file) > len(model_file)) and file.startswith(model_name) and file.endswith(tuple(extensions)):
                     model_file = os.path.join(folder_path, file)
                     
     if not model_file:
