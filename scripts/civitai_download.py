@@ -151,13 +151,17 @@ def create_model_item(dl_url, model_filename, install_path, model_name, version_
 
 def selected_to_queue(model_list, subfolder, download_start, create_json, current_html):
     global total_count, current_count
+    output_basemodel = "default_value"  # Replace with an appropriate default
+    nsfw = False  # Define or retrieve these variables as needed
+    model_uploader = "default_uploader"  # Define or retrieve appropriately
+
     if gl.download_queue:
         number = download_start
     else:
         number = random_number(download_start)
         total_count = 0
         current_count = 0
-        
+
     model_list = json.loads(model_list)
 
     for model_string in model_list:
@@ -178,18 +182,20 @@ def selected_to_queue(model_list, subfolder, download_start, create_json, curren
                     model_sha256 = files[0].get('hashes', {}).get('SHA256')
                     dl_url = files[0].get('downloadUrl')
                 break
-                
+
         model_folder = _api.contenttype_folder(content_type, desc)
-            
+
         default_subfolder = _api.sub_folder_value(content_type, desc)
         if default_subfolder != "None":
-            default_subfolder = _file.convertCustomFolder(default_subfolder, output_basemodel, nsfw, model_uploader, model_name, model_id, version_name, version_id)
+            default_subfolder = _file.convertCustomFolder(
+                default_subfolder, output_basemodel, nsfw, model_uploader, model_name, model_id, version_name, version.get("id")
+            )
 
         if subfolder and subfolder != "None" and subfolder != "Only available if the selected files are of the same model type":
             from_batch = False
             if platform.system() == "Windows":
                 subfolder = re.sub(r'[/:*?"<>|]', '', subfolder)
-            
+
             if not subfolder.startswith(os.sep):
                 subfolder = os.sep + subfolder
             install_path = model_folder + subfolder
@@ -199,21 +205,21 @@ def selected_to_queue(model_list, subfolder, download_start, create_json, curren
                 install_path = model_folder + default_subfolder
             else:
                 install_path = model_folder
-        
+
         model_item = create_model_item(dl_url, model_filename, install_path, model_name, version_name, model_sha256, model_id, create_json, from_batch)
         if model_item:
             gl.download_queue.append(model_item)
             total_count += 1
-    
+
     html = download_manager_html(current_html)
 
-    return  (
-            gr.Button.update(interactive=False, visible=False), # Download Button
-            gr.Button.update(interactive=True, visible=True), # Cancel Button
-            gr.Button.update(interactive=True if len(gl.download_queue) > 1 else False, visible=True), # Cancel All Button
-            gr.Textbox.update(value=number), # Download Start Trigger
-            gr.HTML.update(value='<div style="min-height: 100px;"></div>'), # Download Progress
-            gr.HTML.update(value=html) # Download Manager HTML
+    return (
+        gr.Button.update(interactive=False, visible=False),  # Download Button
+        gr.Button.update(interactive=True, visible=True),  # Cancel Button
+        gr.Button.update(interactive=True if len(gl.download_queue) > 1 else False, visible=True),  # Cancel All Button
+        gr.Textbox.update(value=number),  # Download Start Trigger
+        gr.HTML.update(value='<div style="min-height: 100px;"></div>'),  # Download Progress
+        gr.HTML.update(value=html)  # Download Manager HTML
     )
 
 
