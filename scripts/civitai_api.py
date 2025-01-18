@@ -625,6 +625,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                 model_uploader = None
                 uploader_avatar = None
                 nsfw = item['nsfw']
+                poi = item['poi']
                 creator = item.get('creator', None)
                 if creator:
                     model_uploader = creator.get('username', None)
@@ -647,7 +648,10 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             break
                     
                 model_availability = selected_version.get('availability', 'Unknown')
-                model_date_published = selected_version.get('publishedAt', '').split('T')[0]
+                try:
+                    model_date_published = selected_version.get('publishedAt', '').split('T')[0]
+                except:
+                    model_date_published = "Not Found"
                 version_name = selected_version['name']
                 version_id = selected_version['id']
 
@@ -821,7 +825,7 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                             f'{allow_svg if "Sell" in allowCommercialUse else deny_svg} Sell this model or merges using this model<br/>'\
                             f'{allow_svg if item.get("allowDifferentLicense") else deny_svg} Have different permissions when sharing merges'\
                             '</p>'
-                
+                version_url = f"{model_main_url}?modelVersionId={selected_version['id']}"
                 if not creator or model_uploader == 'User not found':
                     uploader = f'<h3 class="model-uploader"><span>{escape(str(model_uploader))}</span>{uploader_avatar}</h3>'
                 else:
@@ -833,13 +837,15 @@ def update_model_info(model_string=None, model_version=None, only_html=False, in
                     <div class="civitai-version-info" style="display:flex; flex-wrap:wrap; justify-content:space-between;">
                         <dl id="info_block">
                             <dt>Version</dt>
-                            <dd>{escape(str(model_version))}</dd>
+                            <dd><a href="{version_url}" target="_blank">{escape(str(model_version))}</a></dd>
                             <dt>Base Model</dt>
                             <dd>{escape(str(output_basemodel))}</dd>
                             <dt>Published</dt>
                             <dd>{model_date_published}</dd>
                             <dt>Availability</dt>
                             <dd>{model_availability}</dd>
+                            {"<dt>Real Person</dt>" if poi else ''}
+                            {f'<dd>This resource is intended to reproduce the likeness of a real person. Out of respect for this individual and in accordance with our <a href="https://civitai.com/content/rules/real-people" target="_blank">Content Rules</a>, only work-safe images and non-commercial use is permitted.</dd>' if poi else ''}
                             <dt>CivitAI Tags</dt>
                             <dd>
                                 <div class="civitai-tags-container">
