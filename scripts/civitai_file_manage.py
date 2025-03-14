@@ -639,6 +639,8 @@ def clean_description(desc):
                 p.replace_with(p.text + '\n\n')
 
         cleaned_text = soup.get_text()
+        # For 3 or more newlines, replace with only 2
+        cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
     except ImportError:
         print("Python module 'BeautifulSoup' was not imported correctly, cannot clean description. Please try to restart or install it manually.")
         cleaned_text = desc
