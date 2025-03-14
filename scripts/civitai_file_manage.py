@@ -613,11 +613,27 @@ def is_image_url(url):
 
 def clean_description(desc):
     try:
+        # Add whitespace for headers and line breaks (<br>)
+        for element in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+            desc = desc.replace(f'</{element}>', f'</{element}>\n')
+        desc = desc.replace('<br>', '\n\n')
+        desc = desc.replace('</br>', '\n\n')
+
         soup = BeautifulSoup(desc, 'html.parser')
         for a in soup.find_all('a', href=True):
             link_text = a.text + ' ' + a['href']
             if not is_image_url(a['href']):
                 a.replace_with(link_text)
+
+        # Add whitespace for paragraph blocks
+        for p in soup.find_all('p'):
+            # Some descriptions have empty paragraph blocks with no text (like <p></p>)
+            # usually indicating a double newline.
+            if p.text == '':
+                p.replace_with(p.text + '\n\n')
+            # For all other <p> blocks, use a single newline.
+            else:
+                p.replace_with(p.text + '\n\n')
 
         cleaned_text = soup.get_text()
     except ImportError:
