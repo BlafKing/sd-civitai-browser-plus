@@ -621,9 +621,12 @@ def clean_description(desc):
 
         soup = BeautifulSoup(desc, 'html.parser')
         for a in soup.find_all('a', href=True):
-            link_text = a.text + ' ' + a['href']
-            if not is_image_url(a['href']):
-                a.replace_with(link_text)
+            hyperlink_url = a['href']
+
+            # Only add the URL to the text if the hyperlink text is different from its URL
+            # Otherwise, we end up with a duplicate URL in the description
+            if a.text != hyperlink_url and not is_image_url(hyperlink_url):
+                a.replace_with(f"{a.text} ({hyperlink_url})")
 
         # Add whitespace for paragraph blocks
         for p in soup.find_all('p'):
