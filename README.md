@@ -1,9 +1,19 @@
+<h1 align="center">I have unfortunately stopped developing this extension</h1>
+
+**This project has been archived as I'm no longer actively maintaining it. There are several reasons for this decision:**
+
+1. The extension breaks frequently due to changes in the CivitAI API and SD-WebUI
+2. I no longer use SD-WebUI myself (which was my original motivation for creating this)
+3. After working with various Python UI libraries, I've found Gradio to be particularly cumbersome for this type of project
+4. The codebase wasn't designed as well as it could have been as this was my first python project, so it's a real mess to implement changes
+
+**I encourage you to try an alternative actively maintained version from SignalFlagz [here](https://github.com/SignalFlagZ/sd-webui-civbrowser), which this project was originally based off of.**
+**Thank you to everyone who used and contributed to this project over time.**
 
 ![CivitAI Browser-05+](https://github.com/BlafKing/sd-civitai-browser-plus/assets/9644716/95afcc41-56f0-4398-8779-51cb2a9e2f55)
 
 ---
 ### Extension for [Automatic1111's Stable Diffusion Web UI](https://github.com/AUTOMATIC1111/stable-diffusion-webui)
-
 
 <h1>Features 🚀</h1>
 <h3>Browse all models from CivitAI 🧩</h3>
