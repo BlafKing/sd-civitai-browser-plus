@@ -613,13 +613,34 @@ def is_image_url(url):
 
 def clean_description(desc):
     try:
+        # Add whitespace for headers and line breaks (<br>)
+        for element in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+            desc = desc.replace(f'</{element}>', f'</{element}>\n')
+        desc = desc.replace('<br>', '\n\n')
+        desc = desc.replace('</br>', '\n\n')
+
         soup = BeautifulSoup(desc, 'html.parser')
         for a in soup.find_all('a', href=True):
-            link_text = a.text + ' ' + a['href']
-            if not is_image_url(a['href']):
-                a.replace_with(link_text)
+            hyperlink_url = a['href']
+
+            # Only add the URL to the text if the hyperlink text is different from its URL
+            # Otherwise, we end up with a duplicate URL in the description
+            if a.text != hyperlink_url and not is_image_url(hyperlink_url):
+                a.replace_with(f"{a.text} ({hyperlink_url})")
+
+        # Add whitespace for paragraph blocks
+        for p in soup.find_all('p'):
+            # Some descriptions have empty paragraph blocks with no text (like <p></p>)
+            # usually indicating a double newline.
+            if p.text == '':
+                p.replace_with(p.text + '\n\n')
+            # For all other <p> blocks, use a single newline.
+            else:
+                p.replace_with(p.text + '\n\n')
 
         cleaned_text = soup.get_text()
+        # For 3 or more newlines, replace with only 2
+        cleaned_text = re.sub(r"\n{3,}", "\n\n", cleaned_text)
     except ImportError:
         print("Python module 'BeautifulSoup' was not imported correctly, cannot clean description. Please try to restart or install it manually.")
         cleaned_text = desc
